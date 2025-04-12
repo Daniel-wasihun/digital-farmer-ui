@@ -30,7 +30,17 @@ class StorageService {
 
   // Get selected tab index
   int getTabIndex() {
-    return _box.read('tabIndex') ?? 0; // Default to 0 if not set
+    return _box.read('tabIndex') ?? 0;
+  }
+
+  // Save theme mode
+  Future<void> saveThemeMode(bool isDark) async {
+    await _box.write('isDarkMode', isDark);
+  }
+
+  // Get theme mode
+  bool getThemeMode() {
+    return _box.read('isDarkMode') ?? false;
   }
 
   // Clear storage

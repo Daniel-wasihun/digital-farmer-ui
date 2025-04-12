@@ -70,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isTablet = size.width > 600;
     final scaleFactor = isTablet ? 1.2 : 1.0;
     final height = size.height;
+    final width = size.width;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -176,27 +177,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               backgroundColor: Colors.white.withOpacity(0.2),
               elevation: 0,
               type: BottomNavigationBarType.fixed,
-              selectedLabelStyle: TextStyle(fontSize: 12 * scaleFactor, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: TextStyle(fontSize: 12 * scaleFactor, fontWeight: FontWeight.w400),
+              selectedLabelStyle: TextStyle(fontSize:(width * 0.03 + height * 0.02 )/2, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: TextStyle(fontSize:(width * 0.03 + height * 0.025 )/2, fontWeight: FontWeight.w400),
               items: [
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.agriculture, size: height * 0.025),
+                  icon: Icon(Icons.agriculture, size: (width * 0.03 + height * 0.04 )/2),
                   label: 'cropTips'.tr,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.cloud, size: height * 0.025),
+                  icon: Icon(Icons.cloud, size: (width * 0.03 + height * 0.04 )/2),
                   label: 'weather'.tr,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.store, size: height * 0.025),
+                  icon: Icon(Icons.store, size: (width * 0.03 + height * 0.04 )/2),
                   label: 'market'.tr,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.chat, size: height * 0.025),
+                  icon: Icon(Icons.chat, size: (width * 0.03 + height * 0.04 )/2),
                   label: 'chat'.tr,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.settings, size: height * 0.025),
+                  icon: Icon(Icons.settings, size: (width * 0.03 + height * 0.04 )/2),
                   label: 'settings'.tr,
                 ),
               ],
