@@ -5,8 +5,11 @@ import 'package:animated_background/animated_background.dart';
 import '../../controllers/auth_controller.dart';
 import '../../models/user_model.dart';
 import '../widgets/custom_text_field.dart';
+import '../widgets/glassmorphic_card.dart';
 
 class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
+
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
@@ -19,15 +22,41 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
   final confirmPasswordController = TextEditingController();
 
   @override
+  void dispose() {
+    usernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isTablet = size.width > 600;
+    // Responsive scaleFactor based on width and height
+    final scaleFactor = isTablet
+        ? (size.width / 720).clamp(1.0, 1.2)
+        : (size.width / 360).clamp(0.8, 1.0) * (size.height / 640).clamp(0.85, 1.0);
+    final formWidth = isTablet ? size.width * 0.75 : size.width * 0.85;
+    final maxFormWidth = isTablet ? 500.0 : 380.0;
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('signup'.tr, style: TextStyle(color: Colors.white)),
+        title: Text(
+          'signup'.tr,
+          style: TextStyle(
+            color: Colors.grey.shade800,
+            fontSize: 18 * scaleFactor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.language, color: Colors.white),
+            icon: Icon(Icons.language, color: Colors.grey.shade800, size: 20 * scaleFactor),
             onPressed: () => authController.toggleLanguage(),
             tooltip: 'toggle_language'.tr,
           ),
@@ -36,65 +65,69 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
       body: AnimatedBackground(
         behaviour: RandomParticleBehaviour(
           options: ParticleOptions(
-            baseColor: Colors.teal,
-            spawnMinSpeed: 10.0,
-            spawnMaxSpeed: 50.0,
+            baseColor: Colors.blue.shade100,
+            spawnMinSpeed: 6.0,
+            spawnMaxSpeed: 30.0,
             particleCount: 50,
-            spawnOpacity: 0.3,
+            spawnOpacity: 0.15,
+            maxOpacity: 0.3,
           ),
         ),
         vsync: this,
         child: Container(
           decoration: BoxDecoration(
-            gradient: RadialGradient(
-              colors: [Colors.blueAccent.withOpacity(0.7), Colors.teal.withOpacity(0.9)],
-              center: Alignment.center,
-              radius: 1.5,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.blue.shade50.withOpacity(0.9),
+                Colors.white.withOpacity(0.95),
+              ],
             ),
           ),
           child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Obx(
-                () => authController.isLoading.value
-                    ? Center(
-                        child: SpinKitWave(
-                          color: Colors.white,
-                          size: 50.0,
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(height: 20),
-                            Text(
-                              'signup'.tr,
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 10.0,
-                                    color: Colors.black45,
-                                    offset: Offset(2.0, 2.0),
-                                  ),
-                                ],
+            child: Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: size.width * (isTablet ? 0.12 : 0.06),
+                      vertical: size.height * 0.03,
+                    ),
+                    child: Obx(
+                      () => authController.isLoading.value
+                          ? Center(
+                              child: SpinKitFadingCube(
+                                color: Colors.blue.shade300,
+                                size: 32 * scaleFactor,
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 30),
-                            Card(
-                              elevation: 12,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                            )
+                          : ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: formWidth.clamp(280, maxFormWidth),
                               ),
-                              color: Colors.white.withOpacity(0.95),
-                              child: Padding(
-                                padding: const EdgeInsets.all(20.0),
+                              child: GlassmorphicCard(
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    Text(
+                                      'signup'.tr,
+                                      style: TextStyle(
+                                        fontSize: 22 * scaleFactor,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.grey.shade800,
+                                        shadows: const [
+                                          Shadow(
+                                            blurRadius: 6.0,
+                                            color: Colors.black12,
+                                            offset: Offset(1, 1),
+                                          ),
+                                        ],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: 14 * scaleFactor),
                                     CustomTextField(
                                       label: 'username'.tr,
                                       controller: usernameController,
@@ -102,8 +135,9 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                                       errorText: authController.usernameError.value,
                                       onChanged: (value) =>
                                           authController.validateUsername(value),
+                                      scaleFactor: scaleFactor,
                                     ),
-                                    SizedBox(height: 16),
+                                    SizedBox(height: 10 * scaleFactor),
                                     CustomTextField(
                                       label: 'email'.tr,
                                       controller: emailController,
@@ -112,8 +146,9 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                                       errorText: authController.emailError.value,
                                       onChanged: (value) =>
                                           authController.validateEmail(value),
+                                      scaleFactor: scaleFactor,
                                     ),
-                                    SizedBox(height: 16),
+                                    SizedBox(height: 10 * scaleFactor),
                                     CustomTextField(
                                       label: 'password'.tr,
                                       controller: passwordController,
@@ -122,8 +157,9 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                                       errorText: authController.passwordError.value,
                                       onChanged: (value) =>
                                           authController.validatePassword(value),
+                                      scaleFactor: scaleFactor,
                                     ),
-                                    SizedBox(height: 16),
+                                    SizedBox(height: 10 * scaleFactor),
                                     CustomTextField(
                                       label: 'confirm_password'.tr,
                                       controller: confirmPasswordController,
@@ -134,8 +170,9 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                                       onChanged: (value) =>
                                           authController.validateConfirmPassword(
                                               passwordController.text, value),
+                                      scaleFactor: scaleFactor,
                                     ),
-                                    SizedBox(height: 20),
+                                    SizedBox(height: 14 * scaleFactor),
                                     ElevatedButton(
                                       onPressed: () {
                                         final user = UserModel(
@@ -151,36 +188,44 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.tealAccent,
-                                        padding: EdgeInsets.symmetric(vertical: 16),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                        backgroundColor: Colors.blue.shade200,
+                                        foregroundColor: Colors.grey.shade800,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 10 * scaleFactor,
                                         ),
-                                        elevation: 8,
-                                        shadowColor: Colors.black45,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        elevation: 3,
+                                        shadowColor: Colors.black12,
                                       ),
                                       child: Text(
                                         'create_account'.tr,
                                         style: TextStyle(
-                                            fontSize: 18, color: Colors.black87),
+                                          fontSize: 14 * scaleFactor,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-                                    SizedBox(height: 10),
+                                    SizedBox(height: 8 * scaleFactor),
                                     TextButton(
                                       onPressed: () => Get.back(),
                                       child: Text(
                                         'already_have_account'.tr,
                                         style: TextStyle(
-                                            color: Colors.teal[800], fontSize: 16),
+                                          color: Colors.blue.shade300,
+                                          fontSize: 12 * scaleFactor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),

@@ -29,11 +29,15 @@ class AppTranslations extends Translations {
           'toggle_language': 'Amharic',
           'home': 'Home',
           'profile': 'Profile',
-          'messages': 'Messages',
           'notifications': 'Notifications',
           'settings': 'Settings',
           'logout': 'Logout',
           'app_title': 'My App',
+          'page': 'Page',
+          'cropTips': 'Tips',
+          'weather': 'Weather',
+          'market': 'Market',
+          'chat': 'Chat',
         },
         'am_ET': {
           'signup': 'መመዝገብ',
@@ -66,6 +70,10 @@ class AppTranslations extends Translations {
           'settings': 'ቅንብሮች',
           'logout': 'መውጣት',
           'app_title': 'የእኔ መተግበሪያ',
-        },
+          'cropTips': 'ምክሮች',
+          'weather': 'የአየር ሁኔታ',
+          'market': 'ገበያ',
+          'chat': 'ውይይት',
+            },
       };
 }

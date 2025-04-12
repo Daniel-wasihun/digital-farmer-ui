@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/user_model.dart';
+import '../routes/app_routes.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 
@@ -118,8 +119,8 @@ class AuthController extends GetxController {
       await _storageService.saveUser(response['user']);
       await _storageService.saveToken(response['token']);
       Get.snackbar('success'.tr, 'logged_in_successfully'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
-      Get.offAllNamed('/home');
+          backgroundColor: Colors.greenAccent, colorText: Colors.white);
+      Get.offAllNamed(AppRoutes.getHomePage());
     } catch (e) {
       print('Signin failed: $e');
       Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),

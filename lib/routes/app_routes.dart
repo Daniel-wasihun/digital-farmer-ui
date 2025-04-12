@@ -9,9 +9,9 @@ class AppRoutes {
   static const String signup = '/signup';
   static const String home = '/home';
 
-  static String getSignInPage() => signin; // Returns "/signin"
-  static String getSignUpPage() => signup; // Returns "/signup"
-  static String getHomePage() => home;      // Returns "/home"
+  static String getSignInPage() => signin;
+  static String getSignUpPage() => signup;
+  static String getHomePage() => home;
 
   static String getInitialRoute() {
     final storageService = Get.find<StorageService>();
@@ -20,8 +20,23 @@ class AppRoutes {
   }
 
   static List<GetPage> routes = [
-    GetPage(name: signin, page: () => SignInScreen()),
-    GetPage(name: signup, page: () => SignUpScreen()),
-    GetPage(name: home, page: () => HomeScreen()),
+    GetPage(
+      name: signin,
+      page: () => const SignInScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: signup,
+      page: () => const SignUpScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: home,
+      page: () => const HomeScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
   ];
 }
