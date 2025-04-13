@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:animated_background/animated_background.dart';
-import 'dart:ui';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/theme_controller.dart';
 import '../../services/storage_service.dart';
 import '../widgets/glassmorphic_card.dart';
 
@@ -13,10 +12,12 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   final AuthController authController = Get.find<AuthController>();
+  final ThemeController themeController = Get.find<ThemeController>();
   final StorageService storageService = Get.find<StorageService>();
   final RxInt _currentIndex = 0.obs;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -35,12 +36,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to load tab index: $e',
-          backgroundColor: Colors.red.shade100);
+          backgroundColor: Colors.red.shade300);
       _currentIndex.value = 0;
     }
   }
 
-  // Define tab data for content modularity
   final List<Map<String, dynamic>> _tabData = [
     {
       'key': 'cropTips',
@@ -67,142 +67,152 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
-    final scaleFactor = isTablet ? 1.2 : 1.0;
     final height = size.height;
     final width = size.width;
+    final isTablet = size.width > 600;
+    final scaleFactor = isTablet ? 1.2 : 1.0;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      key: _scaffoldKey,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'app_title'.tr,
-          style: TextStyle(
-            color: Colors.grey.shade800,
-            fontSize: 20 * scaleFactor,
-            fontWeight: FontWeight.w600,
-          ),
+        backgroundColor: Colors.blue,
+        elevation: 4,
+        title: Obx(() => Text(
+              _tabData[_currentIndex.value]['key'].toString().tr,
+              style: TextStyle(
+                fontSize: height * 0.03 * scaleFactor,
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            )),
+        leading: IconButton(
+          icon: Icon(Icons.menu, size: height * 0.035 * scaleFactor, color: Colors.white),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.language, color: Colors.grey.shade800, size: 24 * scaleFactor),
+            icon: Icon(Icons.language, size: height * 0.035 * scaleFactor, color: Colors.white),
             onPressed: () => authController.toggleLanguage(),
             tooltip: 'toggle_language'.tr,
           ),
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.grey.shade800, size: 24 * scaleFactor),
+            icon: Icon(Icons.logout, size: height * 0.035 * scaleFactor, color: Colors.white),
             onPressed: () {
               try {
                 authController.logout();
               } catch (e) {
                 Get.snackbar('Error', 'Logout failed: $e',
-                    backgroundColor: Colors.red.shade100);
+                    backgroundColor: Colors.red.shade300);
               }
             },
             tooltip: 'logout'.tr,
           ),
         ],
       ),
-      body: AnimatedBackground(
-        behaviour: RandomParticleBehaviour(
-          options: ParticleOptions(
-            baseColor: Colors.blue.shade100,
-            spawnMinSpeed: 6.0,
-            spawnMaxSpeed: 30.0,
-            particleCount: 50,
-            spawnOpacity: 0.15,
-            maxOpacity: 0.3,
-          ),
-        ),
-        vsync: this,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.shade50.withOpacity(0.9),
-                Colors.white.withOpacity(0.95),
-              ],
+      drawer: Drawer(
+        width: 150,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.blue),
+              child: Text(
+                'Menu'.tr,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: height * 0.035 * scaleFactor,
+                ),
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Obx(
-                  () => AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    ),
-                    child: ConstrainedBox(
-                      key: ValueKey<int>(_currentIndex.value),
-                      constraints: BoxConstraints(
-                        maxWidth: isTablet ? 600 : size.width * 0.9,
-                      ),
-                      child: Center(
-                        child: _tabData[_currentIndex.value]['content'] as Widget,
-                      ),
-                    ),
-                  ),
-                );
+            ListTile(
+              leading: Icon(Icons.home, size: height * 0.03 * scaleFactor),
+              title: Text(
+                'Home'.tr,
+                style: TextStyle(fontSize: height * 0.02 * scaleFactor),
+              ),
+              onTap: () {
+                _currentIndex.value = 0;
+                storageService.saveTabIndex(0);
+                Get.back();
               },
+            ),
+            ListTile(
+              leading: Icon(Icons.brightness_4, size: height * 0.03 * scaleFactor),
+              title: Obx(() => Text(
+                    themeController.isDarkMode.value
+                        ? 'Light Mode'.tr
+                        : 'Dark Mode'.tr,
+                    style: TextStyle(fontSize: height * 0.02 * scaleFactor),
+                  )),
+              onTap: () {
+                themeController.toggleTheme();
+                Get.back();
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Obx(
+        () => AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+          child: ConstrainedBox(
+            key: ValueKey<int>(_currentIndex.value),
+            constraints: BoxConstraints(
+              maxWidth: isTablet ? 600 : width * 0.9,
+            ),
+            child: Center(
+              child: _tabData[_currentIndex.value]['content'] as Widget,
             ),
           ),
         ),
       ),
       bottomNavigationBar: Obx(
-        () => ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex.value,
-              onTap: (index) {
-                if (index >= 0 && index < _tabData.length) {
-                  _currentIndex.value = index;
-                  try {
-                    storageService.saveTabIndex(index);
-                  } catch (e) {
-                    Get.snackbar('Error', 'Failed to save tab index: $e',
-                        backgroundColor: Colors.red.shade100);
-                  }
-                }
-              },
-              selectedItemColor: Colors.blue.shade300,
-              unselectedItemColor: Colors.grey.shade600,
-              backgroundColor: Colors.white.withOpacity(0.2),
-              elevation: 0,
-              type: BottomNavigationBarType.fixed,
-              selectedLabelStyle: TextStyle(fontSize:(width * 0.03 + height * 0.02 )/2, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: TextStyle(fontSize:(width * 0.03 + height * 0.025 )/2, fontWeight: FontWeight.w400),
-              items: [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.agriculture, size: (width * 0.03 + height * 0.04 )/2),
-                  label: 'cropTips'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.cloud, size: (width * 0.03 + height * 0.04 )/2),
-                  label: 'weather'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.store, size: (width * 0.03 + height * 0.04 )/2),
-                  label: 'market'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.chat, size: (width * 0.03 + height * 0.04 )/2),
-                  label: 'chat'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings, size: (width * 0.03 + height * 0.04 )/2),
-                  label: 'settings'.tr,
-                ),
-              ],
+        () => BottomNavigationBar(
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.agriculture, size: height * 0.03 * scaleFactor),
+              label: 'cropTips'.tr,
             ),
-          ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.cloud, size: height * 0.03 * scaleFactor),
+              label: 'weather'.tr,
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.store, size: height * 0.03 * scaleFactor),
+              label: 'market'.tr,
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat, size: height * 0.03 * scaleFactor),
+              label: 'chat'.tr,
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings, size: height * 0.03 * scaleFactor),
+              label: 'settings'.tr,
+            ),
+          ],
+          currentIndex: _currentIndex.value,
+          selectedItemColor: Colors.blue,
+          unselectedItemColor: Colors.grey,
+          onTap: (index) {
+            if (index >= 0 && index < _tabData.length) {
+              _currentIndex.value = index;
+              try {
+                storageService.saveTabIndex(index);
+              } catch (e) {
+                Get.snackbar('Error', 'Failed to save tab index: $e',
+                    backgroundColor: Colors.red.shade300);
+              }
+            }
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+          elevation: 8,
+          selectedLabelStyle: TextStyle(fontSize: height * 0.018 * scaleFactor),
+          unselectedLabelStyle: TextStyle(fontSize: height * 0.016 * scaleFactor),
         ),
       ),
     );
@@ -215,11 +225,41 @@ class CropTipsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+    final scaleFactor = MediaQuery.of(context).size.width > 600 ? 1.2 : 1.0;
+
     return GlassmorphicCard(
-      child: Text(
-        'cropTips'.tr,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.grey),
-        textAlign: TextAlign.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'cropTips'.tr,
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                  fontSize: 20 * scaleFactor,
+                  fontWeight: FontWeight.w600,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: 200,
+            height: 40,
+            child: TextField(
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 14 * scaleFactor,
+                  ),
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                hintText: 'Search crops...'.tr,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -230,10 +270,14 @@ class WeatherTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaleFactor = MediaQuery.of(context).size.width > 600 ? 1.2 : 1.0;
     return GlassmorphicCard(
       child: Text(
         'weather'.tr,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.grey),
+        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              fontSize: 20 * scaleFactor,
+              fontWeight: FontWeight.w600,
+            ),
         textAlign: TextAlign.center,
       ),
     );
@@ -245,10 +289,14 @@ class MarketTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaleFactor = MediaQuery.of(context).size.width > 600 ? 1.2 : 1.0;
     return GlassmorphicCard(
       child: Text(
         'market'.tr,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.grey),
+        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              fontSize: 20 * scaleFactor,
+              fontWeight: FontWeight.w600,
+            ),
         textAlign: TextAlign.center,
       ),
     );
@@ -260,10 +308,14 @@ class ChatTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaleFactor = MediaQuery.of(context).size.width > 600 ? 1.2 : 1.0;
     return GlassmorphicCard(
       child: Text(
         'chat'.tr,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.grey),
+        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              fontSize: 20 * scaleFactor,
+              fontWeight: FontWeight.w600,
+            ),
         textAlign: TextAlign.center,
       ),
     );
@@ -275,10 +327,14 @@ class SettingsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaleFactor = MediaQuery.of(context).size.width > 600 ? 1.2 : 1.0;
     return GlassmorphicCard(
       child: Text(
         'settings'.tr,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.grey),
+        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              fontSize: 20 * scaleFactor,
+              fontWeight: FontWeight.w600,
+            ),
         textAlign: TextAlign.center,
       ),
     );

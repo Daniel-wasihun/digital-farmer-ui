@@ -26,7 +26,7 @@ class AppTranslations extends Translations {
           'passwords_do_not_match': 'Passwords do not match',
           'account_created_successfully': 'Account created successfully',
           'logged_in_successfully': 'Logged in successfully',
-          'toggle_language': 'Amharic',
+          // 'toggle_language': 'Amharic',
           'home': 'Home',
           'profile': 'Profile',
           'notifications': 'Notifications',
@@ -38,6 +38,9 @@ class AppTranslations extends Translations {
           'weather': 'Weather',
           'market': 'Market',
           'chat': 'Chat',
+          'switch_to_light_mode': 'Switch to Light Mode',
+          'switch_to_dark_mode': 'Switch to Dark Mode',
+          'toggle_language': 'Toggle Language',
         },
         'am_ET': {
           'signup': 'መመዝገብ',
@@ -74,6 +77,10 @@ class AppTranslations extends Translations {
           'weather': 'የአየር ሁኔታ',
           'market': 'ገበያ',
           'chat': 'ውይይት',
+          'switch_to_light_mode': 'ወደ ብርሃን ሁኔታ ቀይር',
+          'switch_to_dark_mode': 'ወደ ጨለማ ሁኔታ ቀይር',
+          'toggle_language': 'ቋንቋ ቀይር'
+
             },
       };
 }

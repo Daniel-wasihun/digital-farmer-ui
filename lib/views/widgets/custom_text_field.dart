@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
@@ -28,44 +27,48 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          onChanged: onChanged,
-          style: TextStyle(
-            fontSize: 14 * scaleFactor,
-            color: Colors.grey.shade800,
-          ),
-          decoration: InputDecoration(
-            labelText: label,
-            labelStyle: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 14 * scaleFactor,
-              fontWeight: FontWeight.w500,
-            ),
-            prefixIcon: Icon(
-              prefixIcon,
-              color: Colors.grey.shade600,
-              size: 20 * scaleFactor,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.blue.shade200, width: 1.5),
-            ),
-            filled: true,
-            fillColor: Colors.white.withOpacity(0.9),
-            contentPadding: EdgeInsets.symmetric(
-              vertical: 12 * scaleFactor,
-              horizontal: 14 * scaleFactor,
+        Container(
+          height: 50 * scaleFactor,
+          child: TextField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            onChanged: onChanged,
+            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  fontSize: 14 * scaleFactor,
+                ),
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 14 * scaleFactor,
+                    fontWeight: FontWeight.w500,
+                  ),
+              prefixIcon: Icon(
+                prefixIcon,
+                size: 20 * scaleFactor,
+                color: Theme.of(context).inputDecorationTheme.prefixIconColor,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: Theme.of(context).primaryColor.withOpacity(0.5),
+                  width: 1.5,
+                ),
+              ),
+              filled: true,
+              fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+              contentPadding: EdgeInsets.symmetric(
+                vertical: 12 * scaleFactor,
+                horizontal: 14 * scaleFactor,
+              ),
             ),
           ),
         ),
@@ -74,11 +77,10 @@ class CustomTextField extends StatelessWidget {
             padding: EdgeInsets.only(top: 4 * scaleFactor, left: 10 * scaleFactor),
             child: Text(
               errorText!,
-              style: TextStyle(
-                color: Colors.red.shade300,
-                fontSize: 12 * scaleFactor,
-                fontWeight: FontWeight.w400,
-              ),
+              style: Theme.of(context).inputDecorationTheme.errorStyle!.copyWith(
+                    fontSize: 12 * scaleFactor,
+                    fontWeight: FontWeight.w400,
+                  ),
             ),
           ),
       ],

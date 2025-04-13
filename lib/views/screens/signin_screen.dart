@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:animated_background/animated_background.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/theme_controller.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/glassmorphic_card.dart';
 
@@ -15,6 +16,7 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMixin {
   final AuthController authController = Get.find<AuthController>();
+  final ThemeController themeController = Get.find<ThemeController>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
@@ -29,11 +31,9 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
-    // Responsive scaleFactor based on width and height
     final scaleFactor = isTablet
         ? (size.width / 720).clamp(1.0, 1.2)
         : (size.width / 360).clamp(0.8, 1.0) * (size.height / 640).clamp(0.85, 1.0);
-    final formWidth = isTablet ? size.width * 0.75 : size.width * 0.85;
     final maxFormWidth = isTablet ? 500.0 : 380.0;
 
     return Scaffold(
@@ -42,25 +42,59 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'signin'.tr,
-          style: TextStyle(
-            color: Colors.grey.shade800,
-            fontSize: 18 * scaleFactor,
-            fontWeight: FontWeight.w600,
-          ),
+          'auth_app'.tr,
+          style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                fontSize: 18 * scaleFactor,
+                fontWeight: FontWeight.w600,
+              ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.language, color: Colors.grey.shade800, size: 20 * scaleFactor),
-            onPressed: () => authController.toggleLanguage(),
-            tooltip: 'toggle_language'.tr,
-          ),
+          // Combine theme toggle and language indicator in a single Obx to avoid stacking
+          Obx(() => Row(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(right: 8 * scaleFactor),
+                    child: Text(
+                      Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                            fontSize: 16 * scaleFactor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.language,
+                      size: 20 * scaleFactor,
+                      color: Theme.of(context).iconTheme.color,
+                    ),
+                    onPressed: () => authController.toggleLanguage(),
+                    tooltip: 'toggle_language'.tr,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      themeController.isDarkMode.value
+                          ? Icons.light_mode
+                          : Icons.dark_mode,
+                      size: 20 * scaleFactor,
+                      color: Theme.of(context).iconTheme.color,
+                    ),
+                    onPressed: () => themeController.toggleTheme(),
+                    tooltip: themeController.isDarkMode.value
+                        ? 'switch_to_light_mode'.tr
+                        : 'switch_to_dark_mode'.tr,
+                  ),
+                  SizedBox(width: 8 * scaleFactor),
+                ],
+              )),
         ],
       ),
       body: AnimatedBackground(
         behaviour: RandomParticleBehaviour(
           options: ParticleOptions(
-            baseColor: Colors.blue.shade100,
+            baseColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.blue.shade700
+                : Colors.blue.shade100,
             spawnMinSpeed: 6.0,
             spawnMaxSpeed: 30.0,
             particleCount: 50,
@@ -74,10 +108,15 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.shade50.withOpacity(0.9),
-                Colors.white.withOpacity(0.95),
-              ],
+              colors: Theme.of(context).brightness == Brightness.dark
+                  ? [
+                      Colors.blueGrey.shade800.withOpacity(0.9),
+                      Colors.grey.shade900.withOpacity(0.95),
+                    ]
+                  : [
+                      Colors.blue.shade50.withOpacity(0.9),
+                      Colors.white.withOpacity(0.95),
+                    ],
             ),
           ),
           child: SafeArea(
@@ -93,13 +132,16 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                       () => authController.isLoading.value
                           ? Center(
                               child: SpinKitFadingCube(
-                                color: Colors.blue.shade300,
+                                color: Theme.of(context).primaryColor,
                                 size: 32 * scaleFactor,
                               ),
                             )
                           : ConstrainedBox(
                               constraints: BoxConstraints(
-                                maxWidth: formWidth.clamp(280, maxFormWidth),
+                                maxWidth: (isTablet
+                                        ? size.width * 0.75
+                                        : size.width * 0.85)
+                                    .clamp(280, maxFormWidth),
                               ),
                               child: GlassmorphicCard(
                                 child: Column(
@@ -108,18 +150,20 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                                   children: [
                                     Text(
                                       'signin'.tr,
-                                      style: TextStyle(
-                                        fontSize: 22 * scaleFactor,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.grey.shade800,
-                                        shadows: const [
-                                          Shadow(
-                                            blurRadius: 6.0,
-                                            color: Colors.black12,
-                                            offset: Offset(1, 1),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge!
+                                          .copyWith(
+                                            fontSize: 22 * scaleFactor,
+                                            fontWeight: FontWeight.w700,
+                                            shadows: const [
+                                              Shadow(
+                                                blurRadius: 6.0,
+                                                color: Colors.black12,
+                                                offset: Offset(1, 1),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
                                       textAlign: TextAlign.center,
                                     ),
                                     SizedBox(height: 14 * scaleFactor),
@@ -152,18 +196,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                                           passwordController.text,
                                         );
                                       },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue.shade200,
-                                        foregroundColor: Colors.grey.shade800,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 10 * scaleFactor,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        elevation: 3,
-                                        shadowColor: Colors.black12,
-                                      ),
+                                      style: Theme.of(context).elevatedButtonTheme.style,
                                       child: Text(
                                         'login'.tr,
                                         style: TextStyle(
@@ -178,7 +211,6 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                                       child: Text(
                                         'dont_have_account'.tr,
                                         style: TextStyle(
-                                          color: Colors.blue.shade300,
                                           fontSize: 12 * scaleFactor,
                                           fontWeight: FontWeight.w500,
                                         ),
