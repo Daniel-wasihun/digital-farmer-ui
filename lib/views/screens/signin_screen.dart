@@ -42,7 +42,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'auth_app'.tr,
+          'app_title'.tr,
           style: Theme.of(context).textTheme.titleLarge!.copyWith(
                 fontSize: 18 * scaleFactor,
                 fontWeight: FontWeight.w600,

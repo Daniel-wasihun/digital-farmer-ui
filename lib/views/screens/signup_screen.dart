@@ -47,7 +47,7 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'auth_app'.tr,
+          'app_title'.tr,
           style: Theme.of(context).textTheme.titleLarge!.copyWith(
                 fontSize: 18 * scaleFactor,
                 fontWeight: FontWeight.w600,
@@ -73,7 +73,7 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                   Padding(
                     padding: EdgeInsets.only(right: 8 * scaleFactor),
                     child: Text(
-                      Get.locale?.languageCode == 'am' ? 'am' : 'en',
+                      Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
                       style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                             fontSize: 16 * scaleFactor,
                             fontWeight: FontWeight.w500,

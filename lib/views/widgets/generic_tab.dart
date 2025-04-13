@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../widgets/glassmorphic_card.dart';
+import 'glassmorphic_card.dart';
 
 class GenericTab extends StatelessWidget {
   final String tabKey;
