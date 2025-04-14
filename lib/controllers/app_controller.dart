@@ -6,7 +6,7 @@ import '../views/screens/Tabs/crop_tips_tab.dart';
 import '../views/screens/Tabs/market_tab.dart';
 import '../views/screens/Tabs/weather_tab.dart';
 import '../views/screens/tabs/settings_tab.dart';
-import 'auth_controller.dart';
+import 'auth/auth_controller.dart';
 import 'theme_controller.dart';
 
 class AppController extends GetxController {

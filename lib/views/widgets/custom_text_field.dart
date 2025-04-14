@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
-  final TextEditingController controller;
+  final TextEditingController? controller; // Now optional
   final bool obscureText;
   final TextInputType keyboardType;
   final String? errorText;
@@ -13,7 +13,7 @@ class CustomTextField extends StatelessWidget {
   const CustomTextField({
     super.key,
     required this.label,
-    required this.controller,
+    this.controller,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.errorText,

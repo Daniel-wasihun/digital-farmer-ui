@@ -1,10 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-import '../../../controllers/auth_controller.dart';
+import '../../../controllers/auth/auth_controller.dart';
+import '../../../controllers/update_profile_controller.dart';
 import '../../../routes/app_routes.dart';
-import '../../widgets/glassmorphic_card.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -45,7 +43,11 @@ class SettingsTab extends StatelessWidget {
                 context,
                 icon: Icons.person,
                 title: 'update_profile'.tr,
-                onTap: () => Get.toNamed(AppRoutes.getUpdateProfilePage()),
+                onTap: () {
+                  print('Navigating to UpdateProfileScreen');
+                  Get.put(UpdateProfileController()); // Inject controller
+                  Get.toNamed(AppRoutes.getUpdateProfilePage());
+                },
                 scaleFactor: scaleFactor,
               ),
               _buildSettingsTile(

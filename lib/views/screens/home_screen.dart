@@ -40,19 +40,6 @@ class HomeScreen extends StatelessWidget {
         actions: [
           Obx(() => Row(
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      controller.themeController.isDarkMode.value
-                          ? Icons.light_mode
-                          : Icons.dark_mode,
-                      size: height * 0.035 * scaleFactor,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => controller.toggleTheme(),
-                    tooltip: controller.themeController.isDarkMode.value
-                        ? 'switch_to_light_mode'.tr
-                        : 'switch_to_dark_mode'.tr,
-                  ),
                   Padding(
                     padding: EdgeInsets.only(right: 8 * scaleFactor),
                     child: Text(
@@ -75,12 +62,16 @@ class HomeScreen extends StatelessWidget {
                   ),
                   IconButton(
                     icon: Icon(
-                      Icons.logout,
+                      controller.themeController.isDarkMode.value
+                          ? Icons.light_mode
+                          : Icons.dark_mode,
                       size: height * 0.035 * scaleFactor,
                       color: Colors.white,
                     ),
-                    onPressed: () => controller.logout(),
-                    tooltip: 'logout'.tr,
+                    onPressed: () => controller.toggleTheme(),
+                    tooltip: controller.themeController.isDarkMode.value
+                        ? 'switch_to_light_mode'.tr
+                        : 'switch_to_dark_mode'.tr,
                   ),
                   SizedBox(width: 8 * scaleFactor),
                 ],
@@ -125,7 +116,7 @@ class HomeScreen extends StatelessWidget {
                 size: height * 0.03 * scaleFactor,
                 color: Theme.of(context).iconTheme.color,
               ),
-              title: Obx(() => Text(
+              title:  Obx(() => Text(
                     controller.themeController.isDarkMode.value
                         ? 'Light Mode'.tr
                         : 'Dark Mode'.tr,
@@ -135,6 +126,24 @@ class HomeScreen extends StatelessWidget {
                   )),
               onTap: () {
                 controller.toggleTheme();
+                Get.back();
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.logout,
+                size: height * 0.03 * scaleFactor,
+                color: Theme.of(context).iconTheme.color,
+              ),
+              title: Text(
+                    "logout".tr,
+                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                          fontSize: height * 0.02 * scaleFactor,
+                        ),
+                  ),
+              onTap: () {
+                // controller.toggleTheme();
+                 controller.logout();
                 Get.back();
               },
             ),

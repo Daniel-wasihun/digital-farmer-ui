@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'controllers/auth/auth_controller.dart';
 import 'utils/translations.dart';
 import 'routes/app_routes.dart';
-import 'controllers/auth_controller.dart';
 import 'controllers/theme_controller.dart';
 import 'services/storage_service.dart';
 

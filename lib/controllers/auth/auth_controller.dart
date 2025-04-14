@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/user_model.dart';
-import '../routes/app_routes.dart';
-import '../services/api_service.dart';
-import '../services/storage_service.dart';
+import '../../models/user_model.dart';
+import '../../routes/app_routes.dart';
+import '../../services/api_service.dart';
+import '../../services/storage_service.dart';
 
 class AuthController extends GetxController {
   final ApiService _apiService = ApiService();
@@ -20,6 +20,20 @@ class AuthController extends GetxController {
   var securityQuestionError = ''.obs;
   var securityAnswerError = ''.obs;
 
+  void resetErrors() {
+    print('Resetting all validation errors');
+    usernameError.value = '';
+    emailError.value = '';
+    passwordError.value = '';
+    confirmPasswordError.value = '';
+    currentPasswordError.value = '';
+    newPasswordError.value = '';
+    bioError.value = '';
+    securityQuestionError.value = '';
+    securityAnswerError.value = '';
+    isLoading.value = false;
+  }
+
   void toggleLanguage() {
     if (Get.locale == const Locale('en', 'US')) {
       Get.updateLocale(const Locale('am', 'ET'));
@@ -29,6 +43,7 @@ class AuthController extends GetxController {
   }
 
   void validateUsername(String value) {
+    print('Validating username: $value');
     if (value.isEmpty) {
       usernameError.value = 'username_required'.tr;
     } else if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
@@ -39,6 +54,7 @@ class AuthController extends GetxController {
   }
 
   void validateEmail(String value) {
+    print('Validating email: $value');
     final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (value.isEmpty) {
       emailError.value = 'email_required'.tr;
@@ -50,6 +66,7 @@ class AuthController extends GetxController {
   }
 
   void validatePassword(String value) {
+    print('Validating password: ${value.isEmpty ? "empty" : "non-empty"}');
     if (value.isEmpty) {
       passwordError.value = 'password_required'.tr;
     } else if (value.length < 6) {
@@ -60,6 +77,7 @@ class AuthController extends GetxController {
   }
 
   void validateConfirmPassword(String password, String confirmPassword) {
+    print('Validating confirm password: ${confirmPassword.isEmpty ? "empty" : "non-empty"}');
     if (confirmPassword.isEmpty) {
       confirmPasswordError.value = 'confirm_password_required'.tr;
     } else if (confirmPassword != password) {
@@ -121,6 +139,7 @@ class AuthController extends GetxController {
         emailError.value.isNotEmpty ||
         passwordError.value.isNotEmpty ||
         confirmPasswordError.value.isNotEmpty) {
+      print('Signup validation failed: usernameError=${usernameError.value}, emailError=${emailError.value}, passwordError=${passwordError.value}, confirmPasswordError=${confirmPasswordError.value}');
       return;
     }
 
@@ -140,7 +159,7 @@ class AuthController extends GetxController {
       await _storageService.saveToken(response['token']);
       Get.snackbar('success'.tr, 'account_created_successfully'.tr,
           backgroundColor: Colors.green, colorText: Colors.white);
-      Get.offNamed('/signin');
+      Get.offNamed(AppRoutes.getSignInPage());
     } catch (e) {
       print('Signup failed: $e');
       Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
@@ -170,7 +189,7 @@ class AuthController extends GetxController {
       Get.offAllNamed(AppRoutes.getHomePage());
     } catch (e) {
       print('Signin failed: $e');
-      Get.snackbar('error'.tr, (e.toString()).tr.replaceFirst('Exception: ', ''),
+      Get.snackbar('error'.tr, e.toString().tr.replaceFirst('Exception: ', ''),
           backgroundColor: Colors.redAccent, colorText: Colors.white);
     } finally {
       isLoading.value = false;
@@ -193,7 +212,7 @@ class AuthController extends GetxController {
         newPasswordError.value.isNotEmpty ||
         confirmPasswordError.value.isNotEmpty) {
       print('Validation failed: current=${currentPasswordError.value}, new=${newPasswordError.value}, confirm=${confirmPasswordError.value}');
-      return; // Stay on ChangePasswordScreen
+      return;
     }
 
     try {
@@ -251,39 +270,6 @@ class AuthController extends GetxController {
     }
   }
 
-
-  Future<void> updateProfile(String username, String? bio, String? profilePicture) async {
-    validateUsername(username);
-    validateBio(bio ?? '');
-
-    if (usernameError.value.isNotEmpty || bioError.value.isNotEmpty) {
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      final user = _storageService.getUser();
-      if (user == null) {
-        throw Exception('user_not_found'.tr);
-      }
-      final updatedUser = await _apiService.updateProfile(
-        user['email'],
-        username,
-        bio,
-        profilePicture,
-      );
-      await _storageService.saveUser(updatedUser);
-      Get.snackbar('success'.tr, 'profile_updated_successfully'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
-      Get.back();
-    } catch (e) {
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
   Future<void> setSecurityQuestion(String question, String answer) async {
     validateSecurityQuestion(question);
     validateSecurityAnswer(answer);
@@ -312,22 +298,17 @@ class AuthController extends GetxController {
 
   Future<void> logout() async {
     await _storageService.clear();
-    Get.offAllNamed('/signin');
+    Get.offAllNamed(AppRoutes.getSignInPage());
   }
 
   bool isLoggedIn() {
     return _storageService.getToken() != null;
   }
-
-
-
-  void resetPasswordErrors() {
+      void resetPasswordErrors() {
     print('Resetting password error states');
     currentPasswordError.value = '';
     newPasswordError.value = '';
     confirmPasswordError.value = '';
     isLoading.value = false;
   }
-
 }
-
