@@ -30,8 +30,35 @@ class AppController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    updateCurrentLanguage();
     _initializeTabIndex();
   }
+
+
+    var currentLanguage = ''.obs;
+
+  void updateCurrentLanguage() {
+    final locale = Get.locale ?? Locale('en', 'US');
+    currentLanguage.value = locale.languageCode == 'am' ? 'language'.tr : 'language'.tr;
+  }
+
+  Future<void> toggleLanguage() async {
+    try {
+      final currentLocale = Get.locale ?? Locale('en', 'US');
+      final newLocale = currentLocale.languageCode == 'en'
+          ? Locale('am', 'ET')
+          : Locale('en', 'US');
+      Get.updateLocale(newLocale);
+      updateCurrentLanguage();
+      await storageService.saveLocale(newLocale.toString());
+      print('Language changed to: ${newLocale.languageCode}');
+    } catch (e) {
+      print('Error toggling language: $e');
+      Get.snackbar('error'.tr, 'language_change_failed'.tr,
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+    }
+  }
+
 
   void _initializeTabIndex() {
     try {
@@ -68,9 +95,7 @@ class AppController extends GetxController {
     }
   }
 
-  void toggleLanguage() {
-    authController.toggleLanguage();
-  }
+
 
   void toggleTheme() {
     themeController.toggleTheme();

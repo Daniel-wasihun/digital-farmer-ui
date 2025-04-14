@@ -92,6 +92,14 @@ class AppTranslations extends Translations {
           'cancel': 'Cancel',
           'image_pick_failed': 'Failed to pick image',
           'unsupported_image_format': 'Unsupported image format. Use JPG or PNG.',
+          'are_you_sure_logout': 'Are you sure you want to logout ?',
+          'no': 'No',
+          'yes': 'Yes',
+          'language':'English',
+          'fix_form_errors': 'Please fix the errors in the form',
+          'username_already_in_use': 'Username is already in use',
+          'language_change_failed': 'Failed to change language',
+
         },
         'am_ET': {
           'unsupported_image_format': 'የማይደገፍ ምስል ቅርጸት። JPG ወይም PNG ይጠቀሙ።',
@@ -142,7 +150,7 @@ class AppTranslations extends Translations {
           'Home': 'ቤት',
           'Light Mode': 'ብርሃን ሁኔታ',
           'Dark Mode': 'ጨለማ ሁኔታ',
-          'logout': 'ውጣ',
+          'logout': 'መውጣት',
           'Search crops...': 'ሰብሎችን ፈልግ...',
           'change_password': 'የይለፍ ቃል ቀይር',
           'language_preference': 'የቋንቋ ምርጫ',
@@ -177,6 +185,13 @@ class AppTranslations extends Translations {
           'server_error': 'የአገልጋይ ስህተት',
           'generic_error': 'ያልተጠበቀ ስህተት ተከስቷል',
           'new_password_same_as_current': 'አዲስ የይለፍ ቃል ከአሁኑ ጋር ተመሳሳይ መሆን አይችልም',
-            },
-      };
+          'are_you_sure_logout': 'እርግጠኛ ነዎት መውጣት ይፈልጋሉ？',
+          'no': 'አይ',
+          'yes': 'አዎ',
+          'language':'አማርኛ',
+          'fix_form_errors': 'እባክዎ በቅጹ ውስጥ ያሉትን ስህተቶች ያስተካክሉ',
+          'username_already_in_use': 'የተጠቃሚ ስም አስቀድሞ ጥቅም ላይ ውሏል',
+          'language_change_failed': 'ቋንቋ መቀየር አልተሳካም',
+        }
+  };
 }

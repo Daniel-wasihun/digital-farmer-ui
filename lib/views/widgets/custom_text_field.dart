@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
-  final TextEditingController? controller; // Now optional
+  final TextEditingController? controller;
   final bool obscureText;
   final TextInputType keyboardType;
   final String? errorText;
   final IconData prefixIcon;
   final Function(String)? onChanged;
   final double scaleFactor;
+  final bool enabled;
 
   const CustomTextField({
     super.key,
@@ -20,6 +21,7 @@ class CustomTextField extends StatelessWidget {
     required this.prefixIcon,
     this.onChanged,
     this.scaleFactor = 1.0,
+    this.enabled = true,
   });
 
   @override
@@ -34,6 +36,7 @@ class CustomTextField extends StatelessWidget {
             obscureText: obscureText,
             keyboardType: keyboardType,
             onChanged: onChanged,
+            enabled: enabled,
             style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                   fontSize: 14 * scaleFactor,
                 ),
@@ -77,9 +80,10 @@ class CustomTextField extends StatelessWidget {
             padding: EdgeInsets.only(top: 4 * scaleFactor, left: 10 * scaleFactor),
             child: Text(
               errorText!,
-              style: Theme.of(context).inputDecorationTheme.errorStyle!.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     fontSize: 12 * scaleFactor,
                     fontWeight: FontWeight.w400,
+                    color: Theme.of(context).colorScheme.error,
                   ),
             ),
           ),

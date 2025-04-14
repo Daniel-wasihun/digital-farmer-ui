@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:animated_background/animated_background.dart';
+import '../../controllers/app_controller.dart';
 import '../../controllers/auth/signup_controller.dart';
 import '../../controllers/theme_controller.dart';
 import '../../routes/app_routes.dart';
@@ -16,6 +17,8 @@ class SignUpScreen extends GetView<SignUpController> {
   Widget build(BuildContext context) {
     Get.put(SignUpController()); // Fresh controller per screen
     final ThemeController themeController = Get.find<ThemeController>();
+    final  appController = Get.find<AppController>();
+
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet
@@ -81,7 +84,7 @@ class SignUpScreen extends GetView<SignUpController> {
                         size: 20 * scaleFactor,
                         color: Theme.of(context).iconTheme.color,
                       ),
-                      onPressed: () => controller.authController.toggleLanguage(),
+                      onPressed: () => appController.toggleLanguage(),
                       tooltip: 'toggle_language'.tr,
                     ),
                     SizedBox(width: 8 * scaleFactor),

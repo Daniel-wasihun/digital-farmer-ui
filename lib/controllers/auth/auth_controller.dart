@@ -8,7 +8,6 @@ import '../../services/storage_service.dart';
 class AuthController extends GetxController {
   final ApiService _apiService = ApiService();
   final StorageService _storageService = Get.find<StorageService>();
-
   var isLoading = false.obs;
   var usernameError = ''.obs;
   var emailError = ''.obs;
@@ -19,6 +18,7 @@ class AuthController extends GetxController {
   var bioError = ''.obs;
   var securityQuestionError = ''.obs;
   var securityAnswerError = ''.obs;
+  
 
   void resetErrors() {
     print('Resetting all validation errors');
@@ -33,14 +33,8 @@ class AuthController extends GetxController {
     securityAnswerError.value = '';
     isLoading.value = false;
   }
+  
 
-  void toggleLanguage() {
-    if (Get.locale == const Locale('en', 'US')) {
-      Get.updateLocale(const Locale('am', 'ET'));
-    } else {
-      Get.updateLocale(const Locale('en', 'US'));
-    }
-  }
 
   void validateUsername(String value) {
     print('Validating username: $value');

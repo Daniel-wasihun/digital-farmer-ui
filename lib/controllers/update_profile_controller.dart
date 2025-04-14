@@ -4,25 +4,21 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
-import '../routes/app_routes.dart';
 
 class UpdateProfileController extends GetxController {
-  final ApiService _apiService = ApiService();
+  final ApiService _apiService = Get.put(ApiService()); // Changed to Get.find
   final StorageService _storageService = Get.find<StorageService>();
   final ImagePicker _picker = ImagePicker();
 
-  // Form fields
   var username = ''.obs;
   var bio = ''.obs;
   var profilePictureUrl = ''.obs;
   var selectedImage = Rx<File?>(null);
 
-  // Errors
   var usernameError = ''.obs;
   var bioError = ''.obs;
   var isLoading = false.obs;
 
-  // Controllers for UI
   late TextEditingController usernameController;
   late TextEditingController bioController;
 
@@ -102,6 +98,8 @@ class UpdateProfileController extends GetxController {
 
     if (usernameError.value.isNotEmpty || bioError.value.isNotEmpty) {
       print('Validation failed: usernameError=${usernameError.value}, bioError=${bioError.value}');
+      Get.snackbar('error'.tr, 'fix_form_errors'.tr,
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
       return;
     }
 
@@ -112,7 +110,8 @@ class UpdateProfileController extends GetxController {
         print('No user found');
         throw Exception('user_not_found'.tr);
       }
-      print('Updating profile for: ${user['email']}');
+      print('Updating profile for: ${user['email']}, username=${username.value}, bio=${bio.value}, image=${selectedImage.value?.path}');
+
       final updatedUser = await _apiService.updateProfile(
         user['email'],
         username.value,
@@ -120,22 +119,39 @@ class UpdateProfileController extends GetxController {
         selectedImage.value,
       );
       print('Backend response: $updatedUser');
-      await _storageService.saveUser(updatedUser);
-      print('Profile updated, saved user data: profilePicture=${updatedUser['profilePicture']}');
+
+      await _storageService.saveUser({
+        'username': updatedUser['username'],
+        'email': updatedUser['email'],
+        'profilePicture': updatedUser['profilePicture'] ?? '',
+        'bio': updatedUser['bio'] ?? '',
+        'role': updatedUser['role'] ?? 'user',
+      });
+
       profilePictureUrl.value = updatedUser['profilePicture'] ?? '';
       selectedImage.value = null;
-      usernameController.text = username.value;
-      bioController.text = bio.value;
+
+      imageCache.clear();
+      imageCache.clearLiveImages();
+      print('Image cache cleared');
+
+      print('Profile updated: profilePicture=${updatedUser['profilePicture']}');
       Get.snackbar('success'.tr, 'profile_updated_successfully'.tr,
           backgroundColor: Colors.green, colorText: Colors.white);
-      await Future.delayed(const Duration(seconds: 2));
-      Get.offNamed(AppRoutes.settings);
+
+      await Future.delayed(Duration(milliseconds: 500));
+      Get.back();
     } catch (e) {
       print('Update profile error: $e');
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+      String errorMessage = e.toString().replaceFirst('Exception: ', '');
+      if (errorMessage.contains('Username is already in use')) {
+        errorMessage = 'username_already_in_use'.tr;
+      }
+      Get.snackbar('error'.tr, errorMessage,
           backgroundColor: Colors.redAccent, colorText: Colors.white);
     } finally {
       isLoading.value = false;
+      print('isLoading reset to false');
     }
   }
 }

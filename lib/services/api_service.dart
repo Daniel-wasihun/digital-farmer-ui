@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -9,12 +8,14 @@ import '../models/user_model.dart';
 import 'storage_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:5000/api'; // Update with your backend URL
+  static const String apiBaseUrl = 'http://localhost:5000/api';
+  static const String imageBaseUrl = 'http://localhost:5000';
   final StorageService _storageService = Get.find<StorageService>();
+
   Future<Map<String, dynamic>> signup(UserModel user, String password) async {
     print('Signup request: ${user.toJson()}, password: [hidden]');
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/signup'),
+      Uri.parse('$apiBaseUrl/auth/signup'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'username': user.username,
@@ -36,7 +37,7 @@ class ApiService {
   Future<Map<String, dynamic>> signin(String email, String password) async {
     print('Signin request: email: $email, password: [hidden]');
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/signin'),
+      Uri.parse('$apiBaseUrl/auth/signin'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email.toLowerCase(),
@@ -53,11 +54,10 @@ class ApiService {
     }
   }
 
-
-Future<void> changePassword(String email, String currentPassword, String newPassword) async {
+  Future<void> changePassword(String email, String currentPassword, String newPassword) async {
     try {
       final token = _storageService.getToken();
-      final url = '$baseUrl/auth/change-password';
+      final url = '$apiBaseUrl/auth/change-password';
       print('Sending change password request to: $url with email: $email');
 
       final response = await http.post(
@@ -78,7 +78,7 @@ Future<void> changePassword(String email, String currentPassword, String newPass
 
       if (response.statusCode == 200) {
         print('API call successful: Password changed');
-        return; // Success
+        return;
       } else {
         String errorMessage = 'Failed to change password';
         try {
@@ -96,6 +96,19 @@ Future<void> changePassword(String email, String currentPassword, String newPass
       throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
+static const Map<String, String> _imageMimeTypes = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.bmp': 'image/bmp',
+    '.webp': 'image/webp',
+    '.tiff': 'image/tiff',
+    '.tif': 'image/tiff',
+    '.heic': 'image/heic',
+    '.heif': 'image/heif',
+  };
+
   Future<Map<String, dynamic>> updateProfile(
     String email,
     String username,
@@ -103,21 +116,18 @@ Future<void> changePassword(String email, String currentPassword, String newPass
     File? profilePicture,
   ) async {
     try {
-      var uri = Uri.parse('$baseUrl/auth/update-profile'); // Fixed endpoint
+      var uri = Uri.parse('$apiBaseUrl/auth/update-profile');
       var request = http.MultipartRequest('POST', uri);
 
-      // Add fields
       request.fields['email'] = email;
-      request.fields['username'] = username;
+      request.fields['username'] = username.trim();
       if (bio != null) request.fields['bio'] = bio;
 
-      // Add file
       if (profilePicture != null) {
         String extension = path.extension(profilePicture.path).toLowerCase();
-        String mimeType = 'image/jpeg'; // Default
-        if (extension == '.png') mimeType = 'image/png';
-        else if (extension == '.jpg' || extension == '.jpeg') mimeType = 'image/jpeg';
-        else {
+        String? mimeType = _imageMimeTypes[extension]; // Or use lookupMimeType(extension) with mime package
+
+        if (mimeType == null) {
           print('Unsupported file extension: $extension');
           throw Exception('unsupported_image_format'.tr);
         }
@@ -127,20 +137,24 @@ Future<void> changePassword(String email, String currentPassword, String newPass
           profilePicture.path,
           contentType: MediaType.parse(mimeType),
         ));
-        print('Uploading file: ${profilePicture.path}, type: $mimeType');
+        print('Uploading file: ${profilePicture.path}, type: $mimeType, size: ${await profilePicture.length()} bytes');
       }
 
-      print('Sending update profile request: email=$email, username=$username');
+      print('Sending update profile request: email=$email, username=${username.trim()}');
       var response = await request.send();
       var responseBody = await response.stream.bytesToString();
+
+      print('Update profile response: status=${response.statusCode}, body=$responseBody');
 
       if (response.statusCode == 200) {
         var json = jsonDecode(responseBody);
         print('Profile updated: ${json['user']}');
         return json['user'];
       } else {
-        print('Update profile failed: $responseBody');
-        throw Exception(jsonDecode(responseBody)['message'] ?? 'update_failed'.tr);
+        var errorJson = jsonDecode(responseBody);
+        String errorMessage = errorJson['message'] ?? 'update_failed'.tr;
+        print('Update profile failed: $errorMessage');
+        throw Exception(errorMessage);
       }
     } catch (e) {
       print('ApiService updateProfile error: $e');
@@ -148,20 +162,20 @@ Future<void> changePassword(String email, String currentPassword, String newPass
     }
   }
 
-
   Future<void> setSecurityQuestion(String email, String question, String answer) async {
-    // Simulate API call
     final response = await http.post(
-      Uri.parse('$baseUrl/set-security-question'),
-      body: {
+      Uri.parse('$apiBaseUrl/auth/set-security-question'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
         'email': email,
         'question': question,
         'answer': answer,
-      },
+      }),
     );
-    if (response.statusCode != 200) {
-      throw Exception('Failed to set security question');
+    if (response.statusCode == 200) {
+      print('Security question set for: $email');
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to set security question');
     }
   }
-
 }

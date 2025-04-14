@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../controllers/update_profile_controller.dart';
 import '../views/screens/tabs/settings/change_password_screen.dart';
 import '../views/screens/tabs/settings/contact_us_screen.dart';
 import '../views/screens/tabs/settings/faq_screen.dart';
@@ -74,6 +75,9 @@ class AppRoutes {
     GetPage(
       name: updateProfile,
       page: () => const UpdateProfileScreen(),
+      binding: BindingsBuilder(() {
+        Get.put(UpdateProfileController());
+      }),
       transition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 400),
     ),

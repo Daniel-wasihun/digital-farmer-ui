@@ -1,3 +1,4 @@
+import 'package:agri/controllers/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
@@ -16,6 +17,7 @@ class SignInScreen extends GetView<SignInController> {
   Widget build(BuildContext context) {
     Get.put(SignInController()); // Fresh controller per screen
     final ThemeController themeController = Get.find<ThemeController>();
+    final  appController = Get.find<AppController>();
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet
@@ -68,7 +70,7 @@ class SignInScreen extends GetView<SignInController> {
                         size: 20 * scaleFactor,
                         color: Theme.of(context).iconTheme.color,
                       ),
-                      onPressed: () => controller.authController.toggleLanguage(),
+                      onPressed: () => appController.toggleLanguage(),
                       tooltip: 'toggle_language'.tr,
                     ),
                     IconButton(

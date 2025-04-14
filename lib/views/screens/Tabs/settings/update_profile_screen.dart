@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'package:agri/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../controllers/update_profile_controller.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../../../widgets/glassmorphic_card.dart';
+import '../../../../services/api_service.dart';
 
 class UpdateProfileScreen extends GetView<UpdateProfileController> {
   const UpdateProfileScreen({super.key});
@@ -83,9 +83,7 @@ class UpdateProfileScreen extends GetView<UpdateProfileController> {
                                   ? FileImage(controller.selectedImage.value!)
                                   : controller.profilePictureUrl.value.isNotEmpty
                                       ? NetworkImage(
-                                          controller.profilePictureUrl.value.startsWith('/')
-                                              ? '${ApiService.baseUrl}${controller.profilePictureUrl.value}'
-                                              : '${ApiService.baseUrl}/uploads/${controller.profilePictureUrl.value}',
+                                          '${ApiService.imageBaseUrl}/uploads/${controller.profilePictureUrl.value.replaceFirst(RegExp(r'[/\\]?[uU][pP][lL][oO][aA][dD][sS][/\\]?'), '')}',
                                         )
                                       : null,
                               onBackgroundImageError: controller.profilePictureUrl.value.isNotEmpty
@@ -108,10 +106,12 @@ class UpdateProfileScreen extends GetView<UpdateProfileController> {
                             bottom: 0,
                             right: 0,
                             child: GestureDetector(
-                              onTap: () {
-                                print('Picking image from gallery');
-                                controller.pickImage();
-                              },
+                              onTap: controller.isLoading.value
+                                  ? null
+                                  : () {
+                                      print('Picking image from gallery');
+                                      controller.pickImage();
+                                    },
                               child: Container(
                                 padding: EdgeInsets.all(4 * scaleFactor),
                                 decoration: BoxDecoration(
@@ -141,6 +141,7 @@ class UpdateProfileScreen extends GetView<UpdateProfileController> {
                         errorText: controller.usernameError.value.isEmpty
                             ? null
                             : controller.usernameError.value,
+                        enabled: !controller.isLoading.value,
                         onChanged: (value) {
                           controller.username.value = value;
                           controller.validateUsername(value);
@@ -159,11 +160,14 @@ class UpdateProfileScreen extends GetView<UpdateProfileController> {
                         errorText: controller.bioError.value.isEmpty
                             ? null
                             : controller.bioError.value,
+                        enabled: !controller.isLoading.value,
                         onChanged: (value) {
                           controller.bio.value = value;
                           controller.validateBio(value);
                         },
                         scaleFactor: scaleFactor,
+                        keyboardType: TextInputType.multiline,
+                        obscureText: false,
                       ),
                     ),
                     SizedBox(height: 16 * scaleFactor),
