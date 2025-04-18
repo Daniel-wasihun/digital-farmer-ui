@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -13,18 +14,6 @@ class StorageService {
       print('StorageService: Init error: $e');
     }
   }
-
-
-  void saveRefreshToken(String refreshToken) {
-    box.write('refreshToken', refreshToken);
-  }
-
-  String? getRefreshToken() {
-    return box.read('refreshToken');
-  }
-
-
-
 
   Future<void> saveUser(Map<String, dynamic> userData) async {
     try {
@@ -55,21 +44,39 @@ class StorageService {
     }
   }
 
-  Future<void> saveLocale(String locale) async {
-    try {
-      await box.write('locale', locale);
-      print('StorageService: Saved locale: $locale');
-    } catch (e) {
-      print('StorageService: saveLocale error: $e');
-    }
-  }
-
   String? getToken() {
     try {
       return box.read('token');
     } catch (e) {
       print('StorageService: getToken error: $e');
       return null;
+    }
+  }
+
+  Future<void> saveRefreshToken(String refreshToken) async {
+    try {
+      await box.write('refreshToken', refreshToken);
+      print('StorageService: Saved refresh token');
+    } catch (e) {
+      print('StorageService: saveRefreshToken error: $e');
+    }
+  }
+
+  String? getRefreshToken() {
+    try {
+      return box.read('refreshToken');
+    } catch (e) {
+      print('StorageService: getRefreshToken error: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveLocale(String locale) async {
+    try {
+      await box.write('locale', locale);
+      print('StorageService: Saved locale: $locale');
+    } catch (e) {
+      print('StorageService: saveLocale error: $e');
     }
   }
 
@@ -106,6 +113,97 @@ class StorageService {
     } catch (e) {
       print('StorageService: getThemeMode error: $e');
       return false;
+    }
+  }
+
+  Future<void> saveUsers(String currentUserId, List<Map<String, dynamic>> users) async {
+    try {
+      final key = 'users_$currentUserId';
+      final encodedUsers = users.map((user) => jsonEncode(user)).toList();
+      await box.write(key, encodedUsers);
+      print('StorageService: Saved ${users.length} users for $currentUserId');
+    } catch (e) {
+      print('StorageService: saveUsers error: $e');
+    }
+  }
+
+  List<Map<String, dynamic>> getUsers(String currentUserId) {
+    try {
+      final key = 'users_$currentUserId';
+      final stored = box.read(key) as List<dynamic>? ?? [];
+      final users = stored
+          .map((s) {
+            try {
+              final decoded = jsonDecode(s as String);
+              return decoded is Map<String, dynamic> ? decoded : null;
+            } catch (e) {
+              print('StorageService: Invalid user data: $s, error: $e');
+              return null;
+            }
+          })
+          .where((u) => u != null)
+          .cast<Map<String, dynamic>>()
+          .toList();
+      print('StorageService: Loaded ${users.length} users for $currentUserId');
+      return users;
+    } catch (e) {
+      print('StorageService: getUsers error: $e');
+      return [];
+    }
+  }
+
+  Future<void> saveMessagesForUser(String currentUserId, String receiverId, List<Map<String, dynamic>> messages) async {
+    try {
+      final key = 'messages_${currentUserId}_$receiverId';
+      final encodedMessages = messages.map((msg) => jsonEncode(msg)).toList();
+      // Deduplicate by messageId
+      final uniqueMessages = <String, String>{};
+      for (var msgStr in encodedMessages) {
+        try {
+          final msg = jsonDecode(msgStr);
+          if (msg['messageId'] != null) {
+            uniqueMessages[msg['messageId']] = msgStr;
+          }
+        } catch (e) {
+          print('StorageService: Invalid message data: $msgStr, error: $e');
+        }
+      }
+      await box.write(key, uniqueMessages.values.toList());
+      print('StorageService: Saved ${uniqueMessages.length} messages for $currentUserId and $receiverId');
+    } catch (e) {
+      print('StorageService: saveMessagesForUser error: $e');
+    }
+  }
+
+  List<Map<String, dynamic>> getMessagesForUser(String currentUserId, String receiverId) {
+    try {
+      final key = 'messages_${currentUserId}_$receiverId';
+      final stored = box.read(key) as List<dynamic>? ?? [];
+      final messages = stored
+          .map((s) {
+            try {
+              final decoded = jsonDecode(s as String);
+              return decoded is Map<String, dynamic> &&
+                      decoded['messageId'] != null &&
+                      decoded['senderId'] != null &&
+                      decoded['receiverId'] != null &&
+                      decoded['message'] != null &&
+                      decoded['timestamp'] != null
+                  ? decoded
+                  : null;
+            } catch (e) {
+              print('StorageService: Invalid message data: $s, error: $e');
+              return null;
+            }
+          })
+          .where((m) => m != null)
+          .cast<Map<String, dynamic>>()
+          .toList();
+      print('StorageService: Loaded ${messages.length} messages for $currentUserId and $receiverId');
+      return messages;
+    } catch (e) {
+      print('StorageService: getMessagesForUser error: $e');
+      return [];
     }
   }
 

@@ -3,21 +3,22 @@ import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:animated_background/animated_background.dart';
-import '../../controllers/app_controller.dart';
-import '../../controllers/auth/signin_controller.dart';
-import '../../controllers/theme_controller.dart';
-import '../../routes/app_routes.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/glassmorphic_card.dart';
+import '../../../controllers/app_controller.dart';
+import '../../../controllers/auth/signup_controller.dart';
+import '../../../controllers/theme_controller.dart';
+import '../../../routes/app_routes.dart';
+import '../../widgets/custom_text_field.dart';
+import '../../widgets/glassmorphic_card.dart';
 
-class SignInScreen extends GetView<SignInController> {
-  const SignInScreen({super.key});
+class SignUpScreen extends GetView<SignUpController> {
+  const SignUpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    Get.put(SignInController());
+    Get.put(SignUpController());
     final ThemeController themeController = Get.find<ThemeController>();
     final appController = Get.find<AppController>();
+
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet
@@ -52,6 +53,19 @@ class SignInScreen extends GetView<SignInController> {
               actions: [
                 Row(
                   children: [
+                    IconButton(
+                      icon: Icon(
+                        themeController.isDarkMode.value
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        size: 20 * scaleFactor,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
+                      onPressed: () => themeController.toggleTheme(),
+                      tooltip: themeController.isDarkMode.value
+                          ? 'switch_to_light_mode'.tr
+                          : 'switch_to_dark_mode'.tr,
+                    ),
                     Padding(
                       padding: EdgeInsets.only(right: 8 * scaleFactor),
                       child: Text(
@@ -70,19 +84,6 @@ class SignInScreen extends GetView<SignInController> {
                       ),
                       onPressed: () => appController.toggleLanguage(),
                       tooltip: 'toggle_language'.tr,
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        themeController.isDarkMode.value
-                            ? Icons.light_mode
-                            : Icons.dark_mode,
-                        size: 20 * scaleFactor,
-                        color: Theme.of(context).iconTheme.color,
-                      ),
-                      onPressed: () => themeController.toggleTheme(),
-                      tooltip: themeController.isDarkMode.value
-                          ? 'switch_to_light_mode'.tr
-                          : 'switch_to_dark_mode'.tr,
                     ),
                     SizedBox(width: 8 * scaleFactor),
                   ],
@@ -134,7 +135,7 @@ class SignInScreen extends GetView<SignInController> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        'signin'.tr,
+                                        'signup'.tr,
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleLarge!
@@ -153,6 +154,14 @@ class SignInScreen extends GetView<SignInController> {
                                       ),
                                       SizedBox(height: 14 * scaleFactor),
                                       Obx(() => CustomTextField(
+                                            label: 'username'.tr,
+                                            prefixIcon: Icons.person,
+                                            errorText: controller.authController.usernameError.value,
+                                            onChanged: controller.onUsernameChanged,
+                                            scaleFactor: scaleFactor,
+                                          )),
+                                      SizedBox(height: 10 * scaleFactor),
+                                      Obx(() => CustomTextField(
                                             label: 'email'.tr,
                                             keyboardType: TextInputType.emailAddress,
                                             prefixIcon: Icons.email,
@@ -169,12 +178,21 @@ class SignInScreen extends GetView<SignInController> {
                                             onChanged: controller.onPasswordChanged,
                                             scaleFactor: scaleFactor,
                                           )),
+                                      SizedBox(height: 10 * scaleFactor),
+                                      Obx(() => CustomTextField(
+                                            label: 'confirm_password'.tr,
+                                            obscureText: true,
+                                            prefixIcon: Icons.lock_outline,
+                                            errorText: controller.authController.confirmPasswordError.value,
+                                            onChanged: controller.onConfirmPasswordChanged,
+                                            scaleFactor: scaleFactor,
+                                          )),
                                       SizedBox(height: 14 * scaleFactor),
                                       ElevatedButton(
-                                        onPressed: controller.signIn,
+                                        onPressed: controller.signUp,
                                         style: Theme.of(context).elevatedButtonTheme.style,
                                         child: Text(
-                                          'login'.tr,
+                                          'create_account'.tr,
                                           style: Theme.of(context)
                                               .elevatedButtonTheme
                                               .style!
@@ -186,10 +204,10 @@ class SignInScreen extends GetView<SignInController> {
                                       TextButton(
                                         onPressed: () {
                                           controller.reset();
-                                          Get.offNamed(AppRoutes.getSignUpPage());
+                                          Get.offNamed(AppRoutes.getSignInPage());
                                         },
                                         child: Text(
-                                          'dont_have_account'.tr,
+                                          'already_have_account'.tr,
                                           style: Theme.of(context)
                                               .textButtonTheme
                                               .style!

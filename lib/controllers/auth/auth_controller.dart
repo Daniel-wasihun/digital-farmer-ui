@@ -123,6 +123,49 @@ class AuthController extends GetxController {
     }
   }
 
+  // Future<void> signup(UserModel user, String password, String confirmPassword) async {
+  //   validateUsername(user.username);
+  //   validateEmail(user.email);
+  //   validatePassword(password);
+  //   validateConfirmPassword(password, confirmPassword);
+
+  //   if (usernameError.value.isNotEmpty ||
+  //       emailError.value.isNotEmpty ||
+  //       passwordError.value.isNotEmpty ||
+  //       confirmPasswordError.value.isNotEmpty) {
+  //     print('Signup validation failed: usernameError=${usernameError.value}, emailError=${emailError.value}, passwordError=${passwordError.value}, confirmPasswordError=${confirmPasswordError.value}');
+  //     return;
+  //   }
+
+  //   try {
+  //     isLoading.value = true;
+  //     print('Attempting signup for: ${user.email}');
+  //     final response = await _apiService.signup(
+  //       UserModel(
+  //         id: user.id,
+  //         username: user.username,
+  //         email: user.email.toLowerCase(),
+  //         role: user.role,
+  //       ),
+  //       password,
+  //     );
+  //     await _storageService.saveUser(response['user']);
+  //     await _storageService.saveToken(response['token']);
+  //     Get.snackbar('success'.tr, 'account_created_successfully'.tr,
+  //         backgroundColor: Colors.green, colorText: Colors.white);
+  //     Get.offNamed(AppRoutes.getSignInPage());
+  //   } catch (e) {
+  //     print('Signup failed: $e');
+  //     Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+  //         backgroundColor: Colors.redAccent, colorText: Colors.white);
+  //   } finally {
+  //     isLoading.value = false;
+  //   }
+  // }
+
+
+
+
   Future<void> signup(UserModel user, String password, String confirmPassword) async {
     validateUsername(user.username);
     validateEmail(user.email);
@@ -149,11 +192,13 @@ class AuthController extends GetxController {
         ),
         password,
       );
-      await _storageService.saveUser(response['user']);
-      await _storageService.saveToken(response['token']);
-      Get.snackbar('success'.tr, 'account_created_successfully'.tr,
+      Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
           backgroundColor: Colors.green, colorText: Colors.white);
-      Get.offNamed(AppRoutes.getSignInPage());
+      Get.toNamed(AppRoutes.getVerifyOTPPage(), arguments: {
+        'email': user.email.toLowerCase(),
+        'user': user,
+        'password': password,
+      });
     } catch (e) {
       print('Signup failed: $e');
       Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
@@ -162,6 +207,47 @@ class AuthController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  Future<void> verifyOTP(String email, String otp) async {
+    try {
+      isLoading.value = true;
+      print('Verifying OTP for: $email');
+      final response = await _apiService.verifyOTP(email, otp);
+      await _storageService.saveUser(response['user']);
+      await _storageService.saveToken(response['token']);
+      Get.snackbar('success'.tr, 'account_created_successfully'.tr,
+          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.offNamed(AppRoutes.getSignInPage());
+    } catch (e) {
+      print('OTP verification failed: $e');
+      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> resendOTP(String email, String type) async {
+    try {
+      isLoading.value = true;
+      print('Resending OTP for: $email, type: $type');
+      await _apiService.resendOTP(email, type);
+      Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
+          backgroundColor: Colors.green, colorText: Colors.white);
+    } catch (e) {
+      print('Resend OTP failed: $e');
+      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+
+
+
+
 
   Future<void> signin(String email, String password) async {
     validateEmail(email);
@@ -189,6 +275,86 @@ class AuthController extends GetxController {
       isLoading.value = false;
     }
   }
+
+
+
+  Future<void> requestPasswordReset(String email) async {
+    validateEmail(email);
+
+    if (emailError.value.isNotEmpty) {
+      print('Password reset request validation failed: emailError=${emailError.value}');
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      print('Requesting password reset for: $email');
+      final response = await _apiService.requestPasswordReset(email);
+      Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
+          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.toNamed(AppRoutes.getVerifyOTPPage(), arguments: {
+        'email': email.toLowerCase(),
+        'type': 'password_reset',
+      });
+    } catch (e) {
+      print('Password reset request failed: $e');
+      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> verifyPasswordResetOTP(String email, String otp) async {
+    try {
+      isLoading.value = true;
+      print('Verifying password reset OTP for: $email');
+      final response = await _apiService.verifyPasswordResetOTP(email, otp);
+      Get.snackbar('success'.tr, 'otp_verified'.tr,
+          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.toNamed(AppRoutes.getResetPasswordPage(), arguments: {
+        'resetToken': response['resetToken'],
+        'email': email,
+      });
+    } catch (e) {
+      print('Password reset OTP verification failed: $e');
+      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
+    validateNewPassword(newPassword);
+    validateConfirmPassword(newPassword, confirmPassword);
+
+    if (newPasswordError.value.isNotEmpty || confirmPasswordError.value.isNotEmpty) {
+      print('Password reset validation failed: newPasswordError=${newPasswordError.value}, confirmPasswordError=${confirmPasswordError.value}');
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      print('Resetting password');
+      await _apiService.resetPassword(resetToken, newPassword);
+      Get.snackbar('success'.tr, 'password_reset_successfully'.tr,
+          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.offNamed(AppRoutes.getSignInPage());
+    } catch (e) {
+      print('Password reset failed: $e');
+      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+  // ... other methods ...
+
+
+
 
   Future<void> changePassword(String currentPassword, String newPassword, String confirmNewPassword) async {
     print('changePassword called with current: ${currentPassword.isEmpty ? "empty" : "non-empty"}, new: ${newPassword.isEmpty ? "empty" : "non-empty"}, confirm: ${confirmNewPassword.isEmpty ? "empty" : "non-empty"}');

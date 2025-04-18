@@ -1,18 +1,21 @@
 import 'package:get/get.dart';
 import '../controllers/update_profile_controller.dart';
 import '../services/storage_service.dart';
-import '../views/screens/Tabs/chat/chat_screen.dart';
+import '../views/screens/Tabs/settings/settings_tab.dart';
+import '../views/screens/auth/request_password_reset_screen.dart';
+import '../views/screens/auth/reset_password_screen.dart';
+import '../views/screens/auth/signin_screen.dart';
+import '../views/screens/auth/signup_screen.dart';
+import '../views/screens/auth/verify_otp_screen.dart';
+import '../views/screens/tabs/chat/chat_screen.dart';
 import '../views/screens/tabs/settings/change_password_screen.dart';
 import '../views/screens/tabs/settings/contact_us_screen.dart';
 import '../views/screens/tabs/settings/faq_screen.dart';
 import '../views/screens/tabs/settings/feedback_screen.dart';
 import '../views/screens/tabs/settings/security_question_screen.dart';
 import '../views/screens/tabs/settings/update_profile_screen.dart';
-import '../views/screens/tabs/settings_tab.dart';
 import '../views/screens/home_screen.dart';
-import '../views/screens/signin_screen.dart';
-import '../views/screens/signup_screen.dart';
-import '../views/screens/Tabs/chat/user_profile_screen.dart';
+import '../views/screens/tabs/chat/user_profile_screen.dart';
 
 class AppRoutes {
   static const String signin = '/signin';
@@ -27,6 +30,9 @@ class AppRoutes {
   static const String feedback = '/feedback';
   static const String chat = '/chat';
   static const String userProfile = '/user-profile';
+  static const String verifyOTP = '/verify-otp';
+  static const String requestPasswordReset = '/request-password-reset';
+  static const String resetPassword = '/reset-password';
 
   static String getSignInPage() => signin;
   static String getSignUpPage() => signup;
@@ -42,6 +48,9 @@ class AppRoutes {
       '$chat?receiverId=$receiverId&receiverUsername=$receiverUsername';
   static String getUserProfilePage(String email, String username) =>
       '$userProfile?email=$email&username=$username';
+  static String getVerifyOTPPage() => verifyOTP;
+  static String getRequestPasswordResetPage() => requestPasswordReset;
+  static String getResetPasswordPage() => resetPassword;
 
   static String getInitialRoute() {
     final storageService = Get.find<StorageService>();
@@ -125,6 +134,24 @@ class AppRoutes {
     GetPage(
       name: userProfile,
       page: () => const UserProfileScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: verifyOTP,
+      page: () => const VerifyOTPScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: requestPasswordReset,
+      page: () => const RequestPasswordResetScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: resetPassword,
+      page: () => const ResetPasswordScreen(),
       transition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 400),
     ),

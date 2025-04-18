@@ -12,6 +12,7 @@ class ApiService {
   static const String imageBaseUrl = 'http://localhost:5000';
   final StorageService _storageService = Get.find<StorageService>();
 
+
   Future<Map<String, dynamic>> signup(UserModel user, String password) async {
     print('Signup request: ${user.toJson()}, password: [hidden]');
     final response = await http.post(
@@ -27,12 +28,58 @@ class ApiService {
 
     print('Signup response: ${response.statusCode} ${response.body}');
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw Exception(jsonDecode(response.body)['message'] ?? 'Signup failed');
     }
   }
+
+  Future<Map<String, dynamic>> verifyOTP(String email, String otp) async {
+    print('Verify OTP request: email: $email, otp: $otp');
+    final response = await http.post(
+      Uri.parse('$apiBaseUrl/auth/verify-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.toLowerCase(),
+        'otp': otp,
+      }),
+    );
+
+    print('Verify OTP response: ${response.statusCode} ${response.body}');
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'OTP verification failed');
+    }
+  }
+
+Future<Map<String, dynamic>> resendOTP(String email, String type) async {
+  print('Resend OTP request: email: $email, type: $type');
+  final response = await http.post(
+    Uri.parse('$apiBaseUrl/auth/resend-otp'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'email': email.toLowerCase(),
+      'type': type,
+    }),
+  );
+
+    print('Resend OTP response: ${response.statusCode} ${response.body}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to resend OTP');
+    }
+  }
+
+
+
+
+
+
 
   Future<Map<String, dynamic>> signin(String email, String password) async {
     print('Signin request: email: $email, password: [hidden]');
@@ -53,6 +100,69 @@ class ApiService {
       throw Exception(jsonDecode(response.body)['message'] ?? 'Signin failed');
     }
   }
+
+
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    print('Request password reset: email: $email');
+    final response = await http.post(
+      Uri.parse('$apiBaseUrl/auth/request-password-reset'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.toLowerCase(),
+      }),
+    );
+
+    print('Request password reset response: ${response.statusCode} ${response.body}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to request password reset');
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyPasswordResetOTP(String email, String otp) async {
+    print('Verify password reset OTP request: email: $email, otp: $otp');
+    final response = await http.post(
+      Uri.parse('$apiBaseUrl/auth/verify-password-reset-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.toLowerCase(),
+        'otp': otp,
+      }),
+    );
+
+    print('Verify password reset OTP response: ${response.statusCode} ${response.body}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'OTP verification failed');
+    }
+  }
+
+  Future<void> resetPassword(String resetToken, String newPassword) async {
+    print('Reset password request: resetToken: [REDACTED], newPassword: [REDACTED]');
+    final response = await http.post(
+      Uri.parse('$apiBaseUrl/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'resetToken': resetToken,
+        'newPassword': newPassword,
+      }),
+    );
+
+    print('Reset password response: ${response.statusCode} ${response.body}');
+
+    if (response.statusCode == 200) {
+      return;
+    } else {
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to reset password');
+    }
+  }
+
+
+
 
   Future<void> changePassword(String email, String currentPassword, String newPassword) async {
     try {

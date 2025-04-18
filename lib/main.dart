@@ -63,6 +63,7 @@ class MyApp extends StatelessWidget {
           theme: themeController.getTheme(),
           darkTheme: themeController.getDarkTheme(),
           themeMode: themeController.isDarkMode.value ? ThemeMode.dark : ThemeMode.light,
-        ));
+        )
+      );
   }
 }

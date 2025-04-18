@@ -5,7 +5,6 @@ import 'auth_controller.dart';
 class SignUpController extends GetxController {
   final AuthController authController = Get.find<AuthController>();
 
-  // Reactive inputs
   var username = ''.obs;
   var email = ''.obs;
   var password = ''.obs;

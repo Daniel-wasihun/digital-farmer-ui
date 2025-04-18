@@ -1,10 +1,10 @@
 import 'package:agri/controllers/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../controllers/auth/auth_controller.dart';
-import '../../../routes/app_routes.dart';
-import '../../../services/api_service.dart';
-import '../../../services/storage_service.dart';
+import '../../../../../controllers/auth/auth_controller.dart';
+import '../../../../../routes/app_routes.dart';
+import '../../../../../services/api_service.dart';
+import '../../../../../services/storage_service.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
