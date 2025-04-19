@@ -112,7 +112,7 @@ class UpdateProfileController extends GetxController {
       }
       print('Updating profile for: ${user['email']}, username=${username.value}, bio=${bio.value}, image=${selectedImage.value?.path}');
 
-      final updatedUser = await _apiService.updateProfile(
+      final updatedUser = await _apiService.user.updateProfile(
         user['email'],
         username.value,
         bio.value.isEmpty ? null : bio.value,

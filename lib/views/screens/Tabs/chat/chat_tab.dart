@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../../controllers/chat_controller.dart';
+import '../../../../controllers/chat/chat_controller.dart';
 import '../../../../../routes/app_routes.dart';
 import '../../../../../utils/constants.dart';
 

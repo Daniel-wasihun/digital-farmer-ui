@@ -4,6 +4,7 @@ import '../services/storage_service.dart';
 import '../views/screens/Tabs/settings/settings_tab.dart';
 import '../views/screens/auth/request_password_reset_screen.dart';
 import '../views/screens/auth/reset_password_screen.dart';
+import '../views/screens/auth/security_question_verification_screen.dart';
 import '../views/screens/auth/signin_screen.dart';
 import '../views/screens/auth/signup_screen.dart';
 import '../views/screens/auth/verify_otp_screen.dart';
@@ -33,6 +34,7 @@ class AppRoutes {
   static const String verifyOTP = '/verify-otp';
   static const String requestPasswordReset = '/request-password-reset';
   static const String resetPassword = '/reset-password';
+  static const String securityQuestionVerificationPage = '/security-question-verification';
 
   static String getSignInPage() => signin;
   static String getSignUpPage() => signup;
@@ -51,6 +53,7 @@ class AppRoutes {
   static String getVerifyOTPPage() => verifyOTP;
   static String getRequestPasswordResetPage() => requestPasswordReset;
   static String getResetPasswordPage() => resetPassword;
+  static String getSecurityQuestionVerificationPage() =>securityQuestionVerificationPage;
 
   static String getInitialRoute() {
     final storageService = Get.find<StorageService>();
@@ -89,6 +92,10 @@ class AppRoutes {
       transition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 400),
     ),
+    GetPage(
+    name: '/security-question-verification',
+    page: () => const SecurityQuestionVerificationScreen(),
+  ),
     GetPage(
       name: updateProfile,
       page: () => const UpdateProfileScreen(),

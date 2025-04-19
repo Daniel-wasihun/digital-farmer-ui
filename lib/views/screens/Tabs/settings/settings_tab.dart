@@ -1,10 +1,12 @@
 import 'package:agri/controllers/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../../controllers/auth/auth_controller.dart';
 import '../../../../../routes/app_routes.dart';
-import '../../../../../services/api_service.dart';
+import '../../../../../services/api/base_api.dart'; // Import BaseApi
 import '../../../../../services/storage_service.dart';
+import 'contact_us_screen.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -17,6 +19,10 @@ class SettingsTab extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet ? 1.0 : 0.85;
+
+    // Define the app share URL and message
+    const appShareUrl = 'https://example.com/app';
+    const shareMessage = 'Check out this awesome app! Download it at $appShareUrl';
 
     final settingsOptions = [
       {
@@ -60,7 +66,14 @@ class SettingsTab extends StatelessWidget {
       {
         'icon': Icons.contact_support,
         'title': 'contact_us'.tr,
-        'route': AppRoutes.getContactUsPage(),
+        'action': () {
+          Get.dialog(
+            ContactUsScreen(),
+            barrierDismissible: true,
+            transitionDuration: const Duration(milliseconds: 300),
+            transitionCurve: Curves.easeInOut,
+          );
+        },
       },
       {
         'icon': Icons.feedback,
@@ -70,37 +83,40 @@ class SettingsTab extends StatelessWidget {
       {
         'icon': Icons.share,
         'title': 'invite_friend'.tr,
-        'action': () {
-          Get.snackbar('info'.tr, 'Share feature not implemented yet',
-              backgroundColor: Theme.of(context).colorScheme.secondary,
-              colorText: Theme.of(context).colorScheme.onSecondary);
+        'action': () async {
+          try {
+            await Share.share(shareMessage, subject: 'Invite a Friend');
+          } catch (e) {
+            Get.snackbar('error'.tr, 'failed_to_share'.tr,
+                backgroundColor: Theme.of(context).colorScheme.error,
+                colorText: Theme.of(context).colorScheme.onError);
+          }
         },
       },
     ];
 
     // Estimate content height
-    final profileCardHeight = 60 * scaleFactor; // Padding (12*2) + avatar (24*2)
-    final tileHeight = 40 * scaleFactor; // Padding (8*2) + icon (20) + margin (4*2)
-    final spacingHeight = 12 * scaleFactor * 2; // Between profile and list, list and button
+    final profileCardHeight = 60 * scaleFactor;
+    final tileHeight = 40 * scaleFactor;
+    final spacingHeight = 12 * scaleFactor * 2;
     final contentHeightWithoutButton = profileCardHeight +
         (settingsOptions.length * tileHeight) +
         spacingHeight;
-    final buttonHeight = 40 * scaleFactor; // Logout button
+    final buttonHeight = 40 * scaleFactor;
     final totalContentHeight = contentHeightWithoutButton + buttonHeight;
 
     return SafeArea(
-      bottom: false, // Handle bottom padding manually
+      bottom: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final availableHeight = constraints.maxHeight;
           final needsScroll = totalContentHeight > availableHeight;
 
-          // Calculate space to push button to bottom in no-scroll case
           final spaceToBottom = availableHeight -
               contentHeightWithoutButton -
               buttonHeight -
               MediaQuery.of(context).padding.bottom -
-              20 * scaleFactor; // Increased margin
+              20 * scaleFactor;
 
           print(
               'AvailableHeight: $availableHeight, ContentHeight: $totalContentHeight, '
@@ -148,7 +164,7 @@ class SettingsTab extends StatelessWidget {
                                 left: 12 * scaleFactor,
                                 right: 12 * scaleFactor,
                                 bottom: MediaQuery.of(context).padding.bottom +
-                                    24 * scaleFactor, // Increased margin
+                                    24 * scaleFactor,
                               ),
                               child: _buildLogoutButton(context, authController, scaleFactor),
                             )
@@ -161,7 +177,7 @@ class SettingsTab extends StatelessWidget {
                                     left: 12 * scaleFactor,
                                     right: 12 * scaleFactor,
                                     bottom: MediaQuery.of(context).padding.bottom +
-                                        24 * scaleFactor, // Increased margin
+                                        24 * scaleFactor,
                                   ),
                                   child: _buildLogoutButton(context, authController, scaleFactor),
                                 ),
@@ -192,7 +208,7 @@ class SettingsTab extends StatelessWidget {
 
       print(
           'SettingsTab user: username=$username, email=$email, profilePicture=$profilePicture');
-      print('Profile URL: ${ApiService.imageBaseUrl}/Uploads/$profilePicture');
+      print('Profile URL: ${BaseApi.imageBaseUrl}/uploads/$profilePicture');
 
       return Container(
         padding: EdgeInsets.all(12 * scaleFactor),
@@ -215,7 +231,7 @@ class SettingsTab extends StatelessWidget {
               child: profilePicture.isNotEmpty
                   ? ClipOval(
                       child: Image.network(
-                        '${ApiService.imageBaseUrl}/uploads/$profilePicture?ts=${DateTime.now().millisecondsSinceEpoch}',
+                        '${BaseApi.imageBaseUrl}/uploads/$profilePicture?ts=${DateTime.now().millisecondsSinceEpoch}',
                         width: 48 * scaleFactor,
                         height: 48 * scaleFactor,
                         fit: BoxFit.cover,

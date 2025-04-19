@@ -93,7 +93,7 @@ class VerifyOTPScreen extends GetView<AuthController> {
                                 ),
                                 SizedBox(height: 14 * scaleFactor),
                                 Text(
-                                  'enter_otp_sent_to'.tr + ' $email',
+                                  '${'enter_otp_sent_to'.tr} $email',
                                   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                                         fontSize: 16 * scaleFactor,
                                       ),

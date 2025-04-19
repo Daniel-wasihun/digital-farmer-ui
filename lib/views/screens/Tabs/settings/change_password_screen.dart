@@ -1,176 +1,277 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:math' as math;
+// Import the comprehensive AuthController
 import '../../../../controllers/auth/auth_controller.dart';
 import '../../../widgets/custom_text_field.dart';
-import '../../../widgets/glassmorphic_card.dart';
 
-class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
+// Use GetView with AuthController as it's the controller for this screen's logic
+class ChangePasswordScreen extends GetView<AuthController> {
+   // Using Key is optional but good practice
+   const ChangePasswordScreen({super.key});
 
-  @override
-  _ChangePasswordScreenState createState() => _ChangePasswordScreenState();
-}
-
-class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  late final TextEditingController currentPasswordController;
-  late final TextEditingController newPasswordController;
-  late final TextEditingController confirmPasswordController;
-  final AuthController authController = Get.find<AuthController>();
-
-  @override
-  void initState() {
-    super.initState();
-    print('ChangePasswordScreen initState, creating controllers');
-    currentPasswordController = TextEditingController();
-    newPasswordController = TextEditingController();
-    confirmPasswordController = TextEditingController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('Resetting errors in post-frame callback');
-      authController.resetPasswordErrors();
-    });
-  }
-
-  @override
-  void dispose() {
-    print('ChangePasswordScreen dispose, disposing controllers');
-    currentPasswordController.dispose();
-    newPasswordController.dispose();
-    confirmPasswordController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
+    // Access the controller using 'controller' property provided by GetView
+    // The controller is Get.find<AuthController>() because we specified GetView<AuthController>
+    // Use the controller property directly: controller.myVariable
+
+    // --- FIX for persistent errors ---
+    // Call resetPasswordErrors when the screen is built (e.g., on navigation entry)
+    // Using addPostFrameCallback ensures it happens after the widget is rendered
+    // but before the user interacts.
+    // Also clear the text field controllers manually as resetPasswordErrors
+    // only resets the error *states*.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.resetPasswordErrors(); // Use the specific password error reset
+      controller.currentPasswordController.clear(); // Clear the fields
+      controller.newPasswordController.clear();
+      controller.confirmPasswordController.clear();
+    });
+
+
     final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
-    final scaleFactor = isTablet ? 1.1 : 0.9; // Reduced base scaleFactor
+    final theme = Theme.of(context);
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
+    // --- Responsive Breakpoints ---
+    const double tinyPhoneMaxWidth = 300;
+    const double verySmallPhoneMaxWidth = 360;
+    const double smallPhoneMaxWidth = 480;
+    const double compactTabletMinWidth = 600;
+    const double largeTabletMinWidth = 800;
+    const double desktopMinWidth = 1000;
+
+    final bool isTinyPhone = size.width < tinyPhoneMaxWidth;
+    final bool isVerySmallPhone = size.width >= tinyPhoneMaxWidth && size.width < verySmallPhoneMaxWidth;
+    final bool isSmallPhone = size.width >= verySmallPhoneMaxWidth && size.width < smallPhoneMaxWidth;
+    final bool isCompactTablet = size.width >= compactTabletMinWidth && size.width < largeTabletMinWidth;
+    final bool isLargeTablet = size.width >= largeTabletMinWidth && size.width < desktopMinWidth;
+    final bool isDesktop = size.width >= desktopMinWidth;
+
+    // --- Responsive Scale Factor ---
+    final double scaleFactor = isDesktop
+        ? 1.2
+        : isLargeTablet
+            ? 1.1
+            : isCompactTablet
+                ? 1.0
+                : isSmallPhone
+                    ? 0.9
+                    : isVerySmallPhone
+                        ? 0.75
+                        : isTinyPhone
+                            ? 0.6
+                            : 1.0;
+
+    // --- Responsive Constraints ---
+    final double maxFormWidth = isDesktop
+        ? 600
+        : isLargeTablet
+            ? 500
+            : isCompactTablet
+                ? 400
+                : size.width * (isTinyPhone ? 0.95 : isVerySmallPhone ? 0.92 : 0.9);
+    final double maxFormHeight = size.height * (isTinyPhone ? 0.9 : isVerySmallPhone ? 0.85 : isSmallPhone ? 0.8 : 0.7);
+
+    // --- Responsive Padding ---
+    final double cardPadding = math.max(8.0, 12.0 * scaleFactor).clamp(10.0, 24.0);
+
+    // --- Responsive Font Sizes ---
+    final double baseTitleFontSize = 18.0;
+    final double baseAppBarFontSize = 16.0;
+    final double baseFieldLabelFontSize = 12.0;
+    final double baseFieldValueFontSize = 14.0;
+    final double baseButtonFontSize = 14.0;
+    final double iconSize = (20.0 * scaleFactor).clamp(16.0, 22.0);
+    // final double errorFontSize = (10.0 * scaleFactor).clamp(8.0, 12.0); // Not directly used in CustomTextField, handled internally
+    final double loaderSize = (20.0 * scaleFactor).clamp(18.0, 24.0);
+
+    final double titleFontSize = (baseTitleFontSize * scaleFactor).clamp(16.0, 20.0);
+    final double appBarFontSize = (baseAppBarFontSize * scaleFactor).clamp(14.0, 18.0);
+    final double fieldLabelFontSize = (baseFieldLabelFontSize * scaleFactor).clamp(10.0, 14.0);
+    final double fieldValueFontSize = (baseFieldValueFontSize * scaleFactor).clamp(12.0, 16.0);
+    final double buttonFontSize = (baseButtonFontSize * scaleFactor).clamp(12.0, 16.0);
+
+    // --- Responsive Spacing ---
+    // --- Adjusted spacing values ---
+    final double spacingSmall = math.max(6.0, 8 * scaleFactor);
+    final double spacingMedium = math.max(8.0, 12 * scaleFactor); // Using the reduced base value
+    final double spacingLarge = math.max(18.0, 24 * scaleFactor);
+
+    // --- Consistent Vertical Padding for Text Fields ---
+    // --- Adjusted padding value ---
+    final double consistentVerticalPadding = math.max(10.0, 12 * scaleFactor); // Using the reduced base value
+
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 4,
+        elevation: 0.5,
         title: Text(
           'change_password'.tr,
-          style: TextStyle(
-                fontSize: 16 * scaleFactor, // Smaller app bar title
+          style: theme.appBarTheme.titleTextStyle?.copyWith(
+                fontSize: appBarFontSize,
                 fontWeight: FontWeight.w600,
+              ) ??
+              TextStyle(
+                fontSize: appBarFontSize,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onPrimary, // Assuming onPrimary is the default app bar text color
               ),
         ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Theme.of(context).appBarTheme.foregroundColor),
-          onPressed: () {
-            print('AppBar back button pressed, navigating back');
-            Get.back();
-          },
-        ),
+        toolbarHeight: (isTinyPhone || isVerySmallPhone || isSmallPhone) ? 45 : 56,
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: isTablet ? 600 : size.width * 0.9,
+            maxWidth: maxFormWidth.clamp(240, 600),
+            maxHeight: maxFormHeight.clamp(300, 600),
           ),
-          child: GlassmorphicCard(
-            child: Padding(
-              padding: EdgeInsets.all(12 * scaleFactor), // Reduced padding
-              child: Obx(
-                () => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'change_password'.tr,
-                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                            fontSize: 18 * scaleFactor, // Smaller title
-                            fontWeight: FontWeight.w700,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 12 * scaleFactor), // Reduced spacing
-                    CustomTextField(
-                      label: 'current_password'.tr,
-                      controller: currentPasswordController,
-                      obscureText: true,
-                      prefixIcon: Icons.lock,
-                      errorText: authController.currentPasswordError.value.isEmpty
-                          ? null
-                          : authController.currentPasswordError.value,
-                      onChanged: (value) => authController.validateCurrentPassword(value),
-                      scaleFactor: scaleFactor,
-                    ),
-                    SizedBox(height: 6 * scaleFactor), // Reduced spacing
-                    CustomTextField(
-                      label: 'new_password'.tr,
-                      controller: newPasswordController,
-                      obscureText: true,
-                      prefixIcon: Icons.lock,
-                      errorText: authController.newPasswordError.value.isEmpty
-                          ? null
-                          : authController.newPasswordError.value,
-                      onChanged: (value) => authController.validateNewPassword(value),
-                      scaleFactor: scaleFactor,
-                    ),
-                    SizedBox(height: 6 * scaleFactor), // Reduced spacing
-                    CustomTextField(
-                      label: 'confirm_password'.tr,
-                      controller: confirmPasswordController,
-                      obscureText: true,
-                      prefixIcon: Icons.lock_outline,
-                      errorText: authController.confirmPasswordError.value.isEmpty
-                          ? null
-                          : authController.confirmPasswordError.value,
-                      onChanged: (value) => authController.validateConfirmPassword(
-                          newPasswordController.text, value),
-                      scaleFactor: scaleFactor,
-                    ),
-                    SizedBox(height: 12 * scaleFactor), // Reduced spacing
-                    ElevatedButton(
-                      onPressed: authController.isLoading.value
-                          ? null
-                          : () {
-                              print('Change password button pressed');
-                              authController.changePassword(
-                                currentPasswordController.text,
-                                newPasswordController.text,
-                                confirmPasswordController.text,
-                              );
-                              print('After changePassword call');
-                            },
-                      style: Theme.of(context).elevatedButtonTheme.style!.copyWith(
-                            padding: WidgetStateProperty.all(
-                                EdgeInsets.symmetric(vertical: 8 * scaleFactor)), // Smaller button
-                            shape: WidgetStateProperty.all(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6 * scaleFactor),
-                              ),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 150),
+            padding: EdgeInsets.symmetric(horizontal: size.width * (isTinyPhone ? 0.03 : 0.04)),
+            child: Card(
+              elevation: isDarkMode ? 2.0 : 4.0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(math.max(8.0, 12 * scaleFactor))),
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: EdgeInsets.all(cardPadding),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'change_password'.tr,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
+                            ) ??
+                            TextStyle(
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
                             ),
-                            elevation: WidgetStateProperty.all(3),
-                          ),
-                      child: authController.isLoading.value
-                          ? SizedBox(
-                              width: 20 * scaleFactor,
-                              height: 20 * scaleFactor,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5 * scaleFactor,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    Theme.of(context).colorScheme.onPrimary),
-                              ),
-                            )
-                          : Text(
-                              'update_password'.tr,
-                              style: Theme.of(context)
-                                  .elevatedButtonTheme
-                                  .style!
-                                  .textStyle!
-                                  .resolve({})
-                                  // .copyWith(fontSize: 12 * scaleFactor), // Smaller text
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: spacingLarge),
+                      Obx(
+                        () => CustomTextField(
+                          label: 'current_password'.tr,
+                          controller: controller.currentPasswordController, // Use AuthController
+                          obscureText: true,
+                          prefixIcon: Icons.lock,
+                          errorText: controller.currentPasswordError.value.isEmpty // Use AuthController error
+                              ? null
+                              : controller.currentPasswordError.value,
+                          onChanged: controller.validateCurrentPassword, // Use AuthController method
+                          scaleFactor: scaleFactor,
+                          fontSize: fieldValueFontSize,
+                          labelFontSize: fieldLabelFontSize,
+                          iconSize: iconSize,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: math.max(8.0, 10 * scaleFactor), vertical: consistentVerticalPadding),
+                          borderRadius: math.max(5.0, 7 * scaleFactor),
+                          filled: true,
+                          fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
+                        ),
+                      ),
+                      SizedBox(height: spacingMedium), // Use adjusted spacingMedium
+                      Obx(
+                        () => CustomTextField(
+                          label: 'new_password'.tr,
+                          controller: controller.newPasswordController, // Use AuthController
+                          obscureText: true,
+                          prefixIcon: Icons.lock,
+                          errorText: controller.newPasswordError.value.isEmpty // Use AuthController error
+                              ? null
+                              : controller.newPasswordError.value,
+                          onChanged: controller.validateNewPassword, // Use AuthController method
+                          scaleFactor: scaleFactor,
+                          fontSize: fieldValueFontSize,
+                          labelFontSize: fieldLabelFontSize,
+                          iconSize: iconSize,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: math.max(8.0, 10 * scaleFactor), vertical: consistentVerticalPadding),
+                          borderRadius: math.max(5.0, 7 * scaleFactor),
+                          filled: true,
+                          fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
+                        ),
+                      ),
+                      SizedBox(height: spacingMedium), // Use adjusted spacingMedium
+                      Obx(
+                        () => CustomTextField(
+                          label: 'confirm_password'.tr,
+                          controller: controller.confirmPasswordController, // Use AuthController
+                          obscureText: true,
+                          prefixIcon: Icons.lock_outline,
+                          errorText: controller.confirmPasswordError.value.isEmpty // Use AuthController error
+                              ? null
+                              : controller.confirmPasswordError.value,
+                          onChanged: (value) => controller.validateConfirmPassword( // Use AuthController method
+                              controller.newPasswordController.text, value),
+                          scaleFactor: scaleFactor,
+                          fontSize: fieldValueFontSize,
+                          labelFontSize: fieldLabelFontSize,
+                          iconSize: iconSize,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: math.max(8.0, 10 * scaleFactor), vertical: consistentVerticalPadding),
+                          borderRadius: math.max(5.0, 7 * scaleFactor),
+                          filled: true,
+                          fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) {
+                            if (!controller.isLoading.value) { // Use AuthController isLoading
+                              controller.changePassword(); // Call AuthController method
+                            }
+                          },
+                        ),
+                      ),
+                      SizedBox(height: spacingLarge),
+                      Obx(
+                        () => ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                                vertical: math.max(10.0, 12 * scaleFactor),
+                                horizontal: math.max(16.0, 20 * scaleFactor)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(math.max(5.0, 7 * scaleFactor)),
                             ),
-                    ),
-                  ],
+                            textStyle: TextStyle(
+                              fontSize: buttonFontSize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            elevation: 2.0,
+                          ),
+                          onPressed: controller.isLoading.value // Use AuthController isLoading
+                              ? null
+                              : () {
+                                  controller.changePassword(); // Call AuthController method
+                                },
+                          child: controller.isLoading.value // Use AuthController isLoading
+                              ? SizedBox(
+                                  width: loaderSize,
+                                  height: loaderSize,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: math.max(1.5, 2.0 * scaleFactor),
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                  ),
+                                )
+                              : Text('update_password'.tr.toUpperCase()),
+                        ),
+                      ),
+                      SizedBox(height: spacingSmall),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ),
-    );
+    ));
   }
 }

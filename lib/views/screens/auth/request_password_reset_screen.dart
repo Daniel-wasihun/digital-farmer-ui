@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-
 import '../../../controllers/auth/auth_controller.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../../routes/app_routes.dart';
 
 class RequestPasswordResetScreen extends GetView<AuthController> {
   const RequestPasswordResetScreen({super.key});
@@ -31,14 +31,6 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
                 fontWeight: FontWeight.w600,
               ),
         ),
-        // No leading or actions needed, but can be added if required
-        // leading: IconButton(
-        //   icon: Icon(Icons.arrow_back),
-        //   onPressed: () => Get.back(),
-        // ),
-        // actions: [
-        //   // Add action widgets here if needed
-        // ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -128,6 +120,35 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
                                         .style!
                                         .textStyle!
                                         .resolve({}),
+                                  ),
+                                ),
+                                SizedBox(height: 8 * scaleFactor),
+                                TextButton(
+                                  onPressed: () {
+                                    if (emailController.text.isEmpty) {
+                                      controller.emailError.value = 'please_enter_email'.tr;
+                                      return;
+                                    }
+                                    if (!GetUtils.isEmail(emailController.text)) {
+                                      controller.emailError.value = 'invalid_email'.tr;
+                                      return;
+                                    }
+                                    Get.toNamed(
+                                      AppRoutes.getSecurityQuestionVerificationPage(),
+                                      arguments: {'email': emailController.text},
+                                    );
+                                  },
+                                  child: Text(
+                                    'use_another_method'.tr,
+                                    style: Theme.of(context)
+                                        .textButtonTheme
+                                        .style!
+                                        .textStyle!
+                                        .resolve({})
+                                        ?.copyWith(
+                                          color: Theme.of(context).colorScheme.secondary,
+                                          fontSize: 14 * scaleFactor,
+                                        ),
                                   ),
                                 ),
                               ],
