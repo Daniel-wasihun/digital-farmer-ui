@@ -1,50 +1,123 @@
+import 'package:agri/controllers/auth/auth_validation_mixin.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 
-// This controller now handles all authentication-related logic,
-// including signup, signin, password reset, and change password.
-class AuthController extends GetxController {
-  final ApiService _apiService = Get.find<ApiService>(); // Ensure ApiService is bound
-  final StorageService _storageService = Get.find<StorageService>(); // Ensure StorageService is bound
+// Import mixin and managers
+import 'auth_controller_callbacks.dart';
+import 'auth_otp_manager.dart';
+import 'auth_password_manager.dart';
+import 'auth_security_manager.dart';
 
-  // Observable states for UI (Includes all errors)
-  var isLoading = false.obs; // Global loading state for auth actions
+/// The main controller orchestrating authentication related logic and state.
+/// It delegates specific workflows to dedicated managers.
+class AuthController extends GetxController with AuthValidationMixin {
+  // ==================== Dependencies ====================
+  final ApiService _apiService = Get.find<ApiService>();
+  final StorageService _storageService = Get.find<StorageService>();
+
+  // Feature Managers
+  late final AuthOtpManager _otpManager;
+  late final AuthPasswordManager _passwordManager;
+  late final AuthSecurityManager _securityManager;
+
+  // ==================== Observable States (Required by Mixin and other states) ====================
+  @override
+  final isLoading = false.obs;
+  @override
+  final isPasswordChangeSuccess = false.obs; // State for password change UI feedback
+
+  // Error states (required by AuthValidationMixin)
+  @override
   var usernameError = ''.obs;
+  @override
   var emailError = ''.obs;
-  var passwordError = ''.obs; // For signup/signin initial password
-  var confirmPasswordError = ''.obs; // For signup and reset password confirm
-  var currentPasswordError = ''.obs; // For change password
-  var newPasswordError = ''.obs; // For change password and reset password
-  var bioError = ''.obs; // Assuming bio is part of the auth profile
-  var securityQuestionError = ''.obs; // For security question setup/verification
+  @override
+  var passwordError = ''.obs;
+  @override
+  var confirmPasswordError = ''.obs;
+  @override
+  var currentPasswordError = ''.obs;
+  @override
+  var newPasswordError = ''.obs;
+  @override
+  var bioError = ''.obs;
+  @override
+  var securityQuestionError = ''.obs;
+  @override
   var securityAnswerError = ''.obs;
 
-  // TextEditingControllers (Includes all auth-related inputs)
-  final emailController = TextEditingController(); // For signin/reset flows
-  final usernameController = TextEditingController(); // For signup
-  final currentPasswordController = TextEditingController(); // For change password
-  final newPasswordController = TextEditingController(); // For change password and reset password fields
-  final confirmPasswordController = TextEditingController(); // For change password and reset password fields
-  final securityQuestionTextController = TextEditingController(); // For security question
-  final securityAnswerTextController = TextEditingController(); // For security answer
+  // ==================== TextEditingControllers ====================
+  final emailController = TextEditingController();
+  final usernameController = TextEditingController();
+  final currentPasswordController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  final securityQuestionTextController = TextEditingController();
+  final securityAnswerTextController = TextEditingController();
 
-
+   // ==================== Initialization ====================
   @override
   void onInit() {
-     super.onInit();
-     // Optional: You could reset all fields/errors here if the controller's
-     // lifecycle matches a full auth flow (e.g., bound to an AuthWrapper).
-     // resetAllFields(); // You would need to create this method
-     // resetErrors();
+    super.onInit();
+    // Initialize feature managers, passing required dependencies and callbacks
+    final callbacks = AuthControllerCallbacks(
+      setIsLoading: (value) => isLoading.value = value,
+      // Corrected signature and usage of Get.snackbar params
+      showSnackbar: (title, message, {backgroundColor, colorText, snackPosition, borderRadius, margin}) {
+        Get.snackbar(
+          title,
+          message,
+          backgroundColor: backgroundColor ?? Get.theme.colorScheme.surfaceContainerHighest, // Default or passed color
+          colorText: colorText ?? Get.theme.colorScheme.onSurfaceVariant, // Default or passed color
+          snackPosition: snackPosition ?? SnackPosition.BOTTOM,
+          // Removed duration and isDismissible here
+          borderRadius: borderRadius ?? 8, // Use passed or default
+          margin: margin ?? const EdgeInsets.all(16), // Use passed or default
+        );
+        // If you need duration control, you might need to use Get.showSnackbar
+        // with a GetSnackBar widget which *does* accept a duration.
+        // Example (less direct):
+        /*
+        Get.showSnackbar(
+          GetSnackBar(
+            title: title,
+            message: message,
+            backgroundColor: backgroundColor ?? Get.theme.colorScheme.surfaceVariant,
+            colorText: colorText ?? Get.theme.colorScheme.onSurfaceVariant,
+            snackPosition: snackPosition ?? SnackPosition.BOTTOM,
+            borderRadius: borderRadius ?? 8,
+            margin: margin ?? const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4), // Duration is a GetSnackBar param
+            isDismissible: true, // isDismissible is a GetSnackBar param
+          ),
+        );
+        */
+      },
+      navigateTo: (pageName, {arguments, id, preventDuplicates = true, parameters}) =>
+          Get.toNamed(pageName, arguments: arguments, id: id, preventDuplicates: preventDuplicates, parameters: parameters),
+      navigateOffAll: (pageName, {arguments, id, parameters}) =>
+          Get.offAllNamed(pageName, arguments: arguments, id: id, parameters: parameters),
+      resetPasswordErrors: resetPasswordErrors, // Pass the specific reset method
+      updatePasswordChangeSuccess: (value) => isPasswordChangeSuccess.value = value, // Pass specific state update
+      setCurrentPasswordError: (value) => currentPasswordError.value = value, // Pass specific error setter
+      setSecurityAnswerError: (value) => securityAnswerError.value = value, // Pass specific error setter
+    );
+
+    _otpManager = AuthOtpManager(_apiService, _storageService, callbacks);
+    _passwordManager = AuthPasswordManager(_apiService, _storageService, callbacks);
+    _securityManager = AuthSecurityManager(_apiService, _storageService, callbacks);
   }
 
+
+  // ==================== Lifecycle ====================
   @override
   void onClose() {
-    // Dispose ALL controllers managed by THIS controller
+    // Dispose controllers to prevent memory leaks
     emailController.dispose();
     usernameController.dispose();
     currentPasswordController.dispose();
@@ -55,7 +128,8 @@ class AuthController extends GetxController {
     super.onClose();
   }
 
-  // Helper to reset all text field values
+  // ==================== Helper Methods ====================
+  /// Resets all text editing fields.
   void resetAllFields() {
     emailController.clear();
     usernameController.clear();
@@ -66,492 +140,312 @@ class AuthController extends GetxController {
     securityAnswerTextController.clear();
   }
 
-
-  // Reset all general auth errors and loading state
+  /// Resets all validation error states.
   void resetErrors() {
     print('Resetting all validation errors');
     usernameError.value = '';
     emailError.value = '';
     passwordError.value = '';
     confirmPasswordError.value = '';
-    currentPasswordError.value = ''; // Included all password errors
+    currentPasswordError.value = '';
     newPasswordError.value = '';
     bioError.value = '';
     securityQuestionError.value = '';
     securityAnswerError.value = '';
-    isLoading.value = false; // Reset loading if it's a global auth loading state
+    // isLoading is often reset after an operation, not just errors
+    // isLoading.value = false;
   }
 
-  // Reset specific password errors (useful for change password/reset flows)
+  /// Resets only the password-related error states.
   void resetPasswordErrors() {
     print('Resetting password error states');
     currentPasswordError.value = '';
     newPasswordError.value = '';
     confirmPasswordError.value = '';
-    // isLoading.value = false; // Uncomment if you want to reset loading here too
   }
 
+  // ==================== Core Authentication Flows (Handled by AuthController) ====================
 
-  // --- Validation Methods (All included here) ---
-
-  void validateUsername(String value) {
-    print('Validating username: $value');
-    if (value.isEmpty) {
-      usernameError.value = 'username_required'.tr;
-    } else if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
-      usernameError.value = 'username_invalid'.tr;
-    } else {
-      usernameError.value = '';
-    }
-  }
-
-  void validateEmail(String value) {
-    print('Validating email: $value');
-    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-    if (value.isEmpty) {
-      emailError.value = 'email_required'.tr;
-    } else if (!emailRegex.hasMatch(value.toLowerCase())) {
-      emailError.value = 'email_invalid'.tr;
-    } else {
-      emailError.value = '';
-    }
-  }
-
-  void validatePassword(String value) { // Used for signup/signin
-    print('Validating password: ${value.isEmpty ? "empty" : "non-empty"}');
-    if (value.isEmpty) {
-      passwordError.value = 'password_required'.tr;
-    } else if (value.length < 6) {
-      passwordError.value = 'password_too_short'.tr;
-    } else {
-      passwordError.value = '';
-    }
-  }
-
-  void validateConfirmPassword(String password, String confirmPassword) { // Used for signup, reset, change
-    print('Validating confirm password: ${confirmPassword.isEmpty ? "empty" : "non-empty"}');
-    if (confirmPassword.isEmpty) {
-      confirmPasswordError.value = 'confirm_password_required'.tr;
-    } else if (confirmPassword != password) {
-      confirmPasswordError.value = 'passwords_do_not_match'.tr;
-    } else {
-      confirmPasswordError.value = '';
-    }
-  }
-
-  void validateCurrentPassword(String value) { // Used for change password
-    if (value.isEmpty) {
-      currentPasswordError.value = 'current_password_required'.tr;
-    } else {
-      currentPasswordError.value = '';
-    }
-  }
-
-  void validateNewPassword(String value) { // Used for change password and reset password
-    if (value.isEmpty) {
-      newPasswordError.value = 'new_password_required'.tr;
-    } else if (value.length < 6) {
-      newPasswordError.value = 'password_too_short'.tr;
-    } else {
-      newPasswordError.value = '';
-    }
-  }
-
-  void validateBio(String value) {
-    if (value.length > 150) {
-      bioError.value = 'bio_too_long'.tr;
-    } else {
-      bioError.value = '';
-    }
-  }
-
- 
-  void validateSecurityQuestion(String question) {
-    if (question.trim().isEmpty) {
-      securityQuestionError.value = 'question_required'.tr;
-    } else {
-      securityQuestionError.value = '';
-    }
-  }
-
-  void validateSecurityAnswer(String answer) {
-    if (answer.trim().isEmpty) {
-      securityAnswerError.value = 'answer_required'.tr;
-    } else if (answer.trim().length < 3) {
-      securityAnswerError.value = 'answer_too_short'.tr;
-    } else {
-      securityAnswerError.value = '';
-    }
-  }
-
-
-  // --- Authentication Action Methods ---
-
+  /// Handles user signup. Validates input, calls API, navigates to OTP verification.
   Future<void> signup(UserModel user, String password, String confirmPassword) async {
-    // Existing signup logic using validation methods in this controller
+    // Validate input using methods from AuthValidationMixin
     validateUsername(user.username);
     validateEmail(user.email);
     validatePassword(password);
     validateConfirmPassword(password, confirmPassword);
 
+    // Check if any validation failed
     if (usernameError.value.isNotEmpty ||
         emailError.value.isNotEmpty ||
         passwordError.value.isNotEmpty ||
         confirmPasswordError.value.isNotEmpty) {
-      print('Signup validation failed: usernameError=${usernameError.value}, emailError=${emailError.value}, passwordError=${passwordError.value}, confirmPasswordError=${confirmPasswordError.value}');
-      return;
+      print('Signup validation failed');
+      return; // Stop if validation fails
     }
 
     try {
-      isLoading.value = true;
+      isLoading.value = true; // Set loading state
       print('Attempting signup for: ${user.email}');
-      final response = await _apiService.auth.signup(
+
+      // Call API service for signup
+      await _apiService.auth.signup( // Assuming signup API doesn't return user/token directly now
         UserModel(
           id: user.id,
           username: user.username,
-          email: emailController.text.toLowerCase(), // Use controller
-          role: user.role, // Make sure role is handled or remove if not applicable
+          email: user.email.toLowerCase(),
+          role: user.role,
         ),
-        password, // Password comes from input field, not user model
+        password,
       );
+
+      // Show success feedback and navigate
+      // Corrected Get.snackbar call - Removed duration, isDismissible
       Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
+          backgroundColor: Get.theme.colorScheme.secondary, colorText: Get.theme.colorScheme.onSecondary);
       Get.toNamed(AppRoutes.getVerifyOTPPage(), arguments: {
-        'email': emailController.text.toLowerCase(), // Use controller
-        'user': user, // Pass the user model if needed in the next screen
-        'password': password, // Pass password if needed
+        'email': user.email.toLowerCase(),
+        'user': user, // Pass user data if needed on OTP page
+        'password': password, // Pass password if needed (e.g., for re-signup attempt)
+        'type': 'signup', // Indicate signup flow
       });
     } catch (e) {
+      // Handle API or other errors
       print('Signup failed: $e');
+      // Corrected Get.snackbar call - Removed duration, isDismissible
       Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
+          backgroundColor: Get.theme.colorScheme.error, colorText: Get.theme.colorScheme.onError);
     } finally {
-      isLoading.value = false;
+      isLoading.value = false; // Reset loading state
     }
   }
 
-  Future<void> verifyOTP(String email, String otp) async {
-    // Existing verifyOTP logic
-    try {
-      isLoading.value = true;
-      print('Verifying OTP for: $email');
-      final response = await _apiService.auth.verifyOTP(email, otp);
-      await _storageService.saveUser(response['user']); // Assuming response['user'] is the user map
-      await _storageService.saveToken(response['token']); // Assuming response['token'] is the token string
-      Get.snackbar('success'.tr, 'account_created_successfully'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
-      Get.offAllNamed(AppRoutes.getHomePage()); // Redirect to home after successful verification and login
-    } catch (e) {
-      print('OTP verification failed: $e');
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> resendOTP(String email, String type) async {
-    // Existing resendOTP logic
-    try {
-      isLoading.value = true;
-      print('Resending OTP for: $email, type: $type');
-      await _apiService.auth.resendOTP(email, type);
-      Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
-    } catch (e) {
-      print('Resend OTP failed: $e');
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
+  /// Handles user sign-in. Validates input, calls API, saves user/token, navigates to home.
   Future<void> signin(String email, String password) async {
-    // Existing signin logic
+    // Validate input using methods from AuthValidationMixin
     validateEmail(email);
     validatePassword(password);
+
+    // Check if any validation failed
     if (emailError.value.isNotEmpty || passwordError.value.isNotEmpty) {
-      print('Signin validation failed: emailError=${emailError.value}, passwordError=${passwordError.value}');
-      return;
+      print('Signin validation failed');
+      return; // Stop if validation fails
     }
 
     try {
-      isLoading.value = true;
+      isLoading.value = true; // Set loading state
       print('Attempting signin for: $email');
-      final response = await _apiService.auth.signin(emailController.text.toLowerCase(), password); // Use controller
+
+      // Call API service for signin
+      final response = await _apiService.auth.signin(email.toLowerCase(), password);
       print('Signin response: $response');
-      await _storageService.saveUser(response['user']); // Assuming response['user'] is the user map
-      await _storageService.saveToken(response['token']); // Assuming response['token'] is the token string
+
+      // Save user and token on successful signin
+      await _storageService.saveUser(response['user']);
+      await _storageService.saveToken(response['token']);
+
+      // Show success feedback and navigate to home
+      // Corrected Get.snackbar call - Removed duration, isDismissible
       Get.snackbar('success'.tr, 'logged_in_successfully'.tr,
-          backgroundColor: Colors.greenAccent, colorText: Colors.white);
-      Get.offAllNamed(AppRoutes.getHomePage()); // Redirect to home after signin
+          backgroundColor: Get.theme.colorScheme.secondary, colorText: Get.theme.colorScheme.onSecondary); // Use theme colors
+      Get.offAllNamed(AppRoutes.getHomePage()); // Navigate and remove previous routes
     } catch (e) {
+      // Handle API or other errors (e.g., incorrect credentials)
       print('Signin failed: $e');
-      // Note: Added .tr here again as it was in the original code
-      Get.snackbar('error'.tr, e.toString().tr.replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> requestPasswordReset(String email) async {
-    // Existing requestPasswordReset logic
-    validateEmail(email);
-
-    if (emailError.value.isNotEmpty) {
-      print('Password reset request validation failed: emailError=${emailError.value}');
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      print('Requesting password reset for: $email');
-      final response = await _apiService.auth.requestPasswordReset(emailController.text.toLowerCase()); // Use controller
-      Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
-      Get.toNamed(AppRoutes.getVerifyOTPPage(), arguments: {
-        'email': emailController.text.toLowerCase(), // Use controller
-        'type': 'password_reset',
-      });
-    } catch (e) {
-      print('Password reset request failed: $e');
+      // Corrected Get.snackbar call - Removed duration, isDismissible
       Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
+          backgroundColor: Get.theme.colorScheme.error, colorText: Get.theme.colorScheme.onError); // Use red for errors
     } finally {
-      isLoading.value = false;
+      isLoading.value = false; // Reset loading state
     }
   }
 
-  Future<void> verifyPasswordResetOTP(String email, String otp) async {
-    // Existing verifyPasswordResetOTP logic
-    try {
-      isLoading.value = true;
-      print('Verifying password reset OTP for: $email');
-      final response = await _apiService.auth.verifyPasswordResetOTP(email, otp);
-      Get.snackbar('success'.tr, 'otp_verified'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
-      Get.toNamed(AppRoutes.getResetPasswordPage(), arguments: {
-        'resetToken': response['resetToken'],
-        'email': email, // Pass email as it might be needed for context in ResetPasswordPage
-      });
-    } catch (e) {
-      print('Password reset OTP verification failed: $e');
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-// This method uses validation methods and error states within THIS controller
-Future<void> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
- // Clear relevant errors before validating
- newPasswordError.value = '';
- confirmPasswordError.value = '';
-
- validateNewPassword(newPassword); // Use validation methods in this controller
- validateConfirmPassword(newPassword, confirmPassword); // Use validation methods in this controller
-
- // Check error states in this controller
- if (newPasswordError.value.isNotEmpty || confirmPasswordError.value.isNotEmpty) {
-   return;
- }
-
-  try {
-    isLoading.value = true;
-    await _apiService.auth.resetPassword(resetToken, newPassword, confirmPassword);
-    Get.snackbar('success'.tr, 'password_reset_success'.tr,
-        backgroundColor: Colors.green, colorText: Colors.white);
-    Get.offAllNamed(AppRoutes.getSignInPage()); // Go back to sign in after reset
-  } catch (e) {
-    Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-        backgroundColor: Colors.redAccent, colorText: Colors.white);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
- // --- Change Password Method (Moved back here) ---
-  Future<void> changePassword() async {
-    // Get text directly from controllers managed by THIS controller
-    final currentPassword = currentPasswordController.text;
-    final newPassword = newPasswordController.text;
-    final confirmNewPassword = confirmPasswordController.text;
-
-    print('changePassword called with current: ${currentPassword.isEmpty ? "empty" : "non-empty"}, new: ${newPassword.isEmpty ? "empty" : "non-empty"}, confirm: ${confirmNewPassword.isEmpty ? "empty" : "non-empty"}');
-
-    // Reset password errors at the beginning of the submission process
-    resetPasswordErrors(); // Uses the specific password error reset
-
-    validateCurrentPassword(currentPassword); // Use validation method in this controller
-    validateNewPassword(newPassword); // Use validation method in this controller
-    validateConfirmPassword(newPassword, confirmNewPassword); // Use validation method in this controller
-
-    // Add check for same password only after basic validation
-    if (newPassword.isNotEmpty && currentPassword == newPassword && newPasswordError.value.isEmpty) {
-      print('Validation failed: New password is same as current password');
-      newPasswordError.value = 'new_password_same_as_current'.tr;
-    }
-
-    if (currentPasswordError.value.isNotEmpty ||
-        newPasswordError.value.isNotEmpty ||
-        confirmPasswordError.value.isNotEmpty) {
-      print('Validation failed: current=${currentPasswordError.value}, new=${newPasswordError.value}, confirm=${confirmPasswordError.value}');
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      print('Fetching user from StorageService');
-      final user = _storageService.getUser();
-      if (user == null || user['email'] == null) { // Check for null user or missing email
-        print('No user or email found in storage');
-        throw Exception('user_email_not_found'); // More specific error key
-      }
-      final userEmail = user['email'];
-      print('User found: $userEmail');
-      print('Calling ApiService.changePassword');
-      await _apiService.auth.changePassword(userEmail, currentPassword, newPassword);
-      print('Password change successful, showing snackbar');
-
-      // Clear fields and errors on success using resetErrors or specific method
-      resetPasswordErrors(); // Clear password errors
-       currentPasswordController.clear(); // Clear the fields manually
-       newPasswordController.clear();
-       confirmPasswordController.clear();
-
-
-      Get.snackbar(
-        'success'.tr,
-        'password_changed_successfully'.tr,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 3),
-        margin: const EdgeInsets.all(16),
-        borderRadius: 8,
-        isDismissible: true,
-      );
-      print('Navigating back');
-      Get.back(); // Navigate back after success
-
-    } catch (e) {
-      print('Change password error: $e');
-      String errorMessage = 'generic_error'.tr;
-      String rawError = e.toString().replaceFirst('Exception: ', '');
-
-      // Map specific error strings to translated keys and potentially set field errors
-      if (rawError.contains('Current password is incorrect')) {
-        currentPasswordError.value = 'current_password_incorrect'.tr; // Set error on the specific field
-        // Optionally also show in snackbar
-        // errorMessage = 'current_password_incorrect'.tr;
-      } else if (rawError.contains('User not found') || rawError.contains('user_email_not_found')) {
-        errorMessage = 'user_not_found'.tr;
-      } else if (rawError.contains('Server error')) {
-        errorMessage = 'server_error'.tr;
-      } else {
-        // For unknown errors, just show the generic message or the raw error
-        errorMessage = rawError.tr; // Use .tr in case the raw error is a translation key
-      }
-
-      // Only show snackbar for general errors or feedback not tied to a specific field
-      // This condition prevents showing a duplicate snackbar if a field error is already set
-      if (!['current_password_incorrect'.tr].contains(errorMessage)) {
-         Get.snackbar(
-           'error'.tr,
-           errorMessage,
-           backgroundColor: Colors.redAccent,
-           colorText: Colors.white,
-           snackPosition: SnackPosition.BOTTOM,
-           duration: const Duration(seconds: 3),
-           margin: const EdgeInsets.all(16),
-           borderRadius: 8,
-           isDismissible: true,
-         );
-      }
-
-    } finally {
-      print('Setting isLoading to false');
-      isLoading.value = false;
-    }
-  }
-
-
-  Future<void> setSecurityQuestion(String question, String answer) async {
-    // Existing setSecurityQuestion logic
-    validateSecurityQuestion(question);
-    validateSecurityAnswer(answer);
-
-    if (securityQuestionError.value.isNotEmpty || securityAnswerError.value.isNotEmpty) {
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      final user = _storageService.getUser();
-      if (user == null || user['email'] == null) { // Check for null user or missing email
-        throw Exception('user_email_not_found'.tr);
-      }
-      final userEmail = user['email'];
-      await _apiService.auth.setSecurityQuestion(userEmail, securityQuestionTextController.text, securityAnswerTextController.text); // Use controllers
-      Get.snackbar('success'.tr, 'security_question_updated'.tr,
-          backgroundColor: Colors.green, colorText: Colors.white);
-      Get.back();
-    } catch (e) {
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-
-
-  Future<void> verifySecurityAnswer(
-      String email, String question, String answer, Function(String) onSuccess) async {
-    // Existing verifySecurityAnswer logic
-    validateSecurityQuestion(question);
-    validateSecurityAnswer(answer);
-
-    if (securityQuestionError.value.isNotEmpty || securityAnswerError.value.isNotEmpty) {
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      final response = await _apiService.auth.verifySecurityAnswer(emailController.text, securityQuestionTextController.text, securityAnswerTextController.text); // Use controllers
-      final resetToken = response['resetToken'];
-      if (resetToken == null) {
-        throw Exception('reset_token_missing'.tr);
-      }
-      onSuccess(resetToken); // Pass resetToken to the success callback
-    } catch (e) {
-      String errorMessage = e.toString().replaceFirst('Exception: ', '');
-      if (errorMessage.contains('FormatException')) {
-        errorMessage = 'invalid_data_format'.tr;
-      } else if (errorMessage.contains('Security answer incorrect')) {
-          securityAnswerError.value = 'security_answer_incorrect'.tr; // Set field error
-          errorMessage = 'security_answer_incorrect'.tr; // Optionally show snackbar
-      }
-      Get.snackbar('error'.tr, errorMessage,
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-
+  /// Logs the user out by clearing local storage and navigating to the sign-in page.
   Future<void> logout() async {
-    // Existing logout logic
-    await _storageService.clear();
-    Get.offAllNamed(AppRoutes.getSignInPage()); // Redirect to sign in after logout
+    await _storageService.clear(); // Clear user data and token
+    Get.offAllNamed(AppRoutes.getSignInPage()); // Navigate to sign-in and clear stack
   }
 
+  /// Checks if a user is currently logged in by checking for a token in storage.
   bool isLoggedIn() {
-    // Existing isLoggedIn logic
-    return _storageService.getToken() != null;
+    return _storageService.getToken() != null; // True if token exists
+  }
+
+
+  // ==================== Delegated Flows (Calls to Feature Managers) ====================
+
+  /// Delegates OTP verification to AuthOtpManager.
+  Future<void> verifyOTP(String email, String otp) async {
+     await _otpManager.verifyOTP(email, otp);
+     // Note: Manager handles isLoading, snackbars, and navigation.
+  }
+
+  /// Delegates OTP resending to AuthOtpManager.
+  Future<void> resendOTP(String email, String type) async {
+    await _otpManager.resendOTP(email, type);
+    // Note: Manager handles isLoading and snackbars.
+  }
+
+  /// Delegates password reset request to AuthPasswordManager.
+   Future<void> requestPasswordReset(String email) async {
+    // Validate email using method from AuthValidationMixin first
+    validateEmail(email);
+    if (emailError.value.isNotEmpty) {
+      print('Password reset request validation failed');
+      return;
+    }
+     await _passwordManager.requestPasswordReset(email);
+     // Note: Manager handles isLoading, snackbars, and navigation.
+   }
+
+  /// Delegates password reset OTP verification to AuthPasswordManager
+  /// and handles subsequent navigation if successful.
+   Future<void> verifyPasswordResetOTP(String email, String otp) async {
+      // Validation for OTP verification is usually handled by the API.
+     final resetToken = await _passwordManager.verifyPasswordResetOTP(email, otp);
+     // Manager handles isLoading and snackbars.
+     if (resetToken != null) {
+        // If verification is successful (token received), navigate.
+        Get.toNamed(AppRoutes.getResetPasswordPage(), arguments: {
+          'resetToken': resetToken,
+          'email': email,
+        });
+     }
+   }
+
+  /// Delegates password reset using token to AuthPasswordManager.
+   Future<void> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
+     // Reset password errors first
+     resetPasswordErrors();
+
+     // Validate new and confirm passwords using methods from AuthValidationMixin
+     validateNewPassword(newPassword);
+     validateConfirmPassword(newPassword, confirmPassword);
+
+     // Check if any validation failed
+     if (newPasswordError.value.isNotEmpty || confirmPasswordError.value.isNotEmpty) {
+       return; // Stop if validation fails
+     }
+     await _passwordManager.resetPassword(resetToken, newPassword, confirmPassword);
+      // Note: Manager handles isLoading, snackbars, and navigation.
+   }
+
+
+  /// Delegates change password to AuthPasswordManager.
+  Future<void> changePassword() async {
+    final currentPassword = currentPasswordController.text.trim();
+    final newPassword = newPasswordController.text.trim();
+    final confirmNewPassword = confirmPasswordController.text.trim();
+
+     // Reset password errors first
+     resetPasswordErrors();
+
+     // Validate passwords using methods from AuthValidationMixin
+     validateCurrentPassword(currentPassword);
+     validateNewPassword(newPassword);
+     validateConfirmPassword(newPassword, confirmNewPassword);
+
+     // Additional check specific to change password flow: new password must be different
+     if (newPassword.isNotEmpty && currentPassword == newPassword && newPasswordError.value.isEmpty) {
+       print('Validation failed: New password is same as current password');
+       newPasswordError.value = 'new_password_same_as_current'.tr;
+     }
+
+     // Check if any validation failed
+     if (currentPasswordError.value.isNotEmpty ||
+         newPasswordError.value.isNotEmpty ||
+         confirmPasswordError.value.isNotEmpty) {
+       print('Validation failed: current=${currentPasswordError.value}, '
+           'new=${newPasswordError.value}, confirm=${confirmPasswordError.value}');
+       return; // Stop if validation fails
+     }
+
+    try {
+       // Get the current user's email from storage before calling the manager
+       final user = _storageService.getUser();
+       if (user == null || user['email'] == null) {
+         print('No user or email found in storage for change password');
+         throw Exception('user_email_not_found');
+       }
+       final userEmail = user['email'].toString().trim();
+       print('User email found for change password: $userEmail');
+
+       // Delegate to the password manager
+       await _passwordManager.changePassword(currentPassword, newPassword, userEmail);
+
+       // Clear fields after successful change (manager asks controller to reset errors)
+        currentPasswordController.clear();
+        newPasswordController.clear();
+        confirmPasswordController.clear();
+
+       // Manager handles isLoading, snackbars, success state, and navigation.
+
+    } catch (e) {
+       // Catch specific errors re-thrown by the manager if needed, or handle generic errors
+       print('AuthController caught change password error after manager: $e');
+       // The manager already handled specific field errors and potentially showed a snackbar.
+       // If a generic snackbar wasn't shown by the manager (because a field error was set),
+       // the controller could potentially show one here based on the caught error,
+       // but the manager's logic seems sufficient for this example.
+       // Re-showing a generic snackbar here might be redundant.
+    } finally {
+       // isLoading is reset by the manager
+    }
+  }
+
+   /// Delegates setting security question to AuthSecurityManager.
+  Future<void> setSecurityQuestion(String question, String answer) async {
+     // Validate input using methods from AuthValidationMixin first
+     validateSecurityQuestion(question);
+     validateSecurityAnswer(answer);
+
+     // Check if any validation failed
+     if (securityQuestionError.value.isNotEmpty || securityAnswerError.value.isNotEmpty) {
+       return; // Stop if validation fails
+     }
+
+    try {
+       // Get the current user's email from storage before calling the manager
+       final user = _storageService.getUser();
+       if (user == null || user['email'] == null) {
+         print('No user or email found in storage for setting security question');
+         throw Exception('user_email_not_found'.tr);
+       }
+       final userEmail = user['email'];
+
+       // Delegate to the security manager
+       await _securityManager.setSecurityQuestion(userEmail, question, answer);
+        // Note: Manager handles isLoading, snackbars, and navigation.
+
+    } catch (e) {
+       // Handle any unexpected errors not caught by the manager (less likely with this structure)
+        print('AuthController caught setSecurityQuestion error after manager: $e');
+       Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
+           backgroundColor: Get.theme.colorScheme.error, colorText: Get.theme.colorScheme.onError);
+    } finally {
+       // isLoading is reset by the manager
+    }
+  }
+
+
+  /// Delegates verifying security answer to AuthSecurityManager
+  /// and handles subsequent actions (e.g., navigating to reset password) if successful.
+  Future<void> verifySecurityAnswer(String email, String question, String answer, Function(String) onSuccess) async {
+    // Validate input using methods from AuthValidationMixin first
+    validateSecurityQuestion(question); // Use the passed question for validation
+    validateSecurityAnswer(answer);   // Use the passed answer for validation
+
+    if (securityQuestionError.value.isNotEmpty || securityAnswerError.value.isNotEmpty) {
+      return;
+    }
+
+     final resetToken = await _securityManager.verifySecurityAnswer(email, question, answer);
+     // Manager handles isLoading and snackbars, including specific answer error.
+
+     if (resetToken != null) {
+        // If verification is successful (token received), execute the success callback.
+        onSuccess(resetToken);
+     }
+     // If resetToken is null, the manager already handled the error and showed a snackbar.
   }
 
 }

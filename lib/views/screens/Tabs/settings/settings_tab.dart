@@ -4,9 +4,14 @@ import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../../controllers/auth/auth_controller.dart';
 import '../../../../../routes/app_routes.dart';
-import '../../../../../services/api/base_api.dart'; // Import BaseApi
+import '../../../../../services/api/base_api.dart';
 import '../../../../../services/storage_service.dart';
 import 'contact_us_screen.dart';
+import 'change_password_screen.dart';
+import 'feedback_screen.dart';
+import 'security_question_screen.dart';
+import 'dart:math' as math;
+import 'update_profile_screen.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -18,267 +23,218 @@ class SettingsTab extends StatelessWidget {
     final storageService = Get.find<StorageService>();
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
-    final scaleFactor = isTablet ? 1.0 : 0.85;
 
-    // Define the app share URL and message
-    const appShareUrl = 'https://example.com/app';
-    const shareMessage = 'Check out this awesome app! Download it at $appShareUrl';
+    // Adjusted scale factor for overall smaller content
+    final scaleFactor = isTablet ? 0.9 : 0.8; // Reduced base scale factor
+
+    // Text scale factor, ensuring text doesn't become too small
+    final textScaleFactor = math.min(scaleFactor * 1.1, 1.0); // Slightly larger text relative to other elements
+
+    const appShareUrl = 'https://example.com/app'; // Replace with your actual app URL
+    const shareMessage =
+        'Check out this awesome app! Download it at $appShareUrl';
 
     final settingsOptions = [
       {
-        'icon': Icons.lock,
+        'icon': Icons.lock_outline_rounded,
         'title': 'change_password'.tr,
-        'route': AppRoutes.getChangePasswordPage(),
+        'action': () => ChangePasswordScreen.show(),
       },
       {
-        'icon': Icons.person,
+        'icon': Icons.person_outline_rounded,
         'title': 'update_profile'.tr,
-        'route': AppRoutes.getUpdateProfilePage(),
+        'action': () => UpdateProfileModal.show(),
       },
       {
-        'icon': Icons.language,
+        'icon': Icons.language_outlined,
         'title': 'language_preference'.tr,
         'action': () {
           appController.toggleLanguage();
-          Get.snackbar('success'.tr, 'language_changed'.tr,
-              backgroundColor: Theme.of(context).colorScheme.secondary,
-              colorText: Theme.of(context).colorScheme.onSecondary);
+          Get.snackbar(
+            'success'.tr,
+            'language_changed'.tr,
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            colorText: Theme.of(context).colorScheme.onSecondary,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: EdgeInsets.all(10 * scaleFactor),
+          );
         },
         'trailing': Obx(() => Text(
               appController.currentLanguage.value,
+              textScaleFactor: textScaleFactor,
               style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    fontSize: 12 * scaleFactor,
-                    fontWeight: FontWeight.w400,
+                    fontSize: 14 * textScaleFactor, // Keep font size relative to text scale
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
             )),
-        'showArrow': false,
       },
       {
-        'icon': Icons.security,
+        'icon': Icons.security_outlined,
         'title': 'security_question'.tr,
-        'route': AppRoutes.getSecurityQuestionPage(),
+        'action': () => SecurityQuestionScreen.show(),
       },
       {
-        'icon': Icons.help,
+        'icon': Icons.question_mark_outlined,
         'title': 'faq'.tr,
+        'action': () => Get.toNamed(AppRoutes.getFaqPage()),
         'route': AppRoutes.getFaqPage(),
       },
       {
-        'icon': Icons.contact_support,
+        'icon': Icons.support_agent_rounded,
         'title': 'contact_us'.tr,
-        'action': () {
-          Get.dialog(
-            ContactUsScreen(),
-            barrierDismissible: true,
-            transitionDuration: const Duration(milliseconds: 300),
-            transitionCurve: Curves.easeInOut,
-          );
-        },
+        'action': () => Get.dialog(
+              const ContactUsScreen(),
+              barrierDismissible: true,
+              transitionDuration: const Duration(milliseconds: 300),
+              transitionCurve: Curves.easeInOut,
+            ),
       },
       {
-        'icon': Icons.feedback,
+        'icon': Icons.thumb_up_outlined,
         'title': 'feedback'.tr,
-        'route': AppRoutes.getFeedbackPage(),
+        'action': () => FeedbackScreen.show(),
       },
       {
-        'icon': Icons.share,
+        'icon': Icons.share_outlined,
         'title': 'invite_friend'.tr,
         'action': () async {
           try {
             await Share.share(shareMessage, subject: 'Invite a Friend');
           } catch (e) {
-            Get.snackbar('error'.tr, 'failed_to_share'.tr,
-                backgroundColor: Theme.of(context).colorScheme.error,
-                colorText: Theme.of(context).colorScheme.onError);
+            Get.snackbar(
+              'error'.tr,
+              'failed_to_share'.tr,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              colorText: Theme.of(context).colorScheme.onError,
+              snackPosition: SnackPosition.BOTTOM,
+            );
           }
         },
       },
     ];
 
-    // Estimate content height
-    final profileCardHeight = 60 * scaleFactor;
-    final tileHeight = 40 * scaleFactor;
-    final spacingHeight = 12 * scaleFactor * 2;
-    final contentHeightWithoutButton = profileCardHeight +
-        (settingsOptions.length * tileHeight) +
-        spacingHeight;
-    final buttonHeight = 40 * scaleFactor;
-    final totalContentHeight = contentHeightWithoutButton + buttonHeight;
-
-    return SafeArea(
-      bottom: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final availableHeight = constraints.maxHeight;
-          final needsScroll = totalContentHeight > availableHeight;
-
-          final spaceToBottom = availableHeight -
-              contentHeightWithoutButton -
-              buttonHeight -
-              MediaQuery.of(context).padding.bottom -
-              20 * scaleFactor;
-
-          print(
-              'AvailableHeight: $availableHeight, ContentHeight: $totalContentHeight, '
-              'NeedsScroll: $needsScroll, SpaceToBottom: $spaceToBottom, '
-              'BottomPadding: ${MediaQuery.of(context).padding.bottom + 24 * scaleFactor}');
-
-          return SingleChildScrollView(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isTablet ? 500 : size.width * 0.85,
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12 * scaleFactor),
-                  child: ListView(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildProfileCard(context, storageService, scaleFactor),
-                      SizedBox(height: 12 * scaleFactor),
-                      ...settingsOptions.asMap().entries.map((entry) {
-                        final option = entry.value;
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 4 * scaleFactor),
-                          child: _buildSettingsTile(
-                            context,
-                            icon: option['icon'] as IconData,
-                            title: option['title'] as String,
-                            onTap: option['route'] != null
-                                ? () {
-                                    print('Navigating to ${option['route']}');
-                                    Get.toNamed(option['route'] as String);
-                                  }
-                                : option['action'] as VoidCallback?,
-                            scaleFactor: scaleFactor,
-                            trailing: option['trailing'] as Widget?,
-                            showArrow: option['showArrow'] != false,
-                          ),
-                        );
-                      }),
-                      SizedBox(height: 12 * scaleFactor),
-                      needsScroll
-                          ? Padding(
-                              padding: EdgeInsets.only(
-                                left: 12 * scaleFactor,
-                                right: 12 * scaleFactor,
-                                bottom: MediaQuery.of(context).padding.bottom +
-                                    24 * scaleFactor,
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(12 * scaleFactor), // Reduced padding
+              child: _buildProfileCard(context, storageService, scaleFactor, textScaleFactor),
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor), // Reduced horizontal padding
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: 6 * scaleFactor), // Reduced space
+                        ...settingsOptions.map((option) => Padding(
+                              padding:
+                                  EdgeInsets.only(bottom: 6 * scaleFactor), // Reduced space between tiles
+                              child: _buildSettingsTile(
+                                context,
+                                icon: option['icon'] as IconData,
+                                title: option['title'] as String,
+                                onTap: option['action'] != null
+                                    ? option['action'] as VoidCallback
+                                    : () =>
+                                        Get.toNamed(AppRoutes.getHomePage()),
+                                scaleFactor: scaleFactor,
+                                 textScaleFactor: textScaleFactor, // Pass text scale factor
+                                trailing: option['trailing'] as Widget?,
                               ),
-                              child: _buildLogoutButton(context, authController, scaleFactor),
-                            )
-                          : Column(
-                              children: [
-                                if (spaceToBottom > 0)
-                                  SizedBox(height: spaceToBottom),
-                                Padding(
-                                  padding: EdgeInsets.only(
-                                    left: 12 * scaleFactor,
-                                    right: 12 * scaleFactor,
-                                    bottom: MediaQuery.of(context).padding.bottom +
-                                        24 * scaleFactor,
-                                  ),
-                                  child: _buildLogoutButton(context, authController, scaleFactor),
-                                ),
-                              ],
-                            ),
-                    ],
+                            )),
+                        SizedBox(height: 60 * scaleFactor), // Adjusted height for logout button space
+                      ],
+                    ),
                   ),
-                ),
+                  Positioned(
+                    left: 12 * scaleFactor, // Match horizontal padding
+                    right: 12 * scaleFactor, // Match horizontal padding
+                    bottom: 12 * scaleFactor, // Reduced bottom padding
+                    child: _buildLogoutButton(context, authController, scaleFactor, textScaleFactor),
+                  ),
+                ],
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildProfileCard(
-      BuildContext context, StorageService storageService, double scaleFactor) {
+      BuildContext context, StorageService storageService, double scaleFactor, double textScaleFactor) {
     return Obx(() {
-      final user = storageService.user.value ?? storageService.getUser();
-      final username = user?['username'] ?? 'User';
-      final email = user?['email'] ?? 'email@example.com';
-      final profilePicture = user?['profilePicture']?.replaceFirst(
-            RegExp(r'[/\\]?[uU][pP][lL][oO][aA][dD][sS][/\\]?'),
-            '',
-          ) ??
-          '';
-
-      print(
-          'SettingsTab user: username=$username, email=$email, profilePicture=$profilePicture');
-      print('Profile URL: ${BaseApi.imageBaseUrl}/uploads/$profilePicture');
+      final user = storageService.user.value ?? storageService.getUser() ?? {};
+      final username = user['username']?.toString() ?? 'User';
+      final email = user['email']?.toString() ?? 'email@example.com';
+      final profilePictureRaw = user['profilePicture']?.toString() ?? '';
+      final profilePicture = profilePictureRaw.isNotEmpty
+          ? profilePictureRaw.replaceFirst(
+              RegExp(r'[/\\]?[uU][pP][lL][oO][aA][dD][sS][/\\]?'), '')
+          : '';
+      final hasProfilePicture = profilePicture.isNotEmpty;
 
       return Container(
-        padding: EdgeInsets.all(12 * scaleFactor),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(10 * scaleFactor), // Slightly smaller border radius
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).cardTheme.shadowColor!,
-              blurRadius: 8,
-              offset: Offset(0, 2),
+              color: Theme.of(context).colorScheme.shadow.withOpacity(0.08),
+              blurRadius: 6 * scaleFactor, // Reduced blur
+              offset: Offset(0, 2 * scaleFactor), // Adjusted offset
             ),
           ],
         ),
+        padding: EdgeInsets.all(12 * scaleFactor), // Reduced padding
         child: Row(
           children: [
             CircleAvatar(
-              radius: 24 * scaleFactor,
-              backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-              child: profilePicture.isNotEmpty
-                  ? ClipOval(
-                      child: Image.network(
-                        '${BaseApi.imageBaseUrl}/uploads/$profilePicture?ts=${DateTime.now().millisecondsSinceEpoch}',
-                        width: 48 * scaleFactor,
-                        height: 48 * scaleFactor,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          print('Image error: $error');
-                          return Icon(
-                            Icons.person,
-                            size: 24 * scaleFactor,
-                            color: Theme.of(context).colorScheme.primary,
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return CircularProgressIndicator(
-                            color: Theme.of(context).colorScheme.secondary,
-                          );
-                        },
-                      ),
-                    )
+              radius: 24 * scaleFactor, // Reduced avatar size
+              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+              foregroundImage: hasProfilePicture
+                  ? NetworkImage(
+                      '${BaseApi.imageBaseUrl}/Uploads/$profilePicture?ts=${DateTime.now().millisecondsSinceEpoch}',
+                    ) as ImageProvider<Object>?
+                  : null,
+              onForegroundImageError: hasProfilePicture
+                  ? (exception, stackTrace) {
+                      print('Profile image error: $exception, Stack: $stackTrace');
+                    }
+                  : null,
+              child: hasProfilePicture
+                  ? null
                   : Icon(
-                      Icons.person,
-                      size: 24 * scaleFactor,
-                      color: Theme.of(context).colorScheme.primary,
+                      Icons.person_rounded,
+                      size: 24 * scaleFactor, // Reduced icon size
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),
             ),
-            SizedBox(width: 10 * scaleFactor),
+            SizedBox(width: 12 * scaleFactor), // Reduced space
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     username,
-                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          fontSize: 14 * scaleFactor,
+                    textScaleFactor: textScaleFactor,
+                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
                           fontWeight: FontWeight.w600,
+                          fontSize: 15 * textScaleFactor, // Adjusted font size
                         ),
                   ),
+                  SizedBox(height: 3 * scaleFactor), // Reduced space
                   Text(
                     email,
-                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          fontSize: 12 * scaleFactor,
-                          fontWeight: FontWeight.w400,
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodyMedium!
-                              .color!
-                              .withOpacity(0.7),
+                    textScaleFactor: textScaleFactor,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                          fontSize: 11 * textScaleFactor, // Adjusted font size
                         ),
                   ),
                 ],
@@ -296,43 +252,48 @@ class SettingsTab extends StatelessWidget {
     required String title,
     VoidCallback? onTap,
     required double scaleFactor,
+    required double textScaleFactor, // Receive text scale factor
     Widget? trailing,
-    bool showArrow = true,
   }) {
-    return Card(
-      margin: EdgeInsets.zero,
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(10 * scaleFactor), // Slightly smaller border radius
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10 * scaleFactor), // Match border radius
         child: Padding(
           padding: EdgeInsets.symmetric(
-            vertical: 8 * scaleFactor,
-            horizontal: 12 * scaleFactor,
+            vertical: 10 * scaleFactor, // Reduced vertical padding for smaller tile height
+            horizontal: 12 * scaleFactor, // Reduced horizontal padding
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                size: 20 * scaleFactor,
-                color: Theme.of(context).iconTheme.color,
+                size: 20 * scaleFactor, // Reduced icon size
+                color: Theme.of(context).colorScheme.primary,
               ),
-              SizedBox(width: 10 * scaleFactor),
+              SizedBox(width: 12 * scaleFactor), // Reduced space
               Expanded(
                 child: Text(
                   title,
+                  textScaleFactor: textScaleFactor, // Use passed text scale factor
                   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        fontSize: 13 * scaleFactor,
                         fontWeight: FontWeight.w500,
+                        fontSize: 14 * textScaleFactor, // Adjusted font size
                       ),
                 ),
               ),
-              if (trailing != null) trailing,
-              if (showArrow && trailing == null)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14 * scaleFactor,
-                  color: Theme.of(context).colorScheme.secondary,
+              if (trailing != null)
+                Padding(
+                  padding: EdgeInsets.only(left: 12 * scaleFactor), // Reduced padding
+                  child: trailing,
                 ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14 * scaleFactor, // Reduced icon size
+                color: Theme.of(context).colorScheme.secondary,
+              ),
             ],
           ),
         ),
@@ -341,43 +302,69 @@ class SettingsTab extends StatelessWidget {
   }
 
   Widget _buildLogoutButton(
-      BuildContext context, AuthController authController, double scaleFactor) {
-    return ElevatedButton(
-      onPressed: () {
-        Get.dialog(
-          AlertDialog(
-            backgroundColor: Theme.of(context).cardTheme.color,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            title: Text('logout'.tr, style: Theme.of(context).textTheme.titleMedium),
-            content: Text('are_you_sure_logout'.tr,
-                style: Theme.of(context).textTheme.bodyMedium),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: Text('no'.tr),
+    BuildContext context,
+    AuthController authController,
+    double scaleFactor,
+    double textScaleFactor, // Receive text scale factor
+  ) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor), // Match horizontal padding
+      child: ElevatedButton(
+        onPressed: () {
+          Get.dialog(
+            AlertDialog(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12 * scaleFactor), // Adjusted border radius
               ),
-              TextButton(
-                onPressed: () {
-                  Get.back();
-                  authController.logout();
-                },
-                child: Text('yes'.tr),
+              title: Text(
+                'logout'.tr,
+                textScaleFactor: textScaleFactor, // Use passed text scale factor
+                style: Theme.of(context).textTheme.titleSmall,
               ),
-            ],
-          ),
-        );
-      },
-      style: Theme.of(context).elevatedButtonTheme.style!.copyWith(
-            minimumSize: WidgetStateProperty.all(
-              Size(double.infinity, 40 * scaleFactor),
+              content: Text(
+                'are_you_sure_logout'.tr,
+                textScaleFactor: textScaleFactor, // Use passed text scale factor
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Get.back(),
+                  child: Text('no'.tr, textScaleFactor: textScaleFactor), // Use passed text scale factor
+                ),
+                TextButton(
+                  onPressed: () {
+                    Get.back();
+                    authController.logout();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                  child: Text('yes'.tr, textScaleFactor: textScaleFactor), // Use passed text scale factor
+                ),
+              ],
             ),
-            padding: WidgetStateProperty.all(
-              EdgeInsets.symmetric(vertical: 10 * scaleFactor),
-            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+          padding: EdgeInsets.symmetric(vertical: 10 * scaleFactor), // Reduced vertical padding
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10 * scaleFactor), // Adjusted border radius
           ),
-      child: Text('logout'.tr),
+          elevation: 2 * scaleFactor, // Adjusted elevation
+        ),
+        child: Text(
+          'logout'.tr.toUpperCase(),
+          textScaleFactor: textScaleFactor, // Use passed text scale factor
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onPrimary,
+            fontWeight: FontWeight.w600,
+            fontSize: 14 * textScaleFactor, // Adjusted font size
+          ),
+        ),
+      ),
     );
   }
 }

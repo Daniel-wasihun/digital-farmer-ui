@@ -37,7 +37,7 @@ class ChatController extends GetxController {
   void onInit() {
     super.onInit();
     ever(storageService.user, (_) => _handleUserChange());
-    searchController.addListener(_debounceSearch);
+    searchController.addListener(debounceSearch);
     _initialize();
   }
 
@@ -442,6 +442,7 @@ class ChatController extends GetxController {
     await saveMessagesForUser(receiverId);
     _updateUserLastMessageTime(newMessages.isNotEmpty ? newMessages.last : {'receiverId': receiverId});
   }
+  
 
   void _updateFilteredUsers() {
     final query = searchController.text.trim().toLowerCase();
@@ -450,7 +451,7 @@ class ChatController extends GetxController {
         : allUsers.where((user) => user['username'].toString().toLowerCase().contains(query)).toList();
   }
 
-  void _debounceSearch() {
+  void debounceSearch() {
     _searchDebounceTimer?.cancel();
     _searchDebounceTimer = Timer(const Duration(milliseconds: 300), _updateFilteredUsers);
   }

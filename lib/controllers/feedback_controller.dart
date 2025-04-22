@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../routes/app_routes.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 
@@ -70,8 +71,7 @@ class FeedbackController extends GetxController {
 
       resetState();
       // Delay navigation to ensure snackbar is visible
-      await Future.delayed(const Duration(seconds: 3));
-      Get.back();
+      Get.offAllNamed(AppRoutes.getHomePage());
     } catch (e) {
       // Extract error message, avoiding translation issues
       String errorMessage = e.toString().replaceFirst('Exception: ', '');

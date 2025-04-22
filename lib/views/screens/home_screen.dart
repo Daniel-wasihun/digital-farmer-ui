@@ -6,7 +6,7 @@ class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final AppController controller = Get.put(AppController());
+  final AppController controller = Get.find<AppController>();
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class HomeScreen extends StatelessWidget {
     final scaleFactor = isTablet ? 1.2 : 1.0;
 
     // Calculate responsive AppBar height
-    final appBarHeight = (height * 0.08 * scaleFactor).clamp(48.0, 72.0); // ~48-58px phone, ~69px tablet
+    final appBarHeight = (height * 0.08 * scaleFactor).clamp(48.0, 72.0);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
           title: Obx(() => Text(
                 controller.pageTitles[controller.selectedIndex.value].tr,
                 style: TextStyle(
-                  fontSize: height * 0.025 * scaleFactor, // Reduced slightly for balance
+                  fontSize: height * 0.025 * scaleFactor,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
@@ -36,7 +36,7 @@ class HomeScreen extends StatelessWidget {
           leading: IconButton(
             icon: Icon(
               Icons.menu,
-              size: height * 0.03 * scaleFactor, // Adjusted for AppBar height
+              size: height * 0.03 * scaleFactor,
               color: Theme.of(context).appBarTheme.foregroundColor,
             ),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -50,7 +50,7 @@ class HomeScreen extends StatelessWidget {
                       child: Text(
                         Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
                         style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                              fontSize: height * 0.02 * scaleFactor, // Adjusted
+                              fontSize: height * 0.02 * scaleFactor,
                               color: Colors.white,
                               fontWeight: FontWeight.w500,
                             ),
@@ -172,7 +172,10 @@ class HomeScreen extends StatelessWidget {
               constraints: BoxConstraints(
                 maxWidth: isTablet ? 600 : width * 0.9,
               ),
-              child: controller.currentPage.value,
+              child: IndexedStack(
+                index: controller.selectedIndex.value,
+                children: controller.pageFactories.map((factory) => factory()).toList(),
+              ),
             ),
           )),
       bottomNavigationBar: Obx(
@@ -202,7 +205,7 @@ class HomeScreen extends StatelessWidget {
           currentIndex: controller.selectedIndex.value,
           selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
           unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
-          onTap: controller.changePage,
+          onTap: controller.changePage, // Directly call changePage
           type: BottomNavigationBarType.fixed,
           backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           elevation: 8,

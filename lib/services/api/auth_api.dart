@@ -48,7 +48,7 @@ class AuthApi extends BaseApi {
   Future<Map<String, dynamic>> signin(String email, String password) async {
     print('Signin request: email: $email, password: [hidden]');
     final response = await http.post(
-      Uri.parse('${BaseApi.apiBaseUrl}/auth/signin'),
+      Uri.parse('http://localhost:5000/api/auth/signin'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email.toLowerCase(),
@@ -97,8 +97,9 @@ class AuthApi extends BaseApi {
     await handleResponse(response, 'Reset password');
   }
 
-  Future<void> changePassword(String email, String currentPassword, String newPassword) async {
-    await protectedPost(
+  Future<Map<String, dynamic>> changePassword(String email, String currentPassword, String newPassword) async {
+    print('Change password request: email: $email, currentPassword: [hidden], newPassword: [hidden]');
+    final response = await protectedPost(
       '${BaseApi.apiBaseUrl}/auth/change-password',
       {
         'email': email.toLowerCase(),
@@ -107,9 +108,11 @@ class AuthApi extends BaseApi {
       },
       'Change password',
     );
+    return response;
   }
 
   Future<void> setSecurityQuestion(String email, String question, String answer) async {
+    print('Set security question request: email: $email, question: $question');
     await protectedPost(
       '${BaseApi.apiBaseUrl}/auth/set-security-question',
       {
@@ -137,7 +140,7 @@ class AuthApi extends BaseApi {
 
   Future<bool> refreshToken() async {
     print('Attempting to refresh token');
-    final refreshToken = await storageService.getRefreshToken();
+    final refreshToken = storageService.getRefreshToken();
     if (refreshToken == null) {
       print('No refresh token available');
       return false;
@@ -162,5 +165,21 @@ class AuthApi extends BaseApi {
       await storageService.clear();
       return false;
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>> protectedPost(String url, Map<String, dynamic> data, String operation) async {
+    print('protectedPost: url=$url, data=$data, operation=$operation');
+    final token = storageService.getToken();
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+    final response = await http.post(
+      Uri.parse(url),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+    return await handleResponse(response, operation) as Map<String, dynamic>;
   }
 }

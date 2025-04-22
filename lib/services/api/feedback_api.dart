@@ -5,12 +5,12 @@ import 'base_api.dart';
 class FeedbackApi extends BaseApi {
   Future<void> submitFeedback(String feedbackText) async {
     print('Submitting feedback');
-    final token = await storageService.getToken();
+    final token = storageService.getToken();
     if (token == null) {
       print('Submit feedback failed: No auth token found');
       throw Exception('Authentication token not found. Please log in again.');
     }
-    final user = await storageService.getUser();
+    final user = storageService.getUser();
     if (user == null || user['email'] == null) {
       print('Submit feedback failed: No user email found');
       throw Exception('User email not found. Please log in again.');

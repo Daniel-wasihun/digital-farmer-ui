@@ -12,7 +12,9 @@ class VerifyOTPScreen extends GetView<AuthController> {
   Widget build(BuildContext context) {
     final args = Get.arguments;
     final String email = args['email'];
+
     final String type = args['type'] ?? 'signup'; // 'signup' or 'password_reset'
+    print(email);
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet

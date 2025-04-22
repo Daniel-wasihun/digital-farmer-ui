@@ -20,7 +20,7 @@ class ChatScreen extends StatelessWidget {
       receiverUsername: receiverUsername,
     ));
     final screenSize = MediaQuery.of(context).size;
-    final scaleFactor = (screenSize.width / 1920 * screenSize.height / 1080).clamp(0.5, 1.0);
+    final scaleFactor = (screenSize.width / 400 * screenSize.height / 800).clamp(0.7, 1.2);
 
     return Scaffold(
       body: Stack(
@@ -41,17 +41,6 @@ class ChatScreen extends StatelessWidget {
                 Expanded(
                   child: Obx(
                     () {
-                      if (controller.chatController.currentUserId == null) {
-                        return Center(
-                          child: Text(
-                            'no_user'.tr,
-                            style: GoogleFonts.poppins(
-                              fontSize: 18 * scaleFactor,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        );
-                      }
                       if (controller.chatController.isLoadingMessages.value) {
                         return const Center(
                           child: CircularProgressIndicator(
@@ -64,8 +53,8 @@ class ChatScreen extends StatelessWidget {
                           child: Text(
                             'no_messages'.tr,
                             style: GoogleFonts.poppins(
-                              fontSize: 16 * scaleFactor,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              fontSize: 14 * scaleFactor,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                             ),
                           ),
                         );
@@ -73,7 +62,7 @@ class ChatScreen extends StatelessWidget {
                       return ListView.builder(
                         key: const ValueKey('chat_list'),
                         controller: controller.scrollController,
-                        padding: EdgeInsets.symmetric(vertical: 16 * scaleFactor),
+                        padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor, horizontal: 8 * scaleFactor),
                         itemCount: controller.messageItems.length,
                         itemBuilder: (context, index) {
                           final item = controller.messageItems[index];
@@ -87,7 +76,8 @@ class ChatScreen extends StatelessWidget {
                             );
                           }
                           final msg = item['message'] as Map<String, dynamic>;
-                          final isSent = msg['senderId'].toString() == controller.chatController.currentUserId;
+                          final isSent = msg['senderId'].toString() == controller.chatController.currentUserId.toString();
+                          print('Message $itemKey: isSent=$isSent, senderId=${msg['senderId']}, currentUserId=${controller.chatController.currentUserId}');
                           final isNew = item['isNew'] as bool? ?? false;
                           return isNew
                               ? FadeInUp(
@@ -120,8 +110,8 @@ class ChatScreen extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 130 * scaleFactor,
-            left: 20 * scaleFactor,
+            bottom: 90 * scaleFactor,
+            left: 16 * scaleFactor,
             child: Obx(
               () => AnimatedOpacity(
                 opacity: controller.showScrollArrow.value ? 1.0 : 0.0,
@@ -131,22 +121,22 @@ class ChatScreen extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () => controller.scrollToBottom(),
                     child: Container(
-                      padding: EdgeInsets.all(20 * scaleFactor),
+                      padding: EdgeInsets.all(12 * scaleFactor),
                       decoration: BoxDecoration(
                         color: AppConstants.primaryColor,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black26,
-                            blurRadius: 8 * scaleFactor,
-                            offset: const Offset(0, 4),
+                            blurRadius: 6 * scaleFactor,
+                            offset: Offset(0, 3 * scaleFactor),
                           ),
                         ],
                       ),
                       child: Icon(
                         Icons.keyboard_arrow_down,
                         color: Colors.white,
-                        size: 24 * scaleFactor,
+                        size: 20 * scaleFactor,
                       ),
                     ),
                   ),
@@ -155,8 +145,8 @@ class ChatScreen extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 115 * scaleFactor,
-            right: 20 * scaleFactor,
+            bottom: 75 * scaleFactor,
+            right: 16 * scaleFactor,
             child: Obx(
               () => AnimatedOpacity(
                 opacity: controller.unseenCount.value > 0 ? 1.0 : 0.0,
@@ -166,15 +156,15 @@ class ChatScreen extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () => controller.scrollToBottom(),
                     child: Container(
-                      padding: EdgeInsets.all(12 * scaleFactor),
+                      padding: EdgeInsets.all(8 * scaleFactor),
                       decoration: BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black26,
-                            blurRadius: 8 * scaleFactor,
-                            offset: const Offset(0, 4),
+                            blurRadius: 6 * scaleFactor,
+                            offset: Offset(0, 3 * scaleFactor),
                           ),
                         ],
                       ),
@@ -182,7 +172,7 @@ class ChatScreen extends StatelessWidget {
                         controller.unseenCount.value.toString(),
                         style: GoogleFonts.poppins(
                           color: Colors.white,
-                          fontSize: 20 * scaleFactor,
+                          fontSize: 14 * scaleFactor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -201,25 +191,25 @@ class ChatScreen extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       key: key,
-      padding: EdgeInsets.symmetric(vertical: 12 * scaleFactor, horizontal: 20 * scaleFactor),
+      padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor, horizontal: 16 * scaleFactor),
       child: Center(
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 6 * scaleFactor),
+          padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor, vertical: 4 * scaleFactor),
           decoration: BoxDecoration(
             color: isDarkMode ? Colors.grey[800]!.withOpacity(0.9) : Colors.grey[200]!.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(20 * scaleFactor),
+            borderRadius: BorderRadius.circular(16 * scaleFactor),
             boxShadow: [
               BoxShadow(
                 color: Colors.black12,
-                blurRadius: 4 * scaleFactor,
-                offset: const Offset(0, 2),
+                blurRadius: 3 * scaleFactor,
+                offset: Offset(0, 1 * scaleFactor),
               ),
             ],
           ),
           child: Text(
             date,
             style: GoogleFonts.poppins(
-              fontSize: 14 * scaleFactor,
+              fontSize: 12 * scaleFactor,
               color: isDarkMode ? Colors.white70 : Colors.black87,
               fontWeight: FontWeight.w500,
             ),
@@ -240,8 +230,9 @@ class ChatScreen extends StatelessWidget {
           ),
         ),
       ),
-      elevation: 8,
+      elevation: 4,
       shadowColor: Colors.black26,
+      titleSpacing: 0,
       title: Obx(() {
         final user = controller.chatController.allUsers
             .firstWhereOrNull((u) => u['email'] == receiverId);
@@ -259,89 +250,125 @@ class ChatScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              SizedBox(width: 4 * scaleFactor),
+              SizedBox(width: 0 * scaleFactor),
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 24 * scaleFactor,
+                    radius: 18 * scaleFactor,
                     backgroundColor: Colors.white,
-                    backgroundImage: user != null && user['profilePicture']?.isNotEmpty == true
-                        ? CachedNetworkImageProvider('http://localhost:5000${user['profilePicture']}')
-                        : null,
-                    child: user == null || user['profilePicture']?.isEmpty != false
-                        ? Text(
+                    child: user != null && user['profilePicture']?.isNotEmpty == true
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: 'http://localhost:5000${user['profilePicture']}',
+                              fit: BoxFit.cover,
+                              width: 36 * scaleFactor,
+                              height: 36 * scaleFactor,
+                              placeholder: (context, url) => const CircularProgressIndicator(),
+                              errorWidget: (context, url, error) {
+                                print('AppBar profile picture error: $error, URL: $url');
+                                return Text(
+                                  receiverUsername.isNotEmpty
+                                      ? receiverUsername[0].toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                    color: AppConstants.primaryColor,
+                                    fontSize: 18 * scaleFactor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Text(
                             receiverUsername.isNotEmpty
                                 ? receiverUsername[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
                               color: AppConstants.primaryColor,
-                              fontSize: 24 * scaleFactor,
+                              fontSize: 18 * scaleFactor,
                               fontWeight: FontWeight.bold,
                             ),
-                          )
-                        : null,
+                          ),
                   ),
                   if (isOnline)
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        width: 16 * scaleFactor,
-                        height: 16 * scaleFactor,
+                        width: 10 * scaleFactor,
+                        height: 10 * scaleFactor,
                         decoration: BoxDecoration(
                           color: Colors.green,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2 * scaleFactor),
+                          border: Border.all(color: Colors.white, width: 1.5 * scaleFactor),
                         ),
                       ),
                     ),
                 ],
               ),
               SizedBox(width: 8 * scaleFactor),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    receiverUsername,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 20 * scaleFactor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        isTyping ? 'typing'.tr : isOnline ? 'online'.tr : 'offline'.tr,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white70,
-                          fontSize: 14 * scaleFactor,
-                        ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      receiverUsername,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16 * scaleFactor,
+                        fontWeight: FontWeight.w600,
                       ),
-                      if (isTyping) ...[
-                        SizedBox(width: 6 * scaleFactor),
-                        _TypingDots(scaleFactor: scaleFactor, controller: controller),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          isTyping ? 'typing'.tr : isOnline ? 'online'.tr : 'offline'.tr,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 12 * scaleFactor,
+                          ),
+                        ),
+                        if (isTyping) ...[
+                          SizedBox(width: 4 * scaleFactor),
+                          _TypingDots(scaleFactor: scaleFactor, controller: controller),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         );
       }),
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Colors.white, size: 28 * scaleFactor),
+        icon: Icon(Icons.arrow_back, color: Colors.white, size: 24 * scaleFactor),
         onPressed: () => Get.offNamed(AppRoutes.getHomePage()),
+        tooltip: 'back'.tr,
       ),
       actions: [
         Obx(() => controller.chatController.errorMessage.value.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.error, color: Colors.red),
+                icon: Icon(Icons.error, color: Colors.redAccent, size: 24 * scaleFactor),
                 onPressed: () => Get.snackbar('Error', controller.chatController.errorMessage.value,
-                    snackPosition: SnackPosition.BOTTOM),
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.redAccent.withOpacity(0.8),
+                    colorText: Colors.white,
+                    margin: EdgeInsets.all(8 * scaleFactor),
+                    icon: Icon(Icons.error_outline, color: Colors.white, size: 24 * scaleFactor),
+                    shouldIconPulse: true,
+                  ),
+                tooltip: 'show_error'.tr,
               )
             : const SizedBox.shrink()),
+        IconButton(
+          icon: Icon(Icons.more_vert, color: Colors.white, size: 24 * scaleFactor),
+          onPressed: () {
+            // TODO: Implement chat options/info
+          },
+          tooltip: 'more_options'.tr,
+        ),
       ],
     );
   }
@@ -349,39 +376,42 @@ class ChatScreen extends StatelessWidget {
   Widget _buildInputArea(BuildContext context, double scaleFactor, ChatScreenController controller) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor, vertical: 4 * scaleFactor),
+      padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 8 * scaleFactor),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 4 * scaleFactor),
+        padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor),
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF2E2E2E) : Colors.white,
-          borderRadius: BorderRadius.circular(16 * scaleFactor),
+          borderRadius: BorderRadius.circular(24 * scaleFactor),
           border: Border.all(
             color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
             width: 1 * scaleFactor,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6 * scaleFactor,
-              offset: Offset(0, 2 * scaleFactor),
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+              blurRadius: 8 * scaleFactor,
+              offset: Offset(0, 4 * scaleFactor),
             ),
           ],
         ),
-        height: 75 * scaleFactor,
+        height: 50 * scaleFactor,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             IconButton(
               icon: Icon(
-                Icons.attach_file,
+                Icons.sentiment_satisfied_alt_rounded,
                 color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                size: 18 * scaleFactor,
+                size: 22 * scaleFactor,
               ),
-              onPressed: () {},
+              onPressed: () {
+                // TODO: Implement emoji picker
+              },
               padding: EdgeInsets.zero,
-              constraints: BoxConstraints(maxWidth: 100 * scaleFactor),
+              constraints: BoxConstraints(maxWidth: 40 * scaleFactor),
               alignment: Alignment.center,
             ),
+            SizedBox(width: 4 * scaleFactor),
             Expanded(
               child: TextField(
                 controller: controller.messageController,
@@ -397,14 +427,14 @@ class ChatScreen extends StatelessWidget {
                   ),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
-                    vertical: 6 * scaleFactor,
+                    vertical: 10 * scaleFactor,
                     horizontal: 8 * scaleFactor,
                   ),
                 ),
                 minLines: 1,
                 maxLines: 3,
                 onChanged: (text) {
-                  if (text.trim().isNotEmpty && controller.chatController.currentUserId != null) {
+                  if (text.trim().isNotEmpty) {
                     controller.chatController.onTyping(receiverId);
                   } else {
                     controller.chatController.onStopTyping(receiverId);
@@ -413,20 +443,30 @@ class ChatScreen extends StatelessWidget {
                 onSubmitted: controller.sendMessage,
               ),
             ),
+            IconButton(
+              icon: Icon(
+                Icons.attach_file,
+                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                size: 22 * scaleFactor,
+              ),
+              onPressed: () {
+                // TODO: Implement file attachment
+              },
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints(maxWidth: 40 * scaleFactor),
+              alignment: Alignment.center,
+            ),
             SizedBox(width: 4 * scaleFactor),
-            SizedBox(
-              width: 56 * scaleFactor,
-              height: 56 * scaleFactor,
-              child: FloatingActionButton(
-                mini: true,
-                backgroundColor: AppConstants.primaryColor,
-                elevation: 0,
-                child: Icon(
-                  Icons.send,
-                  color: Colors.white,
-                  size: 28 * scaleFactor,
-                ),
-                onPressed: () => controller.sendMessage(controller.messageController.text),
+            FloatingActionButton(
+              mini: true,
+              backgroundColor: AppConstants.primaryColor,
+              elevation: 0,
+              onPressed: () => controller.sendMessage(controller.messageController.text),
+              tooltip: 'send_message'.tr,
+              child: Icon(
+                Icons.send,
+                color: Colors.white,
+                size: 20 * scaleFactor,
               ),
             ),
           ],
@@ -455,114 +495,67 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final maxBubbleWidth = screenWidth - (20 * 8 * scaleFactor);
-    final fontSize = 16 * scaleFactor;
-    final padding = 10 * scaleFactor;
+    final maxBubbleWidth = screenWidth * 0.75;
+    final fontSize = 14 * scaleFactor;
+    final padding = 8 * scaleFactor;
     final messageText = message['message'] ?? 'Error';
-    final edgePadding = 8 * scaleFactor;
+    final edgePadding = 16 * scaleFactor;
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10 * scaleFactor),
+      padding: EdgeInsets.symmetric(vertical: 4 * scaleFactor, horizontal: 8 * scaleFactor),
       child: Column(
         crossAxisAlignment: isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
-              if (isSent) ...[
-                SizedBox(width: edgePadding),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-                  child: CustomPaint(
-                    painter: ChatBubblePainter(
-                      isSent: isSent,
-                      gradient: isSent
-                          ? const LinearGradient(
-                              colors: [AppConstants.primaryColor, Color(0xFF2E7D32)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
-                          : null,
-                      color: isSent
-                          ? null
-                          : isDarkMode
-                              ? const Color(0xFF2E2E2E)
-                              : Colors.white,
-                      scaleFactor: scaleFactor,
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                child: CustomPaint(
+                  painter: ChatBubblePainter(
+                    isSent: isSent,
+                    gradient: isSent
+                        ? const LinearGradient(
+                            colors: [AppConstants.primaryColor, Color(0xFF2E7D32)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isSent
+                        ? null
+                        : isDarkMode
+                            ? const Color(0xFF2E2E2E)
+                            : Colors.white,
+                    scaleFactor: scaleFactor,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16 * scaleFactor,
+                      vertical: padding,
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24 * scaleFactor,
-                        vertical: padding,
+                    child: Text(
+                      messageText,
+                      style: GoogleFonts.poppins(
+                        color: isSent
+                            ? Colors.white
+                            : isDarkMode
+                                ? Colors.white
+                                : Colors.black,
+                        fontSize: fontSize,
+                        fontWeight: FontWeight.w400,
                       ),
-                      child: Text(
-                        messageText,
-                        style: GoogleFonts.poppins(
-                          color: isSent
-                              ? Colors.white
-                              : isDarkMode
-                                  ? Colors.white
-                                  : Colors.black,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        softWrap: true,
-                      ),
+                      softWrap: true,
                     ),
                   ),
                 ),
-                SizedBox(width: edgePadding),
-              ] else ...[
-                SizedBox(width: edgePadding),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-                  child: CustomPaint(
-                    painter: ChatBubblePainter(
-                      isSent: isSent,
-                      gradient: isSent
-                          ? const LinearGradient(
-                              colors: [AppConstants.primaryColor, Color(0xFF2E7D32)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
-                          : null,
-                      color: isSent
-                          ? null
-                          : isDarkMode
-                              ? const Color(0xFF2E2E2E)
-                              : Colors.white,
-                      scaleFactor: scaleFactor,
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24 * scaleFactor,
-                        vertical: padding,
-                      ),
-                      child: Text(
-                        messageText,
-                        style: GoogleFonts.poppins(
-                          color: isSent
-                              ? Colors.white
-                              : isDarkMode
-                                  ? Colors.white
-                                  : Colors.black,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        softWrap: true,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: edgePadding),
-              ],
+              ),
             ],
           ),
           Padding(
             padding: EdgeInsets.only(
               left: isSent ? 0 : edgePadding,
               right: isSent ? edgePadding : 0,
-              top: 4 * scaleFactor,
+              top: 2 * scaleFactor,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -571,11 +564,11 @@ class _MessageBubble extends StatelessWidget {
                   controller.formatTime(message['timestamp']),
                   style: GoogleFonts.poppins(
                     color: isDarkMode ? Colors.white70 : Colors.black54,
-                    fontSize: 12 * scaleFactor,
+                    fontSize: 10 * scaleFactor,
                   ),
                 ),
                 if (isSent) ...[
-                  SizedBox(width: 8 * scaleFactor),
+                  SizedBox(width: 4 * scaleFactor),
                   Row(
                     children: [
                       Text(
@@ -586,17 +579,17 @@ class _MessageBubble extends StatelessWidget {
                                 : 'sent'.tr,
                         style: GoogleFonts.poppins(
                           color: isDarkMode ? Colors.white70 : Colors.black54,
-                          fontSize: 12 * scaleFactor,
+                          fontSize: 10 * scaleFactor,
                         ),
                       ),
-                      SizedBox(width: 4 * scaleFactor),
+                      SizedBox(width: 2 * scaleFactor),
                       message['read'] == true
                           ? Stack(
                               children: [
                                 Icon(
                                   Icons.check,
                                   color: isDarkMode ? Colors.white70 : Colors.black54,
-                                  size: 12 * scaleFactor,
+                                  size: 10 * scaleFactor,
                                 ),
                                 Positioned(
                                   left: 4 * scaleFactor,
@@ -604,7 +597,7 @@ class _MessageBubble extends StatelessWidget {
                                   child: Icon(
                                     Icons.check,
                                     color: isDarkMode ? Colors.white70 : Colors.black54,
-                                    size: 12 * scaleFactor,
+                                    size: 10 * scaleFactor,
                                   ),
                                 ),
                               ],
@@ -612,7 +605,7 @@ class _MessageBubble extends StatelessWidget {
                           : Icon(
                               Icons.check,
                               color: isDarkMode ? Colors.white70 : Colors.black54,
-                              size: 12 * scaleFactor,
+                              size: 10 * scaleFactor,
                             ),
                     ],
                   ),
@@ -651,17 +644,17 @@ class ChatBubblePainter extends CustomPainter {
     }
 
     final shadowPaint = Paint()
-      ..color = Colors.black26
+      ..color = Colors.black.withOpacity(0.08)
       ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * scaleFactor);
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3 * scaleFactor);
 
     final path = Path();
     final shadowPath = Path();
-    final cornerRadius = 12.0 * scaleFactor;
-    final tailSize = 12.0 * scaleFactor;
-    final tailCurveControl1 = 5.0 * scaleFactor;
+    final cornerRadius = 10.0 * scaleFactor;
+    final tailSize = 10.0 * scaleFactor;
+    final tailCurveControl1 = 4.0 * scaleFactor;
     final tailCurveControl2 = 2.0 * scaleFactor;
-    final tailHeightOffset = 0.1 * scaleFactor;
+    final tailHeightOffset = 0.5 * scaleFactor;
 
     if (isSent) {
       path.moveTo(cornerRadius, 0);
@@ -672,18 +665,18 @@ class ChatBubblePainter extends CustomPainter {
           size.width - tailSize, 0, size.width - tailSize, cornerRadius);
       shadowPath.quadraticBezierTo(
           size.width - tailSize, 0, size.width - tailSize, cornerRadius);
-      path.lineTo(size.width - tailSize, size.height - cornerRadius - tailSize * 0.7);
-      shadowPath.lineTo(size.width - tailSize, size.height - cornerRadius - tailSize * 0.7);
+      path.lineTo(size.width - tailSize, size.height - cornerRadius - tailSize * 0.5);
+      shadowPath.lineTo(size.width - tailSize, size.height - cornerRadius - tailSize * 0.5);
       path.quadraticBezierTo(
           size.width - tailSize + tailCurveControl1,
           size.height - cornerRadius - tailHeightOffset,
           size.width - tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.1);
+          size.height - cornerRadius + tailSize * 0.2);
       shadowPath.quadraticBezierTo(
           size.width - tailSize + tailCurveControl1,
           size.height - cornerRadius - tailHeightOffset,
           size.width - tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.1);
+          size.height - cornerRadius + tailSize * 0.2);
       path.quadraticBezierTo(
           size.width - tailSize + tailCurveControl2,
           size.height - tailHeightOffset,
@@ -709,18 +702,18 @@ class ChatBubblePainter extends CustomPainter {
       shadowPath.lineTo(cornerRadius + tailSize, 0);
       path.quadraticBezierTo(tailSize, 0, tailSize, cornerRadius);
       shadowPath.quadraticBezierTo(tailSize, 0, tailSize, cornerRadius);
-      path.lineTo(tailSize, size.height - cornerRadius - tailSize * 0.7);
-      shadowPath.lineTo(tailSize, size.height - cornerRadius - tailSize * 0.7);
+      path.lineTo(tailSize, size.height - cornerRadius - tailSize * 0.5);
+      shadowPath.lineTo(tailSize, size.height - cornerRadius - tailSize * 0.5);
       path.quadraticBezierTo(
           tailSize - tailCurveControl1,
           size.height - cornerRadius - tailHeightOffset,
           tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.1);
+          size.height - cornerRadius + tailSize * 0.2);
       shadowPath.quadraticBezierTo(
           tailSize - tailCurveControl1,
           size.height - cornerRadius - tailHeightOffset,
           tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.1);
+          size.height - cornerRadius + tailSize * 0.2);
       path.quadraticBezierTo(
           tailSize - tailCurveControl2,
           size.height - tailHeightOffset,
@@ -765,33 +758,34 @@ class _TypingDots extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller.animationController,
       builder: (context, _) => Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Bounce(
             duration: const Duration(milliseconds: 1000),
-            child: _buildDot(controller.dot1.value),
+            child: _buildDot(controller.dot1.value, scaleFactor),
           ),
-          SizedBox(width: 4 * scaleFactor),
+          SizedBox(width: 3 * scaleFactor),
           Bounce(
             duration: const Duration(milliseconds: 1000),
             delay: const Duration(milliseconds: 200),
-            child: _buildDot(controller.dot2.value),
+            child: _buildDot(controller.dot2.value, scaleFactor),
           ),
-          SizedBox(width: 4 * scaleFactor),
+          SizedBox(width: 3 * scaleFactor),
           Bounce(
             duration: const Duration(milliseconds: 1000),
             delay: const Duration(milliseconds: 400),
-            child: _buildDot(controller.dot3.value),
+            child: _buildDot(controller.dot3.value, scaleFactor),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDot(double opacity) => Opacity(
+  Widget _buildDot(double opacity, double scaleFactor) => Opacity(
         opacity: opacity,
         child: Container(
-          width: 8 * scaleFactor,
-          height: 8 * scaleFactor,
+          width: 6 * scaleFactor,
+          height: 6 * scaleFactor,
           decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
         ),
       );

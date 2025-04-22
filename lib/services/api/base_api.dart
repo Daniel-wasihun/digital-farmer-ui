@@ -36,7 +36,7 @@ abstract class BaseApi {
   // Helper for protected POST requests
   @protected
   Future<Map<String, dynamic>> protectedPost(String url, Map<String, dynamic> body, String action) async {
-    final token = await storageService.getToken();
+    final token = storageService.getToken();
     if (token == null) {
       print('$action failed: No auth token found');
       throw Exception('Authentication token not found. Please log in again.');
@@ -56,7 +56,7 @@ abstract class BaseApi {
   // Helper to get auth headers
   @protected
   Future<Map<String, String>> getAuthHeaders() async {
-    final token = await storageService.getToken();
+    final token = storageService.getToken();
     if (token == null) {
       throw Exception('Authentication token not found. Please log in again.');
     }

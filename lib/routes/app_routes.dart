@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
-import '../controllers/update_profile_controller.dart';
 import '../services/storage_service.dart';
 import '../views/screens/Tabs/settings/settings_tab.dart';
+import '../views/screens/Tabs/tip/ai_chat_screen.dart';
 import '../views/screens/auth/request_password_reset_screen.dart';
 import '../views/screens/auth/reset_password_screen.dart';
 import '../views/screens/auth/security_question_verification_screen.dart';
@@ -14,7 +14,6 @@ import '../views/screens/tabs/settings/contact_us_screen.dart';
 import '../views/screens/tabs/settings/faq_screen.dart';
 import '../views/screens/tabs/settings/feedback_screen.dart';
 import '../views/screens/tabs/settings/security_question_screen.dart';
-import '../views/screens/tabs/settings/update_profile_screen.dart';
 import '../views/screens/home_screen.dart';
 import '../views/screens/tabs/chat/user_profile_screen.dart';
 
@@ -24,7 +23,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String settings = '/settings';
   static const String changePassword = '/change-password';
-  static const String updateProfile = '/update-profile';
+  // static const String updateProfile = '/update-profile';
   static const String securityQuestion = '/security-question';
   static const String faq = '/faq';
   static const String contactUs = '/contact-us';
@@ -35,13 +34,14 @@ class AppRoutes {
   static const String requestPasswordReset = '/request-password-reset';
   static const String resetPassword = '/reset-password';
   static const String securityQuestionVerificationPage = '/security-question-verification';
-
+  static const aiChat = '/aiChat';
+  
   static String getSignInPage() => signin;
   static String getSignUpPage() => signup;
   static String getHomePage() => home;
   static String getSettingsPage() => settings;
   static String getChangePasswordPage() => changePassword;
-  static String getUpdateProfilePage() => updateProfile;
+  // static String getUpdateProfilePage() => updateProfile;
   static String getSecurityQuestionPage() => securityQuestion;
   static String getFaqPage() => faq;
   static String getContactUsPage() => contactUs;
@@ -54,7 +54,7 @@ class AppRoutes {
   static String getRequestPasswordResetPage() => requestPasswordReset;
   static String getResetPasswordPage() => resetPassword;
   static String getSecurityQuestionVerificationPage() =>securityQuestionVerificationPage;
-
+  static String getAiChatRoute() => aiChat;
   static String getInitialRoute() {
     final storageService = Get.find<StorageService>();
     final isLoggedIn = storageService.getToken() != null;
@@ -93,18 +93,18 @@ class AppRoutes {
       transitionDuration: const Duration(milliseconds: 400),
     ),
     GetPage(
-    name: '/security-question-verification',
+    name: securityQuestionVerificationPage,
     page: () => const SecurityQuestionVerificationScreen(),
   ),
-    GetPage(
-      name: updateProfile,
-      page: () => const UpdateProfileScreen(),
-      binding: BindingsBuilder(() {
-        Get.put(UpdateProfileController());
-      }),
-      transition: Transition.fadeIn,
-      transitionDuration: const Duration(milliseconds: 400),
-    ),
+    // GetPage(
+    //   name: updateProfile,
+    //   page: () => const UpdateProfileScreen(),
+    //   binding: BindingsBuilder(() {
+    //     Get.put(UpdateProfileController());
+    //   }),
+    //   transition: Transition.fadeIn,
+    //   transitionDuration: const Duration(milliseconds: 400),
+    // ),
     GetPage(
       name: securityQuestion,
       page: () => const SecurityQuestionScreen(),
@@ -161,6 +161,13 @@ class AppRoutes {
       page: () => const ResetPasswordScreen(),
       transition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: aiChat,
+      page: () => const AIChatScreen(),
+      binding: BindingsBuilder(() {
+        // Get.lazyPut<AIChatController>(() => AIChatController());
+      }),
     ),
   ];
 }

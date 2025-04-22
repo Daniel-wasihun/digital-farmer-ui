@@ -5,7 +5,7 @@ import '../views/screens/Tabs/chat/chat_tab.dart';
 import '../views/screens/Tabs/tip/crop_tips_tab.dart';
 import '../views/screens/Tabs/market_tab.dart';
 import '../views/screens/Tabs/settings/settings_tab.dart';
-import '../views/screens/Tabs/weather_tab.dart';
+import '../views/screens/Tabs/weather/weather_tab.dart';
 import 'auth/auth_controller.dart';
 import 'theme_controller.dart';
 

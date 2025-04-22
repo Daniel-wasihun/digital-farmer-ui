@@ -1,23 +1,30 @@
-import '../../../../services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:math' as math; // Import math for max and clamp
-import '../../../../controllers/update_profile_controller.dart'; // Keep your controller import
+import 'dart:math' as math;
+import '../../../../controllers/update_profile_controller.dart';
 import '../../../widgets/custom_text_field.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../services/api/base_api.dart';
 
-class UpdateProfileScreen extends GetView<UpdateProfileController> {
-  const UpdateProfileScreen({super.key}); // Use const constructor
+class UpdateProfileModal extends GetView<UpdateProfileController> {
+  const UpdateProfileModal({super.key});
+
+  static void show() {
+    Get.put(UpdateProfileController());
+    Get.dialog(
+      const UpdateProfileModal(),
+      barrierDismissible: true,
+      transitionDuration: const Duration(milliseconds: 400),
+      transitionCurve: Curves.easeInOutCubic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Access the controller using 'controller' property provided by GetView
-    // final UpdateProfileController controller = Get.find<UpdateProfileController>();
-
     final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final bool isDarkMode = theme.brightness == Brightness.dark;
 
-    // --- Responsive Breakpoints (Copied from ChangePasswordScreen style) ---
     const double tinyPhoneMaxWidth = 300;
     const double verySmallPhoneMaxWidth = 360;
     const double smallPhoneMaxWidth = 480;
@@ -26,13 +33,16 @@ class UpdateProfileScreen extends GetView<UpdateProfileController> {
     const double desktopMinWidth = 1000;
 
     final bool isTinyPhone = size.width < tinyPhoneMaxWidth;
-    final bool isVerySmallPhone = size.width >= tinyPhoneMaxWidth && size.width < verySmallPhoneMaxWidth;
-    final bool isSmallPhone = size.width >= verySmallPhoneMaxWidth && size.width < smallPhoneMaxWidth;
-    final bool isCompactTablet = size.width >= compactTabletMinWidth && size.width < largeTabletMinWidth;
-    final bool isLargeTablet = size.width >= largeTabletMinWidth && size.width < desktopMinWidth;
+    final bool isVerySmallPhone =
+        size.width >= tinyPhoneMaxWidth && size.width < verySmallPhoneMaxWidth;
+    final bool isSmallPhone =
+        size.width >= verySmallPhoneMaxWidth && size.width < smallPhoneMaxWidth;
+    final bool isCompactTablet = size.width >= compactTabletMinWidth &&
+        size.width < largeTabletMinWidth;
+    final bool isLargeTablet =
+        size.width >= largeTabletMinWidth && size.width < desktopMinWidth;
     final bool isDesktop = size.width >= desktopMinWidth;
 
-    // --- Responsive Scale Factor (Copied from ChangePasswordScreen style) ---
     final double scaleFactor = isDesktop
         ? 1.2
         : isLargeTablet
@@ -47,191 +57,246 @@ class UpdateProfileScreen extends GetView<UpdateProfileController> {
                             ? 0.6
                             : 1.0;
 
-    // --- Responsive Constraints (Copied from ChangePasswordScreen style) ---
     final double maxFormWidth = isDesktop
         ? 600
         : isLargeTablet
             ? 500
             : isCompactTablet
                 ? 400
-                : size.width * (isTinyPhone ? 0.95 : isVerySmallPhone ? 0.92 : 0.9);
-    // Note: maxFormHeight is less critical here if content is scrollable, removed the height constraint
+                : size.width *
+                    (isTinyPhone ? 0.95 : isVerySmallPhone ? 0.92 : 0.9);
+    final double maxFormHeight = size.height *
+        (isTinyPhone
+            ? 0.85
+            : isVerySmallPhone
+                ? 0.8
+                : isSmallPhone
+                    ? 0.75
+                    : 0.7);
 
-    // --- Responsive Padding (Copied from ChangePasswordScreen style) ---
-    final double cardPadding = math.max(8.0, 16.0 * scaleFactor).clamp(16.0, 32.0); // Adjusted range for potentially larger card
+    final double dialogHorizontalPadding =
+        (size.width * 0.05 * scaleFactor).clamp(16.0, 40.0);
+    final double cardPadding =
+        math.max(8.0, 16.0 * scaleFactor).clamp(16.0, 32.0);
 
-    // --- Responsive Font Sizes (Adjusted slightly for profile screen context) ---
-    final double baseTitleFontSize = 20.0; // Page title
-    final double baseAppBarFontSize = 18.0; // App bar title
+    final double baseTitleFontSize = 18.0;
+    final double baseAppBarFontSize = 16.0;
     final double baseFieldLabelFontSize = 12.0;
     final double baseFieldValueFontSize = 14.0;
-    final double baseButtonFontSize = 16.0; // Button text
+    final double baseButtonFontSize = 16.0;
 
-    final double titleFontSize = (baseTitleFontSize * scaleFactor).clamp(18.0, 24.0); // Clamped
-    final double appBarFontSize = (baseAppBarFontSize * scaleFactor).clamp(16.0, 20.0); // Clamped
-    final double fieldLabelFontSize = (baseFieldLabelFontSize * scaleFactor).clamp(10.0, 14.0);
-    final double fieldValueFontSize = (baseFieldValueFontSize * scaleFactor).clamp(12.0, 16.0);
-    final double buttonFontSize = (baseButtonFontSize * scaleFactor).clamp(14.0, 18.0); // Clamped
+    final double titleFontSize =
+        (baseTitleFontSize * scaleFactor).clamp(16.0, 22.0);
+    final double appBarFontSize =
+        (baseAppBarFontSize * scaleFactor).clamp(14.0, 18.0);
+    final double fieldLabelFontSize =
+        (baseFieldLabelFontSize * scaleFactor).clamp(10.0, 14.0);
+    final double fieldValueFontSize =
+        (baseFieldLabelFontSize * scaleFactor).clamp(10.0, 14.0);
 
-    // --- Responsive Icon Sizes ---
-    final double iconSize = (20.0 * scaleFactor).clamp(18.0, 24.0); // Standard icon size
-    final double avatarIconSize = (40.0 * scaleFactor).clamp(35.0, 50.0); // For person icon in avatar
-    final double editIconSize = (16.0 * scaleFactor).clamp(14.0, 20.0); // For edit icon on avatar
+    final double buttonFontSize =
+        (baseButtonFontSize * scaleFactor).clamp(14.0, 18.0);
 
-    // --- Responsive Loader Size ---
-    final double loaderSize = (24.0 * scaleFactor).clamp(20.0, 30.0); // Loader size
+    final double iconSize = (20.0 * scaleFactor).clamp(18.0, 24.0);
+    final double avatarIconSize = (40.0 * scaleFactor).clamp(35.0, 50.0);
+    final double editIconSize = (16.0 * scaleFactor).clamp(14.0, 20.0);
+    final double closeIconSize = (22.0 * scaleFactor).clamp(18.0, 24.0);
 
-    // --- Responsive Spacing (Copied from ChangePasswordScreen style) ---
-    // final double spacingExtraSmall = math.max(4.0, 6 * scaleFactor); // Added smaller spacing
-    // final double spacingSmall = math.max(8.0, 10 * scaleFactor);
-    final double spacingMedium = math.max(12.0, 16 * scaleFactor);
-    final double spacingLarge = math.max(18.0, 24 * scaleFactor);
-    // final double spacingExtraLarge = math.max(24.0, 32 * scaleFactor); // Added larger spacing
+    final double loaderSize = (24.0 * scaleFactor).clamp(20.0, 30.0);
 
+    final double spacingMedium = math.max(10.0, 14 * scaleFactor);
+    final double spacingLarge = math.max(16.0, 20 * scaleFactor);
+    final double spacingExtraLarge = math.max(20.0, 24 * scaleFactor);
 
-    // --- Consistent Vertical Padding for Text Fields (Copied) ---
-    final double consistentVerticalPadding = math.max(12.0, 14 * scaleFactor); // Adjusted base
+    final double consistentVerticalPadding = math.max(12.0, 14 * scaleFactor);
 
-
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 4, // Kept elevation
-        title: Text(
-          'update_profile'.tr,
-          style: Theme.of(context).appBarTheme.titleTextStyle?.copyWith(
-                fontSize: appBarFontSize, // Use responsive size
-                fontWeight: FontWeight.w600,
-              ) ??
-              TextStyle( // Fallback style
-                fontSize: appBarFontSize, // Use responsive size
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onPrimary, // Assuming onPrimary
-              ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: Theme.of(context).appBarTheme.foregroundColor ?? theme.colorScheme.onPrimary, // Use foregroundColor or onPrimary fallback
-              size: iconSize, // Use responsive size
-            ),
-          onPressed: () {
-            print('AppBar back button pressed');
-            // You might want to dispose of controllers/clear state here if their lifecycle isn't tied to the route binding
-            // controller.resetState(); // Example if you had resetState in UpdateProfileController
-            Get.back();
-          },
-        ),
+    return Dialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16 * scaleFactor)),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: dialogHorizontalPadding,
+        vertical: spacingLarge,
       ),
-      // Using Builder to ensure context is available if needed later (optional here)
-      body: Builder(
-        builder: (context) {
-          return Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: maxFormWidth.clamp(300, 700), // Adjusted clamp range
-            // Removed maxHeight constraint for better scrolling
-          ),
-          child: AnimatedPadding( // Using AnimatedPadding from ChangePasswordScreen example
-            duration: const Duration(milliseconds: 150),
-            padding: EdgeInsets.symmetric(horizontal: size.width * (isTinyPhone ? 0.03 : 0.04)), // Apply horizontal padding based on screen size
-            // Replaced GlassmorphicCard with standard Card
-            child: Card(
-              elevation: isDarkMode ? 2.0 : 4.0, // Responsive elevation
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxFormWidth.clamp(300, 700),
+          maxHeight: maxFormHeight.clamp(300, 600),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Card(
+              elevation: isDarkMode ? 6.0 : 10.0,
+              color: theme.cardColor,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(math.max(8.0, 12 * scaleFactor))), // Responsive border radius
-              clipBehavior: Clip.antiAlias, // Needed for rounded corners
+                  borderRadius: BorderRadius.circular(16 * scaleFactor)),
+              clipBehavior: Clip.antiAlias,
               child: Padding(
-                padding: EdgeInsets.all(cardPadding), // Use responsive card padding
-                child: SingleChildScrollView( // Allows content to scroll
-                  child: Obx(
-                    () => Column(
+                padding: EdgeInsets.all(cardPadding),
+                child: Obx(
+                  () => SingleChildScrollView(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Title
-                        AnimatedOpacity( // Keep animation for loading state
-                          opacity: controller.isLoading.value ? 0.5 : 1.0,
-                          duration: const Duration(milliseconds: 300),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: spacingMedium,
+                            left: spacingExtraLarge,
+                            right: spacingExtraLarge,
+                            bottom: spacingLarge,
+                          ),
                           child: Text(
                             'update_profile'.tr,
-                            style: theme.textTheme.headlineSmall?.copyWith( // Using headlineSmall as it's common for titles
-                                  fontSize: titleFontSize, // Use responsive size
-                                  fontWeight: FontWeight.w600, // Adjusted weight
-                                  color: theme.colorScheme.primary, // Example primary color
-                              ) ?? // Fallback style
-                            TextStyle(
-                                  fontSize: titleFontSize, // Use responsive size
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontSize: titleFontSize,
                                   fontWeight: FontWeight.w600,
                                   color: theme.colorScheme.primary,
-                            ),
+                                ) ??
+                                TextStyle(
+                                  fontSize: titleFontSize,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.primary,
+                                ),
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        SizedBox(height: spacingLarge), // Use responsive spacing
-                        // Avatar Section
+                        SizedBox(height: spacingLarge),
                         Center(
                           child: Stack(
                             children: [
                               Container(
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  boxShadow: [ // Use theme colors for shadow
+                                  boxShadow: [
                                     BoxShadow(
-                                      color: theme.colorScheme.shadow.withOpacity(isDarkMode ? 0.5 : 0.2), // Adjust shadow color/opacity based on theme/mode
-                                      blurRadius: 8 * scaleFactor, // Responsive blur
-                                      spreadRadius: 2 * scaleFactor, // Responsive spread
+                                      color: theme.colorScheme.shadow
+                                          .withOpacity(isDarkMode ? 0.5 : 0.2),
+                                      blurRadius: 8 * scaleFactor,
+                                      spreadRadius: 2 * scaleFactor,
                                     ),
                                   ],
                                 ),
                                 child: CircleAvatar(
-                                  radius: 48 * scaleFactor, // Use responsive size
-                                  backgroundColor: theme.colorScheme.surface, // Use theme color
-                                  // Logic for displaying selected image or profile URL
-                                backgroundImage: controller.selectedImage.value != null
-                                    ? FileImage(controller.selectedImage.value!)
-                                    : controller.profilePictureUrl.value.isNotEmpty
-                                        ? NetworkImage(
-                                             // Ensure the URL is correctly formed
-                                            '${BaseApi.imageBaseUrl}/uploads/${controller.profilePictureUrl.value.split('/').last.split('\\').last}',
-                                          ) as ImageProvider<Object>? // Cast to ImageProvider
-                                        : null,
-                                  onBackgroundImageError: (error, stackTrace) {
-                                     print('Image load error: $error, URL: ${controller.profilePictureUrl.value}');
-                                      // Clear the URL on error so the default icon shows
-                                     controller.profilePictureUrl.value = '';
-                                   },
-                                  child: controller.profilePictureUrl.value.isEmpty &&
-                                        controller.selectedImage.value == null
-                                      ? Icon(
-                                          Icons.person,
-                                          size: avatarIconSize, // Use responsive size
-                                          color: theme.colorScheme.onSurface.withOpacity(0.6), // Use theme color
-                                        )
-                                      : null,
+                                  radius: 48 * scaleFactor,
+                                  backgroundColor: theme.colorScheme.surface,
+                                  child: ClipOval(
+                                    child: Obx(() {
+                                      // Case 1: Display locally picked image for mobile
+                                      if (controller.selectedImageFile.value != null) {
+                                        return Image.file(
+                                          controller.selectedImageFile.value!,
+                                          fit: BoxFit.cover,
+                                          width: 96 * scaleFactor,
+                                          height: 96 * scaleFactor,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            print('File image error: $error');
+                                            return _buildAvatarPlaceholder(
+                                                theme, avatarIconSize);
+                                          },
+                                        );
+                                      }
+                                      // Case 2: Display locally picked image for web
+                                      else if (controller
+                                              .selectedImageBytes.value !=
+                                          null) {
+                                        return Image.memory(
+                                          controller.selectedImageBytes.value!,
+                                          fit: BoxFit.cover,
+                                          width: 96 * scaleFactor,
+                                          height: 96 * scaleFactor,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            print('Memory image error: $error');
+                                            return _buildAvatarPlaceholder(
+                                                theme, avatarIconSize);
+                                          },
+                                        );
+                                      }
+                                      // Case 3: Display network image or placeholder
+                                      final profilePictureUrl =
+                                          controller.profilePictureUrl.value;
+                                      final hasProfilePicture =
+                                          profilePictureUrl.isNotEmpty;
+
+                                      if (hasProfilePicture) {
+                                        final imageUrl =
+                                            '${BaseApi.imageBaseUrl}/Uploads/${profilePictureUrl.split('/').last.split('\\').last}';
+                                        return CachedNetworkImage(
+                                          imageUrl: imageUrl,
+                                          fit: BoxFit.cover,
+                                          width: 96 * scaleFactor,
+                                          height: 96 * scaleFactor,
+                                          placeholder: (context, url) =>
+                                              _buildAvatarPlaceholder(
+                                                  theme, avatarIconSize),
+                                          errorWidget: (context, url, error) {
+                                            print(
+                                                'Network image error: $error, URL: $url');
+                                            // Defer clearing profilePictureUrl to avoid build phase conflict
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                              controller.profilePictureUrl
+                                                  .value = '';
+                                            });
+                                            return _buildAvatarPlaceholder(
+                                                theme, avatarIconSize);
+                                          },
+                                        );
+                                      }
+
+                                      // Case 4: Fallback to placeholder
+                                      return _buildAvatarPlaceholder(
+                                          theme, avatarIconSize);
+                                    }),
+                                  ),
                                 ),
                               ),
-                              // Edit icon on avatar
                               Positioned(
                                 bottom: 0,
                                 right: 0,
                                 child: GestureDetector(
-                                  onTap: controller.isLoading.value // Disable tap when loading
+                                  onTap: controller.isLoading.value
                                       ? null
-                                      : () {
+                                      : () async {
                                           print('Picking image from gallery');
-                                          controller.pickImage();
+                                          try {
+                                            await controller.pickImage();
+                                          } catch (e) {
+                                            print('Image picking error: $e');
+                                            Get.snackbar(
+                                              'error'.tr,
+                                              'failed_to_pick_image'.tr,
+                                              duration:
+                                                  const Duration(seconds: 4),
+                                              backgroundColor:
+                                                  theme.colorScheme.error,
+                                              colorText:
+                                                  theme.colorScheme.onError,
+                                              margin:
+                                                  EdgeInsets.all(spacingMedium),
+                                              borderRadius: math.max(
+                                                  6.0, 8 * scaleFactor),
+                                              snackPosition: SnackPosition.TOP,
+                                            );
+                                          }
                                         },
                                   child: Container(
-                                    padding: EdgeInsets.all(4 * scaleFactor), // Use responsive padding
+                                    padding: EdgeInsets.all(4 * scaleFactor),
                                     decoration: BoxDecoration(
-                                      color: theme.colorScheme.secondary, // Use theme color
+                                      color: theme.colorScheme.secondary,
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                          color: theme.colorScheme.onSecondary, width: 2), // Use theme color, Adjusted border width
+                                          color: theme.colorScheme.onSecondary,
+                                          width: 2),
                                     ),
                                     child: Icon(
                                       Icons.edit,
-                                      size: editIconSize, // Use responsive size
-                                      color: theme.colorScheme.onSecondary, // Use theme color
+                                      size: editIconSize,
+                                      color: theme.colorScheme.onSecondary,
                                     ),
                                   ),
                                 ),
@@ -239,115 +304,152 @@ class UpdateProfileScreen extends GetView<UpdateProfileController> {
                             ],
                           ),
                         ),
-                        SizedBox(height: spacingMedium), // Use responsive spacing
-                        // Username Field
-                        AnimatedOpacity( // Keep animation for loading state
+                        SizedBox(height: spacingMedium),
+                        AnimatedOpacity(
                           opacity: controller.isLoading.value ? 0.5 : 1.0,
                           duration: const Duration(milliseconds: 300),
                           child: CustomTextField(
                             label: 'username'.tr,
-                            controller: controller.usernameController, // Assuming controller has this
+                            controller: controller.usernameController,
                             prefixIcon: Icons.person,
-                            errorText: controller.usernameError.value.isEmpty // Assuming controller has this error
+                            errorText: controller.usernameError.value.isEmpty
                                 ? null
                                 : controller.usernameError.value,
-                            enabled: !controller.isLoading.value, // Disable when loading
+                            enabled: !controller.isLoading.value,
                             onChanged: (value) {
-                                // Update observable and validate
-                              controller.username.value = value; // Assuming controller has this observable
-                              controller.validateUsername(value); // Assuming controller has this method
+                              controller.username.value = value;
+                              controller.validateUsername(value);
                             },
-                            scaleFactor: scaleFactor, // Apply scale factor
-                            fontSize: fieldValueFontSize, // Apply responsive font size
-                            labelFontSize: fieldLabelFontSize, // Apply responsive label size
-                            iconSize: iconSize, // Apply responsive icon size
+                            scaleFactor: scaleFactor,
+                            fontSize: fieldValueFontSize,
+                            labelFontSize: fieldLabelFontSize,
+                            iconSize: iconSize,
                             contentPadding: EdgeInsets.symmetric(
-                                 horizontal: math.max(10.0, 12 * scaleFactor), // Adjusted horizontal padding
-                                 vertical: consistentVerticalPadding, // Apply responsive vertical padding
-                              ),
-                            borderRadius: math.max(6.0, 8 * scaleFactor), // Responsive border radius
-                            filled: true, // Example filled property
-                            fillColor: theme.colorScheme.onSurface.withOpacity(0.05), // Example fill color
-
+                              horizontal: math.max(10.0, 12 * scaleFactor),
+                              vertical: consistentVerticalPadding,
+                            ),
+                            borderRadius: math.max(6.0, 8 * scaleFactor),
+                            filled: true,
+                            fillColor:
+                                theme.colorScheme.onSurface.withOpacity(0.05),
                             keyboardType: TextInputType.text,
-                            obscureText: false, // Not a password field
+                            obscureText: false,
                           ),
                         ),
-                        // Bio Field
-                        AnimatedOpacity( // Keep animation for loading state
+                        SizedBox(height: spacingMedium),
+                        AnimatedOpacity(
                           opacity: controller.isLoading.value ? 0.5 : 1.0,
                           duration: const Duration(milliseconds: 300),
                           child: CustomTextField(
                             label: 'bio'.tr,
-                            controller: controller.bioController, // Assuming controller has this
+                            controller: controller.bioController,
                             prefixIcon: Icons.info,
-                            errorText: controller.bioError.value.isEmpty // Assuming controller has this error
+                            errorText: controller.bioError.value.isEmpty
                                 ? null
                                 : controller.bioError.value,
-                            enabled: !controller.isLoading.value, // Disable when loading
+                            enabled: !controller.isLoading.value,
                             onChanged: (value) {
-                                // Update observable and validate
-                              controller.bio.value = value; // Assuming controller has this observable
-                              controller.validateBio(value); // Assuming controller has this method
+                              controller.bio.value = value;
+                              controller.validateBio(value);
                             },
-                            scaleFactor: scaleFactor, // Apply scale factor
-                            fontSize: fieldValueFontSize, // Apply responsive font size
-                            labelFontSize: fieldLabelFontSize, // Apply responsive label size
-                            iconSize: iconSize, // Apply responsive icon size
+                            scaleFactor: scaleFactor,
+                            fontSize: fieldValueFontSize,
+                            labelFontSize: fieldLabelFontSize,
+                            iconSize: iconSize,
                             contentPadding: EdgeInsets.symmetric(
-                                 horizontal: math.max(10.0, 12 * scaleFactor), // Adjusted horizontal padding
-                                 vertical: consistentVerticalPadding, // Apply responsive vertical padding
-                              ),
-                            borderRadius: math.max(6.0, 8 * scaleFactor), // Responsive border radius
-                            filled: true, // Example filled property
-                            fillColor: theme.colorScheme.onSurface.withOpacity(0.05), // Example fill color
+                              horizontal: math.max(10.0, 12 * scaleFactor),
+                              vertical: consistentVerticalPadding,
+                            ),
+                            borderRadius: math.max(6.0, 8 * scaleFactor),
+                            filled: true,
+                            fillColor:
+                                theme.colorScheme.onSurface.withOpacity(0.05),
                             keyboardType: TextInputType.multiline,
                             obscureText: false,
                           ),
                         ),
-                        AnimatedScale( // Keep animation for loading state
+                        SizedBox(height: spacingLarge),
+                        AnimatedScale(
                           scale: controller.isLoading.value ? 0.95 : 1.0,
                           duration: const Duration(milliseconds: 200),
                           child: ElevatedButton(
-                            onPressed: controller.isLoading.value // Disable when loading
+                            onPressed: controller.isLoading.value
                                 ? null
                                 : () {
-                                      print('Update profile button pressed');
-                                      controller.updateProfile(); // Call the controller method
-                                    },
-                            style: ElevatedButton.styleFrom( // Use ElevatedButton.styleFrom for consistency
-                                  padding: EdgeInsets.symmetric(vertical: math.max(10.0, 14 * scaleFactor)), // Responsive padding
-                                  shape: RoundedRectangleBorder( // Use RoundedRectangleBorder directly
-                                      borderRadius: BorderRadius.circular(math.max(6.0, 8 * scaleFactor)), // Responsive border radius
-                                  ),
-                                  elevation: 3, // Kept elevation
-                                textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.w600), // Apply responsive size and weight
-                            ),
-                        child: controller.isLoading.value // Show loader when loading
-                            ? SizedBox(
-                                width: loaderSize, // Use responsive size
-                                height: loaderSize, // Use responsive size
-                                child: CircularProgressIndicator(
-                                  strokeWidth: math.max(1.5, 2.0 * scaleFactor), // Responsive stroke width
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      theme.colorScheme.onPrimary), // Use theme color
-                                ),
-                              )
-                            : Text(
-                                'update_profile'.tr.toUpperCase(), // Uppercase button text
-                                style: TextStyle(fontSize: buttonFontSize), // Apply responsive font size
+                                    print('Update profile button pressed');
+                                    controller.updateProfile();
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                  vertical: math.max(10.0, 14 * scaleFactor)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    math.max(6.0, 8 * scaleFactor)),
                               ),
-                      ),
-                        
-                    ),],
+                              elevation: 3,
+                              textStyle: TextStyle(
+                                  fontSize: buttonFontSize,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            child: controller.isLoading.value
+                                ? SizedBox(
+                                    width: loaderSize,
+                                    height: loaderSize,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth:
+                                          math.max(1.5, 2.0 * scaleFactor),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          theme.colorScheme.onPrimary),
+                                    ),
+                                  )
+                                : Text(
+                                    'update_profile'.tr.toUpperCase(),
+                                    style: TextStyle(fontSize: buttonFontSize),
+                                  ),
+                        ),
+                    )],
+                    ),
                   ),
-                )
+                ),
               ),
             ),
-          ),
-        )));
-        }
+            Positioned(
+              top: -spacingMedium * 0,
+              right: -spacingMedium * 0,
+              child: InkWell(
+                onTap: () => Get.back(),
+                child: Container(
+                  padding: EdgeInsets.all(spacingMedium / 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondaryContainer,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: closeIconSize,
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildAvatarPlaceholder(ThemeData theme, double avatarIconSize) {
+    return Icon(
+      Icons.person,
+      size: avatarIconSize,
+      color: theme.colorScheme.onSurface.withOpacity(0.6),
     );
   }
 }

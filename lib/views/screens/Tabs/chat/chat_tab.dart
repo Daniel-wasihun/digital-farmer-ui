@@ -17,10 +17,10 @@ class ChatTab extends StatelessWidget {
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
         final screenHeight = constraints.maxHeight;
-        final scaleFactor = (screenWidth / 1920 * screenHeight / 1080).clamp(0.5, 1.0);
-        final avatarRadius = 32 * scaleFactor;
-        final fontSizeLarge = 18 * scaleFactor;
-        final fontSizeSmall = 14 * scaleFactor;
+        final scaleFactor = (screenWidth / 1920 * screenHeight / 1080).clamp(0.6, 0.95);
+        final avatarRadius = 28 * scaleFactor;
+        final fontSizeLarge = 16 * scaleFactor;
+        final fontSizeSmall = 12 * scaleFactor;
 
         return Scaffold(
           body: Column(
@@ -30,18 +30,27 @@ class ChatTab extends StatelessWidget {
                 child: Obx(() {
                   return Stack(
                     children: [
-                      _buildUserList(
-                        chatController,
-                        scaleFactor,
-                        avatarRadius,
-                        fontSizeLarge,
-                        fontSizeSmall,
+                      RefreshIndicator(
+                        onRefresh: chatController.fetchUsers, // Use the existing fetchUsers method
+                        child: _buildUserList(
+                          chatController,
+                          scaleFactor,
+                          avatarRadius,
+                          fontSizeLarge,
+                          fontSizeSmall,
+                        ),
                       ),
                       if (chatController.isLoadingUsers.value)
                         Container(
-                          color: Colors.black.withOpacity(0.1),
-                          child: const Center(child: CircularProgressIndicator()),
+                          color: Get.theme.colorScheme.surface.withOpacity(0.7),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(AppConstants.primaryColor),
+                            ),
+                          ),
                         ),
+                      if (chatController.errorMessage.isNotEmpty)
+                        _buildErrorIndicator(chatController.errorMessage.value, scaleFactor, chatController.fetchUsers),
                     ],
                   );
                 }),
@@ -53,6 +62,29 @@ class ChatTab extends StatelessWidget {
     );
   }
 
+  Widget _buildErrorIndicator(String message, double scaleFactor, VoidCallback onRetry) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 48 * scaleFactor, color: Colors.redAccent),
+          SizedBox(height: 8 * scaleFactor),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(fontSize: 14 * scaleFactor, color: Colors.grey[700]),
+          ),
+          SizedBox(height: 16 * scaleFactor),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: Icon(Icons.refresh, size: 18 * scaleFactor),
+            label: Text('retry'.tr, style: GoogleFonts.poppins(fontSize: 14 * scaleFactor)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSearchField(
     ChatController chatController,
     double scaleFactor,
@@ -60,43 +92,45 @@ class ChatTab extends StatelessWidget {
     double screenWidth,
   ) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
+      padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor, vertical: 6 * scaleFactor),
       child: Container(
-        width: screenWidth,
+        width: screenWidth * 0.95,
         decoration: BoxDecoration(
           color: Get.theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(30 * scaleFactor),
+          borderRadius: BorderRadius.circular(25 * scaleFactor),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8 * scaleFactor,
-              offset: Offset(0, 2 * scaleFactor),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 6 * scaleFactor,
+              offset: Offset(0, 1 * scaleFactor),
             ),
           ],
         ),
         child: TextField(
           controller: chatController.searchController,
           style: GoogleFonts.poppins(
-            fontSize: fontSizeSmall + 2,
+            fontSize: fontSizeSmall + 1,
             color: Get.theme.colorScheme.onSurface,
           ),
           decoration: InputDecoration(
             hintText: 'search_users'.tr,
             hintStyle: GoogleFonts.poppins(
-              fontSize: fontSizeSmall + 2,
-              color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
+              fontSize: fontSizeSmall + 1,
+              color: Get.theme.colorScheme.onSurface.withOpacity(0.4),
             ),
             prefixIcon: Icon(
               Icons.search,
-              size: 24 * scaleFactor,
-              color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
+              size: 20 * scaleFactor,
+              color: Get.theme.colorScheme.onSurface.withOpacity(0.4),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30 * scaleFactor),
-              borderSide: BorderSide.none,
+            border: InputBorder.none,
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(25 * scaleFactor),
+              borderSide: BorderSide(color: AppConstants.primaryColor.withOpacity(0.6)),
             ),
-            contentPadding: EdgeInsets.symmetric(vertical: 12 * scaleFactor),
+            contentPadding: EdgeInsets.symmetric(vertical: 10 * scaleFactor, horizontal: 16 * scaleFactor),
           ),
+          onChanged: (_) => chatController.debounceSearch(), // Use the existing debounce method
         ),
       ),
     );
@@ -109,25 +143,25 @@ class ChatTab extends StatelessWidget {
     double fontSizeLarge,
     double fontSizeSmall,
   ) {
-    if (chatController.currentUserId == null) {
+    if (chatController.currentUserId.value == null) {
       return Center(
         child: Text(
           'no_user'.tr,
           style: GoogleFonts.poppins(
             fontSize: fontSizeLarge,
-            color: Get.theme.colorScheme.onSurface,
+            color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
           ),
         ),
       );
     }
-    final userListItems = chatController.userListItems;
+    final List<Map<String, dynamic>> userListItems = chatController.userListItems;
     if (userListItems.isEmpty && chatController.searchController.text.isEmpty) {
       return Center(
         child: Text(
           'no_users'.tr,
           style: GoogleFonts.poppins(
             fontSize: fontSizeLarge,
-            color: Get.theme.colorScheme.onSurface,
+            color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
           ),
         ),
       );
@@ -138,13 +172,13 @@ class ChatTab extends StatelessWidget {
           'no_results'.tr,
           style: GoogleFonts.poppins(
             fontSize: fontSizeLarge,
-            color: Get.theme.colorScheme.onSurface,
+            color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
           ),
         ),
       );
     }
     return ListView.builder(
-      padding: EdgeInsets.zero,
+      padding: EdgeInsets.symmetric(vertical: 4 * scaleFactor),
       itemCount: userListItems.length,
       itemBuilder: (context, index) {
         return UserListItem(
@@ -202,118 +236,122 @@ class UserListItem extends StatelessWidget {
 
     return Card(
       key: ValueKey(user['email']),
-      margin: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 4 * scaleFactor),
-      elevation: 2,
+      margin: EdgeInsets.symmetric(horizontal: 6 * scaleFactor, vertical: 3 * scaleFactor),
+      elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12 * scaleFactor),
+        borderRadius: BorderRadius.circular(10 * scaleFactor),
       ),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 4 * scaleFactor),
-        leading: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            CircleAvatar(
-              radius: avatarRadius,
-              backgroundColor: Get.theme.colorScheme.primary,
-              backgroundImage: user['profilePicture']?.isNotEmpty == true
-                  ? CachedNetworkImageProvider('http://localhost:5000${user['profilePicture']}')
-                  : null,
-              child: user['profilePicture']?.isEmpty != false
-                  ? Text(
-                      _getFirstNameInitial(user['username']?.toString() ?? '?'),
-                      style: GoogleFonts.poppins(
-                        fontSize: avatarRadius * 0.75,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    )
-                  : null,
-            ),
-            Positioned(
-              bottom: -2 * scaleFactor,
-              right: -2 * scaleFactor,
-              child: Container(
-                width: 12 * scaleFactor,
-                height: 12 * scaleFactor,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isOnline ? Colors.green : Colors.grey,
-                  border: Border.all(
-                    color: Get.theme.colorScheme.surface,
-                    width: 2 * scaleFactor,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                user['username']?.toString() ?? 'Unknown',
-                style: GoogleFonts.poppins(
-                  fontSize: fontSizeLarge,
-                  fontWeight: FontWeight.w600,
-                  color: Get.theme.colorScheme.onSurface,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Text(
-              _formatTimestamp(timestamp),
-              style: GoogleFonts.poppins(
-                fontSize: fontSizeSmall * 0.8,
-                color: Get.theme.colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                isTyping ? 'typing'.tr : lastMessage.isNotEmpty ? lastMessage : 'no_messages'.tr,
-                style: GoogleFonts.poppins(
-                  fontSize: fontSizeSmall,
-                  fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
-                  color: isTyping
-                      ? Get.theme.colorScheme.primary
-                      : Get.theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (isSentByUser && lastMessage.isNotEmpty)
-              Text(
-                isRead ? 'Read' : 'Delivered',
-                style: GoogleFonts.poppins(
-                  fontSize: fontSizeSmall * 0.8,
-                  color: isRead ? Colors.blue : Colors.grey,
-                ),
-              ),
-          ],
-        ),
-        trailing: unseenCount > 0
-            ? CircleAvatar(
-                radius: 12 * scaleFactor,
-                backgroundColor: AppConstants.primaryColor,
-                child: Text(
-                  unseenCount.toString(),
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: fontSizeSmall * 0.85,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            : null,
+      child: InkWell(
         onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12 * scaleFactor),
+        borderRadius: BorderRadius.circular(10 * scaleFactor),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10 * scaleFactor, vertical: 6 * scaleFactor),
+          child: Row(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: avatarRadius,
+                    backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
+                    backgroundImage: user['profilePicture']?.isNotEmpty == true
+                        ? CachedNetworkImageProvider('http://localhost:5000${user['profilePicture']}')
+                        : null,
+                    child: user['profilePicture']?.isEmpty != false
+                        ? Text(
+                            _getFirstNameInitial(user['username']?.toString() ?? '?'),
+                            style: GoogleFonts.poppins(
+                              fontSize: avatarRadius * 0.65,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: -1 * scaleFactor,
+                    right: -1 * scaleFactor,
+                    child: Container(
+                      width: 10 * scaleFactor,
+                      height: 10 * scaleFactor,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isOnline ? Colors.green[400] : Colors.grey[400],
+                        border: Border.all(
+                          color: Get.theme.colorScheme.surface,
+                          width: 1.5 * scaleFactor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(width: 12 * scaleFactor),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user['username']?.toString() ?? 'Unknown',
+                      style: GoogleFonts.poppins(
+                        fontSize: fontSizeLarge,
+                        fontWeight: FontWeight.w500,
+                        color: Get.theme.colorScheme.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 2 * scaleFactor),
+                    Text(
+                      isTyping ? 'typing'.tr : lastMessage.isNotEmpty ? lastMessage : 'no_messages'.tr,
+                      style: GoogleFonts.poppins(
+                        fontSize: fontSizeSmall,
+                        fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
+                        color: isTyping
+                            ? AppConstants.primaryColor
+                            : Get.theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8 * scaleFactor),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatTimestamp(timestamp),
+                    style: GoogleFonts.poppins(
+                      fontSize: fontSizeSmall * 0.8,
+                      color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+                  if (unseenCount > 0)
+                    SizedBox(height: 4 * scaleFactor),
+                  if (unseenCount > 0)
+                    CircleAvatar(
+                      radius: 10 * scaleFactor,
+                      backgroundColor: AppConstants.primaryColor,
+                      child: Text(
+                        unseenCount.toString(),
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: fontSizeSmall * 0.75,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  if (isSentByUser && lastMessage.isNotEmpty)
+                    Icon(
+                      isRead ? Icons.done_all : isDelivered ? Icons.done : Icons.schedule,
+                      size: 16 * scaleFactor,
+                      color: isRead ? Colors.blue[300] : Colors.grey[400],
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -328,6 +366,19 @@ class UserListItem extends StatelessWidget {
   String _formatTimestamp(String timestamp) {
     if (timestamp.isEmpty) return '';
     final dateTime = DateTime.tryParse(timestamp) ?? DateTime.now();
-    return DateFormat('dd/MM/yyyy').format(dateTime);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+    if (messageDate == today) {
+      return DateFormat('h:mm a').format(dateTime);
+    } else if (messageDate == yesterday) {
+      return 'yesterday'.tr;
+    } else if (now.difference(dateTime).inDays < 7) {
+      return DateFormat('EEE').format(dateTime);
+    } else {
+      return DateFormat('dd/MM/yy').format(dateTime);
+    }
   }
 }

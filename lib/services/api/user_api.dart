@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
 import 'package:get/get.dart';
 import 'base_api.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class UserApi extends BaseApi {
   Future<List<Map<String, dynamic>>> getUsers() async {
@@ -27,10 +29,11 @@ class UserApi extends BaseApi {
     String email,
     String username,
     String? bio,
-    File? profilePicture,
+    dynamic profilePicture, // Can be File or Uint8List
+    String? imageName, // Optional: Provide the image name for web
   ) async {
-    print('Update profile request: email: $email, username: $username, bio: $bio');
-    final token = await storageService.getToken();
+    print('Update profile request: email: $email, username: $username, bio: $bio, imageType: ${profilePicture.runtimeType}, imageName: $imageName');
+    final token = storageService.getToken();
     if (token == null) {
       print('Update profile failed: No auth token found');
       throw Exception('Authentication token not found. Please log in again.');
@@ -44,30 +47,66 @@ class UserApi extends BaseApi {
     if (bio != null) request.fields['bio'] = bio;
 
     if (profilePicture != null) {
-      String extension = path.extension(profilePicture.path).toLowerCase();
-      const imageMimeTypes = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.bmp': 'image/bmp',
-        '.webp': 'image/webp',
-        '.tiff': 'image/tiff',
-        '.tif': 'image/tiff',
-        '.heic': 'image/heic',
-        '.heif': 'image/heif',
-      };
-      String? mimeType = imageMimeTypes[extension];
-      if (mimeType == null) {
-        print('Unsupported file extension: $extension');
-        throw Exception('unsupported_image_format'.tr);
+      if (profilePicture is File) {
+        String extension = path.extension(profilePicture.path).toLowerCase();
+        const imageMimeTypes = {
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.png': 'image/png',
+          '.gif': 'image/gif',
+          '.bmp': 'image/bmp',
+          '.webp': 'image/webp',
+          '.tiff': 'image/tiff',
+          '.tif': 'image/tiff',
+          '.heic': 'image/heic',
+          '.heif': 'image/heif',
+        };
+        String? mimeType = imageMimeTypes[extension];
+        if (mimeType == null) {
+          print('Unsupported file extension: $extension');
+          throw Exception('unsupported_image_format'.tr);
+        }
+        var multipartFile = await http.MultipartFile.fromPath(
+          'profilePicture',
+          profilePicture.path,
+          contentType: MediaType.parse(mimeType),
+        );
+        request.files.add(multipartFile);
+        print('Uploading file (mobile): ${profilePicture.path}, type: $mimeType, extension: $extension, size: ${await profilePicture.length()} bytes');
+      } else if (profilePicture is Uint8List && imageName != null) {
+        String extension = path.extension(imageName).toLowerCase();
+        const imageMimeTypes = {
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.png': 'image/png',
+          '.gif': 'image/gif',
+          '.bmp': 'image/bmp',
+          '.webp': 'image/webp',
+          '.tiff': 'image/tiff',
+          '.tif': 'image/tiff',
+          '.heic': 'image/heic',
+          '.heif': 'image/heif',
+        };
+        String? mimeType = imageMimeTypes[extension];
+        if (mimeType == null) {
+          print('Unsupported file extension (web): $extension for $imageName');
+          throw Exception('unsupported_image_format'.tr);
+        }
+        var multipartFile = http.MultipartFile.fromBytes(
+          'profilePicture',
+          profilePicture,
+          filename: imageName,
+          contentType: MediaType.parse(mimeType),
+        );
+        request.files.add(multipartFile);
+        print('Uploading bytes (web): $imageName, type: $mimeType, extension: $extension, size: ${profilePicture.length} bytes');
+      } else if (kIsWeb && profilePicture is Uint8List && imageName == null) {
+        print('Warning: Image name is missing for web upload.');
+        throw Exception('image_name_required_for_web'.tr);
+      } else {
+        print('Unsupported profile picture type: ${profilePicture.runtimeType}');
+        throw Exception('unsupported_image_type'.tr);
       }
-      request.files.add(await http.MultipartFile.fromPath(
-        'profilePicture',
-        profilePicture.path,
-        contentType: MediaType.parse(mimeType),
-      ));
-      print('Uploading file: ${profilePicture.path}, type: $mimeType, size: ${await profilePicture.length()} bytes');
     }
 
     var response = await request.send();
@@ -81,8 +120,9 @@ class UserApi extends BaseApi {
       try {
         var errorJson = jsonDecode(responseBody);
         errorMessage = errorJson['message'] ?? errorMessage;
+        print('Error details: $errorJson');
       } catch (e) {
-        errorMessage = 'Update failed with status: ${response.statusCode}';
+        errorMessage = 'Update failed with status: ${response.statusCode}, body: $responseBody';
       }
       throw Exception(errorMessage);
     }
