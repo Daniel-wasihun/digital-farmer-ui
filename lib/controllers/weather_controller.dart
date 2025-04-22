@@ -15,18 +15,15 @@ class WeatherController extends GetxController {
   var askAnswer = Rxn<String>();
   var isAskLoading = false.obs;
 
-  // For /api/ask/{crop_type} endpoint
-  var selectedCrop = 'teff'.obs;
-  var cropInfo = Rxn<String>();
-  var isCropInfoLoading = false.obs;
-
   @override
   void onInit() {
     super.onInit();
     // Load cached data on init
     loadCachedData();
-    // Fetch fresh data
-    fetchWeatherData(latitude: 11.7833, longitude: 39.6, city: 'weldiya');
+    // Defer the initial fetch to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchWeatherData(latitude: 11.7833, longitude: 39.6, city: 'weldiya');
+    });
   }
 
   @override
@@ -101,32 +98,6 @@ class WeatherController extends GetxController {
       Get.snackbar('Error'.tr, 'Error Fetching Answer: $e'.tr);
     } finally {
       isAskLoading.value = false;
-    }
-  }
-
-  Future<void> fetchCropInfo(String cropType) async {
-    isCropInfoLoading.value = true;
-    cropInfo.value = null;
-    try {
-      final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/ask/$cropType'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'latitude': 11.7833,
-          'longitude': 39.6,
-          'city': 'weldiya',
-        }),
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        cropInfo.value = data['answer'];
-      } else {
-        Get.snackbar('Error'.tr, 'Error Fetching Crop Info: ${response.statusCode}'.tr);
-      }
-    } catch (e) {
-      Get.snackbar('Error'.tr, 'Error Fetching Crop Info: $e'.tr);
-    } finally {
-      isCropInfoLoading.value = false;
     }
   }
 
