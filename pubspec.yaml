@@ -67,6 +67,7 @@ dependencies:
   flutter_iconly: ^1.0.2
   material_design_icons_flutter: ^7.0.7296
   meta: ^1.16.0
+  translator: ^1.0.3+1
 
 dev_dependencies:
   flutter_test:
@@ -98,6 +99,10 @@ flutter:
     - family: NotoColorEmoji
       fonts:
         - asset: fonts/NotoColorEmoji.ttf
+    - family: AbyssinicaSIL
+      fonts:
+        - asset: fonts/AbyssinicaSIL-Regular.ttf
+        
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

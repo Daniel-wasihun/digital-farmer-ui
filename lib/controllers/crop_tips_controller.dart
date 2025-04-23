@@ -24,23 +24,44 @@ class CropTipsController extends GetxController {
     searchQuery.value = '';
   }
 
+  // Check if the text contains Amharic characters (Unicode range U+1200 to U+137F)
+  bool containsAmharic(String text) {
+    print('Checking for Amharic in: $text');
+    bool hasAmharic = RegExp(r'[\u1200-\u137F]').hasMatch(text);
+    print('Contains Amharic: $hasAmharic');
+    return hasAmharic;
+  }
+
   Future<void> fetchCropInfo(String cropType) async {
     isCropInfoLoading.value = true;
     cropInfo.value = null;
     try {
-      final response = await http.post(
+      // Request with the current locale
+      var response = await http.post(
         Uri.parse('http://127.0.0.1:8000/api/ask/$cropType'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json; charset=utf-8'},
         body: jsonEncode({
           'latitude': 11.7833,
           'longitude': 39.6,
           'city': 'weldiya',
-          'language': Get.locale?.languageCode ?? 'en', // Include current language
+          'language': Get.locale?.languageCode ?? 'en',
         }),
       );
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        cropInfo.value = data['answer'];
+        // Explicitly decode the response as UTF-8
+        final decodedBody = utf8.decode(response.bodyBytes);
+        final data = jsonDecode(decodedBody);
+        String answer = data['answer'];
+
+        // Log the response to confirm it matches the console output
+        print('Initial Response: $answer');
+
+        // Check for Amharic characters (for logging purposes only)
+        containsAmharic(answer);
+
+        // Assign the Amharic response directly to cropInfo
+        cropInfo.value = answer;
       } else {
         Get.snackbar('Error'.tr, 'Error Fetching Crop Info: ${response.statusCode}'.tr);
       }
