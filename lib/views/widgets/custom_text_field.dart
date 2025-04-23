@@ -29,7 +29,7 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
+        SizedBox(
           height: 50 * scaleFactor,
           child: TextField(
             controller: controller,
@@ -61,10 +61,7 @@ class CustomTextField extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: Theme.of(context).primaryColor.withOpacity(0.5),
-                  width: 1.5,
-                ),
+                borderSide: BorderSide.none,
               ),
               filled: true,
               fillColor: Theme.of(context).inputDecorationTheme.fillColor,

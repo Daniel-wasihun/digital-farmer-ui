@@ -4,7 +4,6 @@ import '../../../../controllers/auth/auth_controller.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../../../widgets/glassmorphic_card.dart';
 
-
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -25,7 +24,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     currentPasswordController = TextEditingController();
     newPasswordController = TextEditingController();
     confirmPasswordController = TextEditingController();
-    // Reset errors on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('Resetting errors in post-frame callback');
       authController.resetPasswordErrors();
@@ -45,22 +43,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
-    final scaleFactor = isTablet ? 1.2 : 1.0;
+    final scaleFactor = isTablet ? 1.1 : 0.9; // Reduced base scaleFactor
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
         elevation: 4,
         title: Text(
           'change_password'.tr,
           style: TextStyle(
-            fontSize: 18 * scaleFactor,
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+                fontSize: 16 * scaleFactor, // Smaller app bar title
+                fontWeight: FontWeight.w600,
+              ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).appBarTheme.foregroundColor),
           onPressed: () {
             print('AppBar back button pressed, navigating back');
             Get.back();
@@ -74,7 +70,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
           child: GlassmorphicCard(
             child: Padding(
-              padding: EdgeInsets.all(16 * scaleFactor),
+              padding: EdgeInsets.all(12 * scaleFactor), // Reduced padding
               child: Obx(
                 () => Column(
                   mainAxisSize: MainAxisSize.min,
@@ -83,12 +79,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     Text(
                       'change_password'.tr,
                       style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                            fontSize: 22 * scaleFactor,
+                            fontSize: 18 * scaleFactor, // Smaller title
                             fontWeight: FontWeight.w700,
                           ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 16 * scaleFactor),
+                    SizedBox(height: 12 * scaleFactor), // Reduced spacing
                     CustomTextField(
                       label: 'current_password'.tr,
                       controller: currentPasswordController,
@@ -100,7 +96,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       onChanged: (value) => authController.validateCurrentPassword(value),
                       scaleFactor: scaleFactor,
                     ),
-                    SizedBox(height: 10 * scaleFactor),
+                    SizedBox(height: 6 * scaleFactor), // Reduced spacing
                     CustomTextField(
                       label: 'new_password'.tr,
                       controller: newPasswordController,
@@ -112,7 +108,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       onChanged: (value) => authController.validateNewPassword(value),
                       scaleFactor: scaleFactor,
                     ),
-                    SizedBox(height: 10 * scaleFactor),
+                    SizedBox(height: 6 * scaleFactor), // Reduced spacing
                     CustomTextField(
                       label: 'confirm_password'.tr,
                       controller: confirmPasswordController,
@@ -125,7 +121,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           newPasswordController.text, value),
                       scaleFactor: scaleFactor,
                     ),
-                    SizedBox(height: 16 * scaleFactor),
+                    SizedBox(height: 12 * scaleFactor), // Reduced spacing
                     ElevatedButton(
                       onPressed: authController.isLoading.value
                           ? null
@@ -138,22 +134,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               );
                               print('After changePassword call');
                             },
-                      style: Theme.of(context).elevatedButtonTheme.style,
+                      style: Theme.of(context).elevatedButtonTheme.style!.copyWith(
+                            padding: WidgetStateProperty.all(
+                                EdgeInsets.symmetric(vertical: 8 * scaleFactor)), // Smaller button
+                            shape: WidgetStateProperty.all(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6 * scaleFactor),
+                              ),
+                            ),
+                            elevation: WidgetStateProperty.all(3),
+                          ),
                       child: authController.isLoading.value
                           ? SizedBox(
-                              width: 24 * scaleFactor,
-                              height: 24 * scaleFactor,
+                              width: 20 * scaleFactor,
+                              height: 20 * scaleFactor,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2 * scaleFactor,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                strokeWidth: 1.5 * scaleFactor,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Theme.of(context).colorScheme.onPrimary),
                               ),
                             )
                           : Text(
                               'update_password'.tr,
-                              style: TextStyle(
-                                fontSize: 14 * scaleFactor,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style!
+                                  .textStyle!
+                                  .resolve({})
+                                  // .copyWith(fontSize: 12 * scaleFactor), // Smaller text
                             ),
                     ),
                   ],

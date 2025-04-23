@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import '../controllers/update_profile_controller.dart';
+import '../services/storage_service.dart';
+import '../views/screens/Tabs/chat/chat_screen.dart';
 import '../views/screens/tabs/settings/change_password_screen.dart';
 import '../views/screens/tabs/settings/contact_us_screen.dart';
 import '../views/screens/tabs/settings/faq_screen.dart';
@@ -10,7 +12,7 @@ import '../views/screens/tabs/settings_tab.dart';
 import '../views/screens/home_screen.dart';
 import '../views/screens/signin_screen.dart';
 import '../views/screens/signup_screen.dart';
-import '../services/storage_service.dart';
+import '../views/screens/Tabs/chat/user_profile_screen.dart';
 
 class AppRoutes {
   static const String signin = '/signin';
@@ -23,6 +25,8 @@ class AppRoutes {
   static const String faq = '/faq';
   static const String contactUs = '/contact-us';
   static const String feedback = '/feedback';
+  static const String chat = '/chat';
+  static const String userProfile = '/user-profile';
 
   static String getSignInPage() => signin;
   static String getSignUpPage() => signup;
@@ -34,6 +38,10 @@ class AppRoutes {
   static String getFaqPage() => faq;
   static String getContactUsPage() => contactUs;
   static String getFeedbackPage() => feedback;
+  static String getChatPage(String receiverId, String receiverUsername) =>
+      '$chat?receiverId=$receiverId&receiverUsername=$receiverUsername';
+  static String getUserProfilePage(String email, String username) =>
+      '$userProfile?email=$email&username=$username';
 
   static String getInitialRoute() {
     final storageService = Get.find<StorageService>();
@@ -102,6 +110,21 @@ class AppRoutes {
     GetPage(
       name: feedback,
       page: () => const FeedbackScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: chat,
+      page: () => ChatScreen(
+        receiverId: Get.parameters['receiverId']!,
+        receiverUsername: Get.parameters['receiverUsername']!,
+      ),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: userProfile,
+      page: () => const UserProfileScreen(),
       transition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 400),
     ),

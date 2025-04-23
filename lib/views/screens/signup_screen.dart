@@ -15,9 +15,9 @@ class SignUpScreen extends GetView<SignUpController> {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(SignUpController()); // Fresh controller per screen
+    Get.put(SignUpController());
     final ThemeController themeController = Get.find<ThemeController>();
-    final  appController = Get.find<AppController>();
+    final appController = Get.find<AppController>();
 
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
@@ -29,9 +29,7 @@ class SignUpScreen extends GetView<SignUpController> {
     return Obx(() => AnimatedBackground(
           behaviour: RandomParticleBehaviour(
             options: ParticleOptions(
-              baseColor: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.blue.shade700
-                  : Colors.blue.shade100,
+              baseColor: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
               spawnMinSpeed: 6.0,
               spawnMaxSpeed: 30.0,
               particleCount: 50,
@@ -99,12 +97,12 @@ class SignUpScreen extends GetView<SignUpController> {
                   end: Alignment.bottomRight,
                   colors: Theme.of(context).brightness == Brightness.dark
                       ? [
-                          Colors.blueGrey.shade800.withOpacity(0.9),
-                          Colors.grey.shade900.withOpacity(0.95),
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(context).colorScheme.surface,
                         ]
                       : [
-                          Colors.blue.shade50.withOpacity(0.9),
-                          Colors.white.withOpacity(0.95),
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(context).colorScheme.surface.withOpacity(0.95),
                         ],
                 ),
               ),
@@ -120,7 +118,7 @@ class SignUpScreen extends GetView<SignUpController> {
                         child: controller.authController.isLoading.value
                             ? Center(
                                 child: SpinKitFadingCube(
-                                  color: Theme.of(context).primaryColor,
+                                  color: Theme.of(context).colorScheme.secondary,
                                   size: 32 * scaleFactor,
                                 ),
                               )
@@ -195,10 +193,11 @@ class SignUpScreen extends GetView<SignUpController> {
                                         style: Theme.of(context).elevatedButtonTheme.style,
                                         child: Text(
                                           'create_account'.tr,
-                                          style: TextStyle(
-                                            fontSize: 14 * scaleFactor,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: Theme.of(context)
+                                              .elevatedButtonTheme
+                                              .style!
+                                              .textStyle!
+                                              .resolve({}),
                                         ),
                                       ),
                                       SizedBox(height: 8 * scaleFactor),
@@ -209,10 +208,11 @@ class SignUpScreen extends GetView<SignUpController> {
                                         },
                                         child: Text(
                                           'already_have_account'.tr,
-                                          style: TextStyle(
-                                            fontSize: 12 * scaleFactor,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                          style: Theme.of(context)
+                                              .textButtonTheme
+                                              .style!
+                                              .textStyle!
+                                              .resolve({}),
                                         ),
                                       ),
                                     ],
@@ -231,7 +231,6 @@ class SignUpScreen extends GetView<SignUpController> {
   }
 }
 
-// VSync workaround
 class _VSyncProvider implements TickerProvider {
   const _VSyncProvider();
 

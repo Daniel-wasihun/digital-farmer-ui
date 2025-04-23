@@ -96,7 +96,8 @@ class ApiService {
       throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
-static const Map<String, String> _imageMimeTypes = {
+
+  static const Map<String, String> _imageMimeTypes = {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.png': 'image/png',
@@ -125,7 +126,7 @@ static const Map<String, String> _imageMimeTypes = {
 
       if (profilePicture != null) {
         String extension = path.extension(profilePicture.path).toLowerCase();
-        String? mimeType = _imageMimeTypes[extension]; // Or use lookupMimeType(extension) with mime package
+        String? mimeType = _imageMimeTypes[extension];
 
         if (mimeType == null) {
           print('Unsupported file extension: $extension');
@@ -178,4 +179,234 @@ static const Map<String, String> _imageMimeTypes = {
       throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to set security question');
     }
   }
+
+  // Future<List<Map<String, dynamic>>> getUsers({int retryCount = 0, int maxRetries = 3}) async {
+  //   try {
+  //     final token = _storageService.getToken();
+  //     final response = await http.get(
+  //       Uri.parse('$apiBaseUrl/auth/users'),
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         if (token != null) 'Authorization': 'Bearer $token',
+  //       },
+  //     ).timeout(Duration(seconds: 5), onTimeout: () {
+  //       throw Exception('Request timed out');
+  //     });
+  //     print('Get users response: ${response.statusCode} ${response.body}');
+  //     if (response.statusCode == 200) {
+  //       final List<dynamic> data = jsonDecode(response.body);
+  //       return data.cast<Map<String, dynamic>>();
+  //     } else {
+  //       throw Exception(jsonDecode(response.body)['message'] ?? 'failed_to_load_users'.tr);
+  //     }
+  //   } catch (e) {
+  //     print('Get users error: $e');
+  //     if (retryCount < maxRetries) {
+  //       await Future.delayed(Duration(seconds: 2));
+  //       return getUsers(retryCount: retryCount + 1, maxRetries: maxRetries);
+  //     }
+  //     throw Exception('failed_to_load_users'.tr);
+  //   }
+  // }
+
+
+  // Future<List<Map<String, dynamic>>> getMessages(String userId1, String userId2, {int retryCount = 0, int maxRetries = 3}) async {
+  //   try {
+  //     final token = _storageService.getToken();
+  //     final response = await http.get(
+  //       Uri.parse('$apiBaseUrl/messages?userId1=$userId1&userId2=$userId2'),
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         if (token != null) 'Authorization': 'Bearer $token',
+  //       },
+  //     ).timeout(Duration(seconds: 5), onTimeout: () {
+  //       throw Exception('Request timed out');
+  //     });
+  //     print('Get messages response: ${response.statusCode} ${response.body}');
+  //     if (response.statusCode == 200) {
+  //       final List<dynamic> data = jsonDecode(response.body);
+  //       return data.cast<Map<String, dynamic>>();
+  //     } else {
+  //       throw Exception(jsonDecode(response.body)['message'] ?? 'failed_to_load_messages'.tr);
+  //     }
+  //   } catch (e) {
+  //     print('Get messages error: $e');
+  //     if (retryCount < maxRetries) {
+  //       await Future.delayed(Duration(seconds: 2));
+  //       return getMessages(userId1, userId2, retryCount: retryCount + 1, maxRetries: maxRetries);
+  //     }
+  //     throw Exception('failed_to_load_messages'.tr);
+  //   }
+  // }
+
+
+
+
+  // Future<List<dynamic>> getUsers() async {
+  //   final token = _storageService.getToken();
+  //   if (token == null) {
+  //     throw Exception('No token found');
+  //   }
+  //   final response = await http.get(
+  //     Uri.parse('http://localhost:5000/api/auth/users'),
+  //     headers: {
+  //       'Authorization': 'Bearer $token',
+  //       'Content-Type': 'application/json',
+  //     },
+  //   );
+  //   if (response.statusCode == 200) {
+  //     return jsonDecode(response.body);
+  //   } else if (response.statusCode == 401) {
+  //     throw Exception('Invalid token');
+  //   } else {
+  //     throw Exception('Failed to fetch users: ${response.statusCode}');
+  //   }
+  // }
+
+
+  // Future<List<Map<String, dynamic>>> getMessages(String userId1, String userId2) async {
+  //   final token = _storageService.getToken();
+  //   if (token == null) {
+  //     throw Exception('No token found');
+  //   }
+  //   final response = await http.get(
+  //     Uri.parse('http://localhost:5000/api/messages?userId1=$userId1&userId2=$userId2'),
+  //     headers: {
+  //       'Authorization': 'Bearer $token',
+  //       'Content-Type': 'application/json',
+  //     },
+  //   );
+  //   if (response.statusCode == 200) {
+  //     return (jsonDecode(response.body) as List<dynamic>).cast<Map<String, dynamic>>();
+  //   } else if (response.statusCode == 401) {
+  //     throw Exception('Invalid token');
+  //   } else if (response.statusCode == 404) {
+  //     throw Exception('No messages found');
+  //   } else {
+  //     throw Exception('Failed to fetch messages: ${response.statusCode}');
+  //   }
+  // }
+
+
+
+
+
+
+
+
+  // Future<bool> refreshToken() async {
+  //   final refreshToken = _storageService.getRefreshToken();
+  //   if (refreshToken == null) {
+  //     print('ApiService: No refresh token available');
+  //     return false;
+  //   }
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('http://localhost:5000/api/auth/refresh-token'),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({'refreshToken': refreshToken}),
+  //     );
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       final newToken = data['accessToken'];
+  //       final newRefreshToken = data['refreshToken'];
+  //       _storageService.saveToken(newToken);
+  //       if (newRefreshToken != null) {
+  //         _storageService.saveRefreshToken(newRefreshToken);
+  //       }
+  //       print('ApiService: Token refreshed successfully');
+  //       return true;
+  //     } else {
+  //       print('ApiService: Token refresh failed: ${response.statusCode}');
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     print('ApiService: Token refresh error: $e');
+  //     return false;
+  //   }
+  // }
+
+
+  Future<List<dynamic>> getUsers() async {
+    final token = _storageService.getToken();
+    if (token == null) {
+      throw Exception('No token found');
+    }
+    final response = await http.get(
+      Uri.parse('http://localhost:5000/api/auth/users'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else if (response.statusCode == 401) {
+      throw Exception('Invalid token');
+    } else if (response.statusCode == 500) {
+      throw Exception('Server error');
+    } else {
+      throw Exception('Failed to fetch users: ${response.statusCode}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMessages(String userId1, String userId2) async {
+    final token = _storageService.getToken();
+    if (token == null) {
+      throw Exception('No token found');
+    }
+    final response = await http.get(
+      Uri.parse('http://localhost:5000/api/messages?userId1=$userId1&userId2=$userId2'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      return (jsonDecode(response.body) as List<dynamic>).cast<Map<String, dynamic>>();
+    } else if (response.statusCode == 401) {
+      throw Exception('Invalid token');
+    } else if (response.statusCode == 404) {
+      throw Exception('No messages found');
+    } else if (response.statusCode == 500) {
+      throw Exception('Server error');
+    } else {
+      throw Exception('Failed to fetch messages: ${response.statusCode}');
+    }
+  }
+
+  Future<bool> refreshToken() async {
+    final refreshToken = _storageService.getRefreshToken();
+    if (refreshToken == null) {
+      print('ApiService: No refresh token available');
+      return false;
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/auth/refresh-token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refreshToken': refreshToken}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final newToken = data['accessToken'];
+        final newRefreshToken = data['refreshToken'];
+        _storageService.saveToken(newToken);
+        if (newRefreshToken != null) {
+          _storageService.saveRefreshToken(newRefreshToken);
+        }
+        print('ApiService: Token refreshed successfully');
+        return true;
+      } else {
+        print('ApiService: Token refresh failed: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('ApiService: Token refresh error: $e');
+      return false;
+    }
+  }
+
+
+
 }

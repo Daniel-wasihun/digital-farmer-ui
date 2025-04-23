@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'glassmorphic_card.dart';
+import '../widgets/glassmorphic_card.dart';
 
 class GenericTab extends StatelessWidget {
   final String tabKey;
 
   const GenericTab({super.key, required this.tabKey});
 
-  // Map tab keys to content keys for placeholders
   String getContentKey(String tabKey) {
     switch (tabKey) {
       case 'home':
-        return 'cropTips'; // Placeholder: Tips
+        return 'cropTips';
       case 'profile':
-        return 'weather'; // Placeholder: Weather
+        return 'weather';
       case 'notifications':
-        return 'market'; // Placeholder: Market
+        return 'market';
       case 'chat':
         return 'chat';
       case 'settings':
@@ -34,11 +33,10 @@ class GenericTab extends StatelessWidget {
     return GlassmorphicCard(
       child: Text(
         getContentKey(tabKey).tr,
-        style: TextStyle(
-          fontSize: 18 * scaleFactor,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey.shade700,
-        ),
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+              fontSize: 18 * scaleFactor,
+              fontWeight: FontWeight.w600,
+            ),
         textAlign: TextAlign.center,
       ),
     );

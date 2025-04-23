@@ -26,18 +26,29 @@ class GlassmorphicCard extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: isDark
                   ? [
-                      Colors.grey.shade900.withOpacity(0.3),
-                      Colors.black.withOpacity(0.25),
+                      Color(0xFF263238).withOpacity(0.3),
+                      Color(0xFF1A2B1F).withOpacity(0.25),
                     ]
                   : [
                       Colors.white.withOpacity(0.25),
-                      Colors.blue.shade50.withOpacity(0.2),
+                      Color(0xFFE8F5E9).withOpacity(0.2),
                     ],
             ),
             border: Border.all(
-              color: isDark ? Colors.grey.shade700 : Colors.white.withOpacity(0.4),
+              color: isDark
+                  ? Color(0xFF388E3C).withOpacity(0.4)
+                  : Color(0xFF81C784).withOpacity(0.4),
               width: 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Color(0xFF388E3C).withOpacity(0.2)
+                    : Color(0xFF81C784).withOpacity(0.2),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: child,
         ),

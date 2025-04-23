@@ -16,67 +16,85 @@ class HomeScreen extends StatelessWidget {
     final isTablet = size.width > 600;
     final scaleFactor = isTablet ? 1.2 : 1.0;
 
+    // Calculate responsive AppBar height
+    final appBarHeight = (height * 0.08 * scaleFactor).clamp(48.0, 72.0); // ~48-58px phone, ~69px tablet
+
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 4,
-        title: Obx(() => Text(
-              controller.pageTitles[controller.selectedIndex.value].tr,
-              style: TextStyle(
-                fontSize: height * 0.03 * scaleFactor,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            )),
-        leading: IconButton(
-          icon: Icon(
-            Icons.menu,
-            size: height * 0.035 * scaleFactor,
-            color: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(appBarHeight),
+        child: AppBar(
+          elevation: 4,
+          title: Obx(() => Text(
+                controller.pageTitles[controller.selectedIndex.value].tr,
+                style: TextStyle(
+                  fontSize: height * 0.025 * scaleFactor, // Reduced slightly for balance
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              )),
+          leading: IconButton(
+            icon: Icon(
+              Icons.menu,
+              size: height * 0.03 * scaleFactor, // Adjusted for AppBar height
+              color: Theme.of(context).appBarTheme.foregroundColor,
+            ),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-        actions: [
-          Obx(() => Row(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(right: 8 * scaleFactor),
-                    child: Text(
-                      Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
-                      style: TextStyle(
-                        fontSize: height * 0.025 * scaleFactor,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
+          actions: [
+            Obx(() => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(right: 8 * scaleFactor),
+                      child: Text(
+                        Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
+                        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                              fontSize: height * 0.02 * scaleFactor, // Adjusted
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.language,
-                      size: height * 0.035 * scaleFactor,
-                      color: Colors.white,
+                    IconButton(
+                      icon: Icon(
+                        Icons.language,
+                        size: height * 0.03 * scaleFactor,
+                        color: Theme.of(context).appBarTheme.foregroundColor,
+                      ),
+                      onPressed: () => controller.toggleLanguage(),
+                      tooltip: 'toggle_language'.tr,
                     ),
-                    onPressed: () => controller.toggleLanguage(),
-                    tooltip: 'toggle_language'.tr,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      controller.themeController.isDarkMode.value
-                          ? Icons.light_mode
-                          : Icons.dark_mode,
-                      size: height * 0.035 * scaleFactor,
-                      color: Colors.white,
+                    IconButton(
+                      icon: Icon(
+                        controller.themeController.isDarkMode.value
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        size: height * 0.03 * scaleFactor,
+                        color: Theme.of(context).appBarTheme.foregroundColor,
+                      ),
+                      onPressed: () => controller.toggleTheme(),
+                      tooltip: controller.themeController.isDarkMode.value
+                          ? 'switch_to_light_mode'.tr
+                          : 'switch_to_dark_mode'.tr,
                     ),
-                    onPressed: () => controller.toggleTheme(),
-                    tooltip: controller.themeController.isDarkMode.value
-                        ? 'switch_to_light_mode'.tr
-                        : 'switch_to_dark_mode'.tr,
-                  ),
-                  SizedBox(width: 8 * scaleFactor),
+                    SizedBox(width: 8 * scaleFactor),
+                  ],
+                )),
+          ],
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primary.withOpacity(0.8),
                 ],
-              )),
-        ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+        ),
       ),
       drawer: Drawer(
         width: 150,
@@ -84,11 +102,11 @@ class HomeScreen extends StatelessWidget {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.blue),
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
               child: Text(
                 'Menu'.tr,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: height * 0.035 * scaleFactor,
                 ),
               ),
@@ -116,7 +134,7 @@ class HomeScreen extends StatelessWidget {
                 size: height * 0.03 * scaleFactor,
                 color: Theme.of(context).iconTheme.color,
               ),
-              title:  Obx(() => Text(
+              title: Obx(() => Text(
                     controller.themeController.isDarkMode.value
                         ? 'Light Mode'.tr
                         : 'Dark Mode'.tr,
@@ -136,14 +154,13 @@ class HomeScreen extends StatelessWidget {
                 color: Theme.of(context).iconTheme.color,
               ),
               title: Text(
-                    "logout".tr,
-                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          fontSize: height * 0.02 * scaleFactor,
-                        ),
-                  ),
+                "logout".tr,
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      fontSize: height * 0.02 * scaleFactor,
+                    ),
+              ),
               onTap: () {
-                // controller.toggleTheme();
-                 controller.logout();
+                controller.logout();
                 Get.back();
               },
             ),
@@ -183,14 +200,20 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
           currentIndex: controller.selectedIndex.value,
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
+          selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+          unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
           onTap: controller.changePage,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           elevation: 8,
-          selectedLabelStyle: TextStyle(fontSize: height * 0.018 * scaleFactor),
-          unselectedLabelStyle: TextStyle(fontSize: height * 0.016 * scaleFactor),
+          selectedLabelStyle:
+              Theme.of(context).bottomNavigationBarTheme.selectedLabelStyle!.copyWith(
+                    fontSize: height * 0.018 * scaleFactor,
+                  ),
+          unselectedLabelStyle:
+              Theme.of(context).bottomNavigationBarTheme.unselectedLabelStyle!.copyWith(
+                    fontSize: height * 0.016 * scaleFactor,
+                  ),
         ),
       ),
     );

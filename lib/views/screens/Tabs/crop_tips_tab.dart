@@ -23,7 +23,7 @@ class CropTipsTab extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          Container(
+          SizedBox(
             width: 200,
             height: 40,
             child: TextField(

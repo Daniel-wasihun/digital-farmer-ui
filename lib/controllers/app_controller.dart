@@ -23,7 +23,7 @@ class AppController extends GetxController {
     () => const CropTipsTab(),
     () => const WeatherTab(),
     () => const MarketTab(),
-    () => const ChatTab(),
+    () => ChatTab(), // Remove const to ensure fresh instance
     () => const SettingsTab(),
   ];
 
@@ -32,10 +32,11 @@ class AppController extends GetxController {
     super.onInit();
     updateCurrentLanguage();
     _initializeTabIndex();
+    // Rebuild page on theme change
+    ever(themeController.isDarkMode, (_) => _refreshCurrentPage());
   }
 
-
-    var currentLanguage = ''.obs;
+  var currentLanguage = ''.obs;
 
   void updateCurrentLanguage() {
     final locale = Get.locale ?? Locale('en', 'US');
@@ -58,7 +59,6 @@ class AppController extends GetxController {
           backgroundColor: Colors.redAccent, colorText: Colors.white);
     }
   }
-
 
   void _initializeTabIndex() {
     try {
@@ -95,7 +95,11 @@ class AppController extends GetxController {
     }
   }
 
-
+  void _refreshCurrentPage() {
+    if (selectedIndex.value >= 0 && selectedIndex.value < pageTitles.length) {
+      currentPage.value = pageFactories[selectedIndex.value]();
+    }
+  }
 
   void toggleTheme() {
     themeController.toggleTheme();
