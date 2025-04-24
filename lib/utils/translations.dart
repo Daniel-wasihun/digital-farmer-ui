@@ -241,7 +241,6 @@ class AppTranslations extends Translations {
           'Soil Type': 'Soil Type',
           'Growing Season': 'Growing Season',
           'Category': 'Category',
-          'Irrigation Needs': 'Irrigation Needs',
           'Pest and Disease Risk': 'Pest and Disease Risk',
           'Temperature Stress': 'Temperature Stress',
           'Planting Windows': 'Planting Windows',
@@ -368,8 +367,35 @@ class AppTranslations extends Translations {
           'No Crops Found': 'No Crops Found',
 
 
+          "general_information": "General Information",
+          "growth_recommendations": "Growth Recommendations",
+          "current_weather_impact_and_advice": "Current Weather Impact and Advice",
+          "Select Crop for Detail": "Select Crop for Detail",
 
-          
+
+
+            'e.g., How is the weather today?': 'e.g., How is the weather today?',
+            'sunny': 'Sunny',
+            'cloudy': 'Cloudy',
+            'rain': 'Rain',
+            'clear': 'Clear',
+            'Crop Tips': 'Crop Tips',
+            'AI Chat': 'AI Chat',
+            'Amharic text may not render properly on this device. For best results, use a device with Amharic support.': 'Amharic text may not render properly on this device. For best results, use a device with Amharic support.',
+            'Please select a crop to view details': 'Please select a crop to view details',
+            // Example crop translations
+            'crop_wheat': 'Wheat',
+            'crop_maize': 'Maize',
+            // Example soil translations
+            'soil_loamy': 'Loamy',
+            'soil_sandy': 'Sandy',
+            // Example season translations
+            'season_summer': 'Summer',
+            'season_winter': 'Winter',
+            // Example category translations
+            'category_cereal': 'Cereal',
+            'category_vegetable': 'Vegetable',
+            
         },
         'am_ET': {
           'signup': 'ተመዝገብ',
@@ -733,6 +759,40 @@ class AppTranslations extends Translations {
 
           'Search Crops': 'ሰብሎችን ፈልግ',
           'No Crops Found': 'ምንም ሰብሎች አልተገኙም',
+
+
+
+          "general_information": "አጠቃላይ መረጃ",
+          "growth_recommendations": "የእድገት ምክሮች",
+          "current_weather_impact_and_advice": "የአሁኑ የአየር ሁኔታ ተፅእኖ እና ምክር",
+          "Select Crop for Detail": "ዝርዝር ለመምረጥ ሰብል ይምረጡ",
+          // WeatherTab translations
+          'e.g., How is the weather today?': 'ለምሳሌ፣ ዛሬ ያለው የአየር ሁኔታ እንዴት ነው?',
+          'sunny': 'ፀሐያማ',
+          'cloudy': 'ደመናማ',
+          'rain': 'ዝናብ',
+          'clear': 'ንጹህ',
+          // CropTipsTab translations
+          'Crop Tips': 'የሰብል ምክሮች',
+          'AI Chat': 'AI ውይይት',
+          'Amharic text may not render properly on this device. For best results, use a device with Amharic support.': 'የአማርኛ ጽሑፍ በዚህ መሣሪያ ላይ በትክክል ላይታይ ይችላል። ለተሻለ ውጤት የአማርኛ ድጋፍ ያለው መሣሪያ ይጠቀሙ።',
+          'Please select a crop to view details': 'እባክዎ ዝርዝሮችን ለመመልከት ሰብል ይምረጡ',
+          // Example crop translations
+          'crop_wheat': 'ስንዴ',
+          'crop_maize': 'በቆሎ',
+          // Example soil translations
+          'soil_loamy': 'ለምለም',
+          'soil_sandy': 'አሸዋማ',
+          // Example season translations
+          'season_summer': 'በጋ',
+          'season_winter': 'ክረምት',
+          // Example category translations
+          'category_cereal': 'ጥራጥሬ',
+          'category_vegetable': 'አትክልት',
+
+
+
+         
         },
       };
 }

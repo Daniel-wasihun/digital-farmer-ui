@@ -33,6 +33,7 @@ class CropTipsController extends GetxController {
   }
 
   Future<void> fetchCropInfo(String cropType) async {
+    print('Fetching crop info for: $cropType');
     isCropInfoLoading.value = true;
     cropInfo.value = null;
     try {
