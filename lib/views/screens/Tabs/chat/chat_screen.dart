@@ -9,7 +9,7 @@ class ChatScreen extends StatefulWidget {
   final String receiverId;
   final String receiverUsername;
 
-  ChatScreen({super.key, required this.receiverId, required this.receiverUsername});
+  const ChatScreen({super.key, required this.receiverId, required this.receiverUsername});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -26,15 +26,41 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    chatController.selectReceiver(widget.receiverId); // Ensure messages are fetched
+    chatController.selectReceiver(widget.receiverId);
     _setupScrollListener();
     _setupMessageListener();
+    _scheduleInitialScroll();
+  }
+
+  void _scheduleInitialScroll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && chatController.messages.isNotEmpty && _scrollController.hasClients) {
+        _scrollToBottom();
+      }
+    });
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      for (var msg in unseenMessages) {
+        chatController.socketClient.markAsRead(msg['messageId']);
+        msg['read'] = true;
+        chatController.saveLocalMessage(msg);
+      }
+      unseenMessages.clear();
+      unseenCount.value = 0;
+    }
   }
 
   void _setupScrollListener() {
     _scrollController.addListener(() {
       final isAtBottom = _scrollController.offset >=
-          _scrollController.position.maxScrollExtent - 10; // Small tolerance
+          _scrollController.position.maxScrollExtent - 10;
       showScrollArrow.value = !isAtBottom;
       if (isAtBottom && unseenMessages.isNotEmpty) {
         unseenMessages.clear();
@@ -45,14 +71,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _setupMessageListener() {
     ever(chatController.messages, (_) {
+      if (!chatController.isLoadingMessages.value && chatController.messages.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _scrollController.hasClients) {
+            _scrollToBottom();
+          }
+        });
+      }
       final newMessages = chatController.messages
           .where((msg) =>
-              msg['senderId'] == widget.receiverId &&
-              msg['receiverId'] == chatController.currentUserId &&
-              (msg['read'] as bool? ?? false) == false)
+              msg['senderId']?.toString().toLowerCase() == widget.receiverId.toLowerCase() &&
+              msg['receiverId']?.toString().toLowerCase() == chatController.currentUserId?.toLowerCase() &&
+              !(msg['read'] as bool? ?? false))
           .toList();
-      final isAtBottom = _scrollController.offset >=
-          _scrollController.position.maxScrollExtent - 10;
+      final isAtBottom = _scrollController.hasClients &&
+          _scrollController.offset >= _scrollController.position.maxScrollExtent - 10;
       if (!isAtBottom) {
         for (var msg in newMessages) {
           if (!unseenMessages.any((m) => m['messageId'] == msg['messageId'])) {
@@ -61,9 +94,8 @@ class _ChatScreenState extends State<ChatScreen> {
           }
         }
       } else {
-        // Mark as read and auto-scroll if at bottom
         for (var msg in newMessages) {
-          if (!msg['read']) {
+          if (!(msg['read'] as bool? ?? false)) {
             chatController.socketClient.markAsRead(msg['messageId']);
             msg['read'] = true;
             chatController.saveLocalMessage(msg);
@@ -71,32 +103,8 @@ class _ChatScreenState extends State<ChatScreen> {
         }
         unseenMessages.clear();
         unseenCount.value = 0;
-        // Auto-scroll for live chat
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollToBottom();
-          }
-        });
       }
     });
-  }
-
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-      // Mark unseen messages as read
-      for (var msg in unseenMessages) {
-        chatController.socketClient.markAsRead(msg['messageId']);
-        msg['read'] = true;
-        chatController.saveLocalMessage(msg);
-      }
-      unseenMessages.clear();
-      unseenCount.value = 0;
-    }
   }
 
   @override
@@ -110,9 +118,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final baseScale = screenSize.width / 1920;
-    final heightScale = screenSize.height / 1080;
-    final scaleFactor = (baseScale * heightScale).clamp(0.5, 1.0);
+    final scaleFactor = (screenSize.width / 1920 * screenSize.height / 1080).clamp(0.5, 1.0);
 
     return Scaffold(
       body: Stack(
@@ -121,8 +127,8 @@ class _ChatScreenState extends State<ChatScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: Theme.of(context).brightness == Brightness.dark
-                    ? [Color(0xFF1A2B1F), Color(0xFF263238)]
-                    : [Color(0xFFE8F5E9), Color(0xFFB2DFDB)],
+                    ? [const Color(0xFF1A2B1F), const Color(0xFF263238)]
+                    : [const Color(0xFFE8F5E9), const Color(0xFFB2DFDB)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -142,19 +148,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         );
                       }
                       if (chatController.isLoadingMessages.value) {
-                        return Center(
+                        return const Center(
                           child: CircularProgressIndicator(
                             color: AppConstants.primaryColor,
                           ),
                         );
                       }
-                      // Group messages by date
                       final messages = chatController.messages
-                          .where((msg) =>
-                              (msg['senderId'] == chatController.currentUserId &&
-                                  msg['receiverId'] == widget.receiverId) ||
-                              (msg['senderId'] == widget.receiverId &&
-                                  msg['receiverId'] == chatController.currentUserId))
+                          .where((msg) => _isValidMessage(msg))
                           .toList();
                       if (messages.isEmpty) {
                         return Center(
@@ -180,17 +181,17 @@ class _ChatScreenState extends State<ChatScreen> {
                           final item = items[index];
                           if (item['type'] == 'header') {
                             return _buildDateHeader(item['value'], scaleFactor, context);
-                          } else {
-                            final msg = item['message'];
-                            final isSent = msg['senderId'] == chatController.currentUserId;
-                            return _MessageBubble(
-                              key: ValueKey(msg['messageId']),
-                              message: msg,
-                              isSent: isSent,
-                              scaleFactor: scaleFactor,
-                              screenWidth: screenSize.width,
-                            );
                           }
+                          final msg = item['message'];
+                          final isSent = msg['senderId'].toString().toLowerCase() ==
+                              chatController.currentUserId?.toLowerCase();
+                          return _MessageBubble(
+                            key: ValueKey(msg['messageId']),
+                            message: msg,
+                            isSent: isSent,
+                            scaleFactor: scaleFactor,
+                            screenWidth: screenSize.width,
+                          );
                         },
                       );
                     },
@@ -200,33 +201,32 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
-          // Scroll-to-bottom arrow (left side)
           Positioned(
             bottom: 130 * scaleFactor,
-            left: 20 * scaleFactor, // Moved to left
+            left: 20 * scaleFactor,
             child: Obx(
               () => AnimatedOpacity(
                 opacity: showScrollArrow.value ? 1.0 : 0.0,
-                duration: Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 200),
                 child: Visibility(
                   visible: showScrollArrow.value,
                   child: GestureDetector(
                     onTap: _scrollToBottom,
                     child: Container(
                       padding: EdgeInsets.all(20 * scaleFactor),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppConstants.primaryColor,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 6 * scaleFactor,
-                            offset: Offset(0, 2 * scaleFactor),
+                            color: Colors.black26,
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
                           ),
                         ],
                       ),
                       child: Icon(
-                        Icons.keyboard_arrow_down, // V-like chevron
+                        Icons.keyboard_arrow_down,
                         color: Colors.white,
                         size: 24 * scaleFactor,
                       ),
@@ -236,21 +236,20 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          // New messages badge (right side)
           Positioned(
             bottom: 115 * scaleFactor,
-            right: 20 * scaleFactor, // Stays on right
+            right: 20 * scaleFactor,
             child: Obx(
               () => AnimatedOpacity(
                 opacity: unseenCount.value > 0 ? 1.0 : 0.0,
-                duration: Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 200),
                 child: Visibility(
                   visible: unseenCount.value > 0,
                   child: GestureDetector(
                     onTap: _scrollToBottom,
                     child: Container(
-                      padding: EdgeInsets.all(12 * scaleFactor), // 2x padding
-                      decoration: BoxDecoration(
+                      padding: EdgeInsets.all(12 * scaleFactor),
+                      decoration: const BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
                       ),
@@ -258,7 +257,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         unseenCount.value.toString(),
                         style: GoogleFonts.poppins(
                           color: Colors.white,
-                          fontSize: 20 * scaleFactor, // 2x font size
+                          fontSize: 20 * scaleFactor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -273,19 +272,30 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  bool _isValidMessage(Map<String, dynamic> msg) {
+    return msg['senderId'] != null &&
+        msg['receiverId'] != null &&
+        msg['message'] != null &&
+        msg['messageId'] != null &&
+        msg['timestamp'] != null &&
+        ((msg['senderId'].toString().toLowerCase() == chatController.currentUserId?.toLowerCase() &&
+                msg['receiverId'].toString().toLowerCase() == widget.receiverId.toLowerCase()) ||
+            (msg['senderId'].toString().toLowerCase() == widget.receiverId.toLowerCase() &&
+                msg['receiverId'].toString().toLowerCase() == chatController.currentUserId?.toLowerCase()));
+  }
+
   Map<String, List<Map<String, dynamic>>> _groupMessagesByDate(List<Map<String, dynamic>> messages) {
     final grouped = <String, List<Map<String, dynamic>>>{};
     final today = DateTime.now();
-    final yesterday = today.subtract(Duration(days: 1));
-    final weekAgo = today.subtract(Duration(days: 7));
+    final yesterday = today.subtract(const Duration(days: 1));
+    final weekAgo = today.subtract(const Duration(days: 7));
 
     for (var msg in messages) {
-      DateTime? date;
+      DateTime date;
       try {
         date = DateTime.parse(msg['timestamp']).toLocal();
       } catch (e) {
-        print('ChatScreen: Invalid timestamp in message ${msg['messageId']}: $e');
-        date = DateTime.now(); // Fallback
+        date = DateTime.now();
       }
       String key;
       if (date.year == today.year && date.month == today.month && date.day == today.day) {
@@ -295,31 +305,7 @@ class _ChatScreenState extends State<ChatScreen> {
           date.day == yesterday.day) {
         key = 'Yesterday';
       } else if (date.isAfter(weekAgo)) {
-        switch (date.weekday) {
-          case 1:
-            key = 'Monday';
-            break;
-          case 2:
-            key = 'Tuesday';
-            break;
-          case 3:
-            key = 'Wednesday';
-            break;
-          case 4:
-            key = 'Thursday';
-            break;
-          case 5:
-            key = 'Friday';
-            break;
-          case 6:
-            key = 'Saturday';
-            break;
-          case 7:
-            key = 'Sunday';
-            break;
-          default:
-            key = '${date.day}/${date.month}/${date.year}';
-        }
+        key = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.weekday % 7];
       } else {
         key = '${date.day}/${date.month}/${date.year}';
       }
@@ -331,31 +317,12 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Map<String, dynamic>> _buildMessageItems(Map<String, List<Map<String, dynamic>>> groupedMessages) {
     final items = <Map<String, dynamic>>[];
     final sortedKeys = groupedMessages.keys.toList()
-      ..sort((a, b) {
-        final aDate = _parseDateKey(a);
-        final bDate = _parseDateKey(b);
-        return aDate.compareTo(bDate); // Oldest first
-      });
+      ..sort((a, b) => _parseDateKey(a).compareTo(_parseDateKey(b)));
 
     for (var key in sortedKeys) {
       items.add({'type': 'header', 'value': key});
       final msgs = groupedMessages[key]!
-        ..sort((a, b) {
-          DateTime aTime, bTime;
-          try {
-            aTime = DateTime.parse(a['timestamp']);
-          } catch (e) {
-            aTime = DateTime.now();
-            print('ChatScreen: Invalid timestamp in sort ${a['messageId']}: $e');
-          }
-          try {
-            bTime = DateTime.parse(b['timestamp']);
-          } catch (e) {
-            bTime = DateTime.now();
-            print('ChatScreen: Invalid timestamp in sort ${a['messageId']}: $e');
-          }
-          return aTime.compareTo(bTime);
-        });
+        ..sort((a, b) => DateTime.parse(a['timestamp']).compareTo(DateTime.parse(b['timestamp'])));
       items.addAll(msgs.map((msg) => {'type': 'message', 'message': msg}));
     }
     return items;
@@ -363,29 +330,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
   DateTime _parseDateKey(String key) {
     if (key == 'Today') return DateTime.now();
-    if (key == 'Yesterday') return DateTime.now().subtract(Duration(days: 1));
-    if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].contains(key)) {
+    if (key == 'Yesterday') return DateTime.now().subtract(const Duration(days: 1));
+    final weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    if (weekdays.contains(key)) {
       final today = DateTime.now();
-      final weekdayMap = {
-        'Monday': 1,
-        'Tuesday': 2,
-        'Wednesday': 3,
-        'Thursday': 4,
-        'Friday': 5,
-        'Saturday': 6,
-        'Sunday': 7,
-      };
-      final targetWeekday = weekdayMap[key]!;
+      final targetWeekday = weekdays.indexOf(key);
       final currentWeekday = today.weekday;
-      int daysBack = currentWeekday - targetWeekday;
-      if (daysBack < 0) daysBack += 7;
+      final daysBack = (currentWeekday - targetWeekday) % 7;
       return today.subtract(Duration(days: daysBack));
     }
     try {
       final parts = key.split('/');
       return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
     } catch (e) {
-      print('ChatScreen: Invalid date key $key: $e');
       return DateTime.now();
     }
   }
@@ -417,50 +374,40 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildAppBar(BuildContext context, double scaleFactor) {
     return AppBar(
       flexibleSpace: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              AppConstants.primaryColor,
-              Color(0xFF2E7D32),
-            ],
+            colors: [AppConstants.primaryColor, Color(0xFF2E7D32)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
       ),
       elevation: 0,
-      shadowColor: Colors.black38,
       title: Obx(() {
         final user = chatController.allUsers
             .firstWhereOrNull((u) => u['email'] == widget.receiverId);
         final isTyping = chatController.typingUsers.contains(widget.receiverId);
         final isOnline = user != null && user['online'] == true;
         return GestureDetector(
-          onTap: () {
-            Get.toNamed(
-              AppRoutes.getUserProfilePage(widget.receiverId, widget.receiverUsername),
-              arguments: {
-                'email': widget.receiverId,
-                'username': widget.receiverUsername,
-                'profilePicture': user?['profilePicture'],
-                'bio': user?['bio'],
-              },
-            );
-          },
+          onTap: () => Get.toNamed(
+            AppRoutes.getUserProfilePage(widget.receiverId, widget.receiverUsername),
+            arguments: {
+              'email': widget.receiverId,
+              'username': widget.receiverUsername,
+              'profilePicture': user?['profilePicture'],
+              'bio': user?['bio'],
+            },
+          ),
           child: Row(
             children: [
               SizedBox(width: 4 * scaleFactor),
               CircleAvatar(
-                radius: 48 * scaleFactor,
+                radius: 24 * scaleFactor,
                 backgroundColor: Colors.white,
-                backgroundImage: user != null &&
-                        user['profilePicture'] != null &&
-                        user['profilePicture'].isNotEmpty
-                    ? NetworkImage('http://localhost:5000${user['profilePicture']}')
+                backgroundImage: user?['profilePicture']?.isNotEmpty ?? false
+                    ? NetworkImage('http://localhost:5000${user!['profilePicture']}')
                     : null,
-                child: user == null ||
-                        user['profilePicture'] == null ||
-                        user['profilePicture'].isEmpty
+                child: user?['profilePicture']?.isEmpty ?? true
                     ? Text(
                         widget.receiverUsername[0].toUpperCase(),
                         style: TextStyle(
@@ -479,21 +426,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     widget.receiverUsername,
                     style: GoogleFonts.poppins(
                       color: Colors.white,
-                      fontSize: 26 * scaleFactor,
+                      fontSize: 20 * scaleFactor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Row(
                     children: [
                       Text(
-                        isTyping
-                            ? 'Typing...'
-                            : isOnline
-                                ? 'Online'
-                                : 'Offline',
+                        isTyping ? 'Typing...' : isOnline ? 'Online' : 'Offline',
                         style: GoogleFonts.poppins(
                           color: Colors.white70,
-                          fontSize: 16 * scaleFactor,
+                          fontSize: 14 * scaleFactor,
                         ),
                       ),
                       if (isTyping) ...[
@@ -508,19 +451,19 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       }),
-      leadingWidth: 40 * scaleFactor,
       leading: IconButton(
-        padding: EdgeInsets.only(left: 8 * scaleFactor),
         icon: Icon(Icons.arrow_back, color: Colors.white, size: 28 * scaleFactor),
-        onPressed: () {
-          try {
-            Get.offNamed(AppRoutes.getHomePage());
-          } catch (e) {
-            print('ChatScreen: Back button error: $e');
-            Get.offNamed(AppRoutes.getHomePage());
-          }
-        },
+        onPressed: () => Get.offNamed(AppRoutes.getHomePage()),
       ),
+      actions: [
+        Obx(() => chatController.errorMessage.value.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.error, color: Colors.red),
+                onPressed: () => Get.snackbar('Error', chatController.errorMessage.value,
+                    snackPosition: SnackPosition.BOTTOM),
+              )
+            : const SizedBox.shrink()),
+      ],
     );
   }
 
@@ -529,45 +472,38 @@ class _ChatScreenState extends State<ChatScreen> {
     return Container(
       padding: EdgeInsets.all(12 * scaleFactor),
       decoration: BoxDecoration(
-        color: isDarkMode ? Color(0xFF2E3B43) : Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10 * scaleFactor,
-            offset: Offset(0, -4 * scaleFactor),
-          ),
+        color: isDarkMode ? const Color(0xFF2E3B43) : Theme.of(context).colorScheme.surface,
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -4)),
         ],
       ),
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.attach_file,
-                color: isDarkMode
-                    ? Color(0xFFCFD8DC)
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                size: 26 * scaleFactor),
-            onPressed: () {
-              // Implement attachment functionality
-            },
+            icon: Icon(
+              Icons.attach_file,
+              color: isDarkMode ? const Color(0xFFCFD8DC) : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              size: 26 * scaleFactor,
+            ),
+            onPressed: () {},
           ),
           Expanded(
             child: TextField(
               controller: messageController,
               style: GoogleFonts.poppins(
                 fontSize: 18 * scaleFactor,
-                height: 1.4,
-                color: isDarkMode ? Color(0xFFE0E0E0) : Theme.of(context).colorScheme.onSurface,
+                color: isDarkMode ? const Color(0xFFE0E0E0) : Theme.of(context).colorScheme.onSurface,
               ),
               decoration: InputDecoration(
                 hintText: 'type_message'.tr,
                 hintStyle: GoogleFonts.poppins(
                   color: isDarkMode
-                      ? Color(0xFFCFD8DC).withOpacity(0.7)
+                      ? const Color(0xFFCFD8DC).withOpacity(0.7)
                       : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
                   fontSize: 18 * scaleFactor,
                 ),
                 filled: true,
-                fillColor: isDarkMode ? Color(0xFF37474F) : Color(0xFFECEFF1),
+                fillColor: isDarkMode ? const Color(0xFF37474F) : const Color(0xFFECEFF1),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(32 * scaleFactor),
                   borderSide: BorderSide.none,
@@ -577,48 +513,40 @@ class _ChatScreenState extends State<ChatScreen> {
                   vertical: 14 * scaleFactor,
                 ),
               ),
+              minLines: 1,
+              maxLines: 4,
               onChanged: (text) {
-                if (text.isNotEmpty && chatController.currentUserId != null) {
+                if (text.trim().isNotEmpty && chatController.currentUserId != null) {
                   chatController.onTyping(widget.receiverId);
                 } else {
                   chatController.onStopTyping(widget.receiverId);
                 }
               },
-              onSubmitted: (text) {
-                if (text.trim().isNotEmpty && chatController.currentUserId != null) {
-                  chatController.send(text.trim(), widget.receiverId);
-                  messageController.clear();
-                  chatController.onStopTyping(widget.receiverId);
-                  // Scroll to bottom
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToBottom();
-                  });
-                }
-              },
+              onSubmitted: (text) => _sendMessage(text),
             ),
           ),
           SizedBox(width: 12 * scaleFactor),
           FloatingActionButton(
             mini: true,
             backgroundColor: AppConstants.primaryColor,
-            elevation: 4,
             child: Icon(Icons.send, color: Colors.white, size: 26 * scaleFactor),
-            onPressed: () {
-              if (messageController.text.trim().isNotEmpty &&
-                  chatController.currentUserId != null) {
-                chatController.send(messageController.text.trim(), widget.receiverId);
-                messageController.clear();
-                chatController.onStopTyping(widget.receiverId);
-                // Scroll to bottom
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _scrollToBottom();
-                });
-              }
-            },
+            onPressed: () => _sendMessage(messageController.text),
           ),
         ],
       ),
     );
+  }
+
+  void _sendMessage(String text) {
+    if (text.trim().isEmpty || chatController.currentUserId == null) return;
+    chatController.send(text.trim(), widget.receiverId);
+    messageController.clear();
+    chatController.onStopTyping(widget.receiverId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollToBottom();
+      }
+    });
   }
 }
 
@@ -650,7 +578,7 @@ class _MessageBubbleState extends State<_MessageBubble> with SingleTickerProvide
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
     );
     _slideAnimation = Tween<Offset>(
       begin: Offset(widget.isSent ? 0.5 : -0.5, 0),
@@ -681,8 +609,7 @@ class _MessageBubbleState extends State<_MessageBubble> with SingleTickerProvide
           right: !widget.isSent && isLongMessage ? 20 * widget.scaleFactor : 0,
         ),
         child: Column(
-          crossAxisAlignment:
-              widget.isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: widget.isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             SlideTransition(
               position: _slideAnimation,
@@ -693,9 +620,7 @@ class _MessageBubbleState extends State<_MessageBubble> with SingleTickerProvide
                     vertical: 8 * widget.scaleFactor,
                     horizontal: 20 * widget.scaleFactor,
                   ),
-                  constraints: BoxConstraints(
-                    maxWidth: widget.screenWidth * 0.7,
-                  ),
+                  constraints: BoxConstraints(maxWidth: widget.screenWidth * 0.7),
                   child: IntrinsicWidth(
                     child: Container(
                       padding: EdgeInsets.symmetric(
@@ -704,32 +629,23 @@ class _MessageBubbleState extends State<_MessageBubble> with SingleTickerProvide
                       ),
                       decoration: BoxDecoration(
                         gradient: widget.isSent
-                            ? LinearGradient(
-                                colors: [
-                                  AppConstants.primaryColor,
-                                  Color(0xFF2E7D32),
-                                ],
+                            ? const LinearGradient(
+                                colors: [AppConstants.primaryColor, Color(0xFF2E7D32)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               )
                             : null,
                         color: widget.isSent ? null : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(24 * widget.scaleFactor),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 10 * widget.scaleFactor,
-                            offset: Offset(0, 4 * widget.scaleFactor),
-                          ),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
                         ],
                       ),
                       child: Text(
                         widget.message['message'] ?? 'Error',
                         style: GoogleFonts.poppins(
-                          color: widget.isSent
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.onSurface,
-                          fontSize: 20 * widget.scaleFactor,
+                          color: widget.isSent ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                          fontSize: 16 * widget.scaleFactor,
                           fontWeight: FontWeight.w400,
                         ),
                         softWrap: true,
@@ -748,10 +664,8 @@ class _MessageBubbleState extends State<_MessageBubble> with SingleTickerProvide
                   Text(
                     _formatTime(widget.message['timestamp']),
                     style: GoogleFonts.poppins(
-                      color: isDarkMode
-                          ? Colors.white70
-                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 14 * widget.scaleFactor,
+                      color: isDarkMode ? Colors.white70 : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      fontSize: 12 * widget.scaleFactor,
                     ),
                   ),
                   if (widget.isSent) ...[
@@ -763,10 +677,8 @@ class _MessageBubbleState extends State<_MessageBubble> with SingleTickerProvide
                               ? 'delivered'.tr
                               : 'sent'.tr,
                       style: GoogleFonts.poppins(
-                        color: isDarkMode
-                            ? Colors.white70
-                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        fontSize: 14 * widget.scaleFactor,
+                        color: isDarkMode ? Colors.white70 : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 12 * widget.scaleFactor,
                       ),
                     ),
                   ],
@@ -784,7 +696,6 @@ class _MessageBubbleState extends State<_MessageBubble> with SingleTickerProvide
       final date = DateTime.parse(timestamp!).toLocal();
       return '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      print('ChatScreen: Invalid timestamp format: $timestamp, error: $e');
       return 'N/A';
     }
   }
@@ -810,25 +721,16 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1000),
     )..repeat();
     _dot1 = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.0, 0.33, curve: Curves.easeInOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.33, curve: Curves.easeInOut)),
     );
     _dot2 = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.33, 0.66, curve: Curves.easeInOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.33, 0.66, curve: Curves.easeInOut)),
     );
     _dot3 = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.66, 1.0, curve: Curves.easeInOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.66, 1.0, curve: Curves.easeInOut)),
     );
   }
 
@@ -842,31 +744,24 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) {
-        return Row(
-          children: [
-            _buildDot(_dot1.value),
-            SizedBox(width: 4 * widget.scaleFactor),
-            _buildDot(_dot2.value),
-            SizedBox(width: 4 * widget.scaleFactor),
-            _buildDot(_dot3.value),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildDot(double opacity) {
-    return Opacity(
-      opacity: opacity,
-      child: Container(
-        width: 8 * widget.scaleFactor,
-        height: 8 * widget.scaleFactor,
-        decoration: BoxDecoration(
-          color: Colors.white70,
-          shape: BoxShape.circle,
-        ),
+      builder: (context, _) => Row(
+        children: [
+          _buildDot(_dot1.value),
+          SizedBox(width: 4 * widget.scaleFactor),
+          _buildDot(_dot2.value),
+          SizedBox(width: 4 * widget.scaleFactor),
+          _buildDot(_dot3.value),
+        ],
       ),
     );
   }
+
+  Widget _buildDot(double opacity) => Opacity(
+        opacity: opacity,
+        child: Container(
+          width: 8 * widget.scaleFactor,
+          height: 8 * widget.scaleFactor,
+          decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
+        ),
+      );
 }

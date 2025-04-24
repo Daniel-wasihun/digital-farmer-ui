@@ -21,6 +21,7 @@ class ChatController extends GetxController {
   final selectedReceiverId = ''.obs;
   final isLoadingUsers = false.obs;
   final isLoadingMessages = false.obs;
+  bool _isConnecting = false;
 
   @override
   void onInit() {
@@ -29,26 +30,27 @@ class ChatController extends GetxController {
     _initialize();
   }
 
-  void _initialize() async {
+  Future<void> _initialize() async {
     try {
       final user = storageService.getUser();
-      if (user == null || storageService.getToken() == null) {
+      final token = storageService.getToken();
+      if (user == null || token == null) {
         print('ChatController: No user or token, redirecting to login');
         errorMessage.value = 'not_logged_in'.tr;
         Get.offAllNamed(AppRoutes.getSignInPage());
         return;
       }
       currentUserId = user['email']?.toString();
+      if (currentUserId == null || currentUserId!.isEmpty) {
+        print('ChatController: Invalid user email');
+        errorMessage.value = 'invalid_user'.tr;
+        Get.offAllNamed(AppRoutes.getSignInPage());
+        return;
+      }
       print('ChatController: Initialized with userId: $currentUserId');
       await loadLocalMessages();
       await fetchUsers();
-      connect();
-      ever(isConnected, (_) {
-        if (isConnected.value) {
-          fetchUsers();
-          syncLocalMessages();
-        }
-      });
+      await connect();
     } catch (e) {
       print('ChatController: Initialize error: $e');
       errorMessage.value = 'failed_to_initialize'.tr;
@@ -56,26 +58,35 @@ class ChatController extends GetxController {
     }
   }
 
-  void _handleUserChange() {
+  Future<void> _handleUserChange() async {
     final user = storageService.getUser();
     if (user != null && currentUserId != user['email']) {
+      print('ChatController: User changed to: ${user['email']}');
       currentUserId = user['email']?.toString();
       allUsers.clear();
       messages.clear();
       typingUsers.clear();
       selectedReceiverId.value = '';
-      socketClient.disconnect();
-      _initialize();
+      await socketClient.disconnect();
+      await _initialize();
     } else if (user == null) {
+      print('ChatController: No user, logging out');
       currentUserId = null;
-      socketClient.disconnect();
+      await socketClient.disconnect();
+      allUsers.clear();
+      messages.clear();
+      typingUsers.clear();
+      selectedReceiverId.value = '';
       errorMessage.value = 'no_user'.tr;
       Get.offAllNamed(AppRoutes.getSignInPage());
     }
   }
 
   Future<void> fetchUsers({int retryCount = 0, int maxRetries = 3}) async {
-    if (isLoadingUsers.value || currentUserId == null) return;
+    if (isLoadingUsers.value || currentUserId == null) {
+      print('ChatController: Skipping fetchUsers: loading=${isLoadingUsers.value}, userId=$currentUserId');
+      return;
+    }
     final token = storageService.getToken();
     if (token == null) {
       print('ChatController: No token, redirecting to login');
@@ -86,7 +97,7 @@ class ChatController extends GetxController {
     isLoadingUsers.value = true;
     try {
       final response = await apiService.getUsers();
-      final users = (response as List<dynamic>).cast<Map<String, dynamic>>();
+      final users = (response).cast<Map<String, dynamic>>();
       allUsers.assignAll(users.where((Map<String, dynamic> u) {
         final email = u['email']?.toString() ?? '';
         return email != currentUserId && email.isNotEmpty;
@@ -113,20 +124,24 @@ class ChatController extends GetxController {
           errorMessage.value = 'session_expired'.tr;
           Get.offAllNamed(AppRoutes.getSignInPage());
         }
-      } else if (e.toString().contains('Server error') && retryCount < maxRetries) {
-        print('ChatController: Server error, retrying ${retryCount + 1}/$maxRetries');
+      } else if (retryCount < maxRetries) {
+        print('ChatController: Retrying fetchUsers ${retryCount + 1}/$maxRetries');
         await Future.delayed(Duration(seconds: (retryCount + 1) * 2));
         await fetchUsers(retryCount: retryCount + 1, maxRetries: maxRetries);
       } else {
-        errorMessage.value = 'server_error'.tr;
-        Get.snackbar('Error', 'server_error'.tr, snackPosition: SnackPosition.BOTTOM);
+        errorMessage.value = 'failed_to_load_users'.tr;
+        Get.snackbar('Error', 'failed_to_load_users'.tr, snackPosition: SnackPosition.BOTTOM);
       }
     } finally {
       isLoadingUsers.value = false;
     }
   }
 
-  void connect() {
+  Future<void> connect() async {
+    if (_isConnecting || isConnected.value) {
+      print('ChatController: Skipping connect: connecting=$_isConnecting, connected=${isConnected.value}');
+      return;
+    }
     final token = storageService.getToken();
     if (token == null || currentUserId == null) {
       print('ChatController: No token or userId, redirecting to login');
@@ -134,86 +149,130 @@ class ChatController extends GetxController {
       Get.offAllNamed(AppRoutes.getSignInPage());
       return;
     }
-    socketClient.connect(
-      currentUserId!,
-      token,
-      () {
-        isConnected.value = true;
-        errorMessage.value = '';
-        syncLocalMessages();
-        print('ChatController: Socket connected');
-      },
-      (data) {
-        if (data['receiverId'] == currentUserId || data['senderId'] == currentUserId) {
-          if (!messages.any((m) => m['messageId'] == data['messageId'])) {
+    _isConnecting = true;
+    try {
+      await apiService.getUsers();
+      print('ChatController: Token valid, proceeding with socket connection');
+      await socketClient.disconnect();
+      socketClient.connect(
+        currentUserId!,
+        token,
+        () {
+          isConnected.value = true;
+          errorMessage.value = '';
+          syncLocalMessages();
+          fetchUsers();
+          print('ChatController: Socket connected');
+        },
+        (data) {
+          if (data['receiverId'] == currentUserId || data['senderId'] == currentUserId) {
+            if (!messages.any((m) => m['messageId'] == data['messageId'])) {
+              messages.add(data);
+              saveLocalMessage(data);
+              _updateUserLastMessageTime(data);
+              print('ChatController: Received message: ${data['messageId']}');
+            }
+          }
+        },
+        (data) {
+          if (data['senderId'] == currentUserId &&
+              !messages.any((m) => m['messageId'] == data['messageId'])) {
             messages.add(data);
             saveLocalMessage(data);
             _updateUserLastMessageTime(data);
-            print('ChatController: Received message: ${data['messageId']}');
+            print('ChatController: Message sent: ${data['messageId']}');
           }
-        }
-      },
-      (data) {
-        if (data['senderId'] == currentUserId &&
-            !messages.any((m) => m['messageId'] == data['messageId'])) {
-          messages.add(data);
-          saveLocalMessage(data);
-          _updateUserLastMessageTime(data);
-          print('ChatController: Message sent: ${data['messageId']}');
-        }
-      },
-      (senderId) {
-        if (senderId != currentUserId) {
-          typingUsers.add(senderId);
-          print('ChatController: Typing: $senderId');
-        }
-      },
-      (senderId) {
-        typingUsers.remove(senderId);
-        print('ChatController: Stopped typing: $senderId');
-      },
-      (error) {
-        errorMessage.value = error;
-        isConnected.value = false;
-        print('ChatController: Socket error: $error');
-        Get.snackbar('Error', 'socket_error'.tr, snackPosition: SnackPosition.BOTTOM);
-      },
-      (newUser) {
-        if (newUser['email'] != currentUserId &&
-            newUser['email']?.toString().isNotEmpty == true &&
-            !allUsers.any((u) => u['email'] == newUser['email'])) {
-          allUsers.add({
-            'email': newUser['email']?.toString() ?? '',
-            'username': newUser['username']?.toString() ?? 'Unknown',
-            'online': newUser['online'] as bool? ?? false,
-            'profilePicture': newUser['profilePicture']?.toString() ?? '',
-            'lastMessageTime': '',
-          });
-          _sortUsersByLastMessage();
-          print('ChatController: Added new user: ${newUser['email']}');
-        }
-      },
-      (email) {
-        final user = allUsers.firstWhereOrNull((u) => u['email'] == email);
-        if (user != null) {
-          user['online'] = true;
-          allUsers.refresh();
-          print('ChatController: User online: $email');
-        }
-      },
-      (email) {
-        final user = allUsers.firstWhereOrNull((u) => u['email'] == email);
-        if (user != null) {
-          user['online'] = false;
-          allUsers.refresh();
-          print('ChatController: User offline: $email');
-        }
-      },
-    );
+        },
+        (senderId) {
+          if (senderId != currentUserId) {
+            typingUsers.add(senderId);
+            print('ChatController: Typing: $senderId');
+          }
+        },
+        (senderId) {
+          typingUsers.remove(senderId);
+          print('ChatController: Stopped typing: $senderId');
+        },
+        (error) async {
+          errorMessage.value = error;
+          isConnected.value = false;
+          print('ChatController: Socket error: $error');
+          if (error.contains('Invalid token')) {
+            await _handleInvalidToken();
+          } else {
+            Get.snackbar('Error', 'socket_error'.tr, snackPosition: SnackPosition.BOTTOM);
+            await Future.delayed(Duration(seconds: 5));
+            if (!isConnected.value) {
+              print('ChatController: Retrying socket connection');
+              await connect();
+            }
+          }
+        },
+        (newUser) {
+          if (newUser['email'] != currentUserId &&
+              newUser['email']?.toString().isNotEmpty == true &&
+              !allUsers.any((u) => u['email'] == newUser['email'])) {
+            allUsers.add({
+              'email': newUser['email']?.toString() ?? '',
+              'username': newUser['username']?.toString() ?? 'Unknown',
+              'online': newUser['online'] as bool? ?? false,
+              'profilePicture': newUser['profilePicture']?.toString() ?? '',
+              'lastMessageTime': '',
+            });
+            _sortUsersByLastMessage();
+            print('ChatController: Added new user: ${newUser['email']}');
+          }
+        },
+        (email) {
+          final user = allUsers.firstWhereOrNull((u) => u['email'] == email);
+          if (user != null) {
+            user['online'] = true;
+            allUsers.refresh();
+            print('ChatController: User online: $email');
+          }
+        },
+        (email) {
+          final user = allUsers.firstWhereOrNull((u) => u['email'] == email);
+          if (user != null) {
+            user['online'] = false;
+            allUsers.refresh();
+            print('ChatController: User offline: $email');
+          }
+        },
+      );
+    } catch (e) {
+      print('ChatController: Connect error: $e');
+      errorMessage.value = 'socket_connect_failed'.tr;
+      Get.snackbar('Error', 'socket_connect_failed'.tr, snackPosition: SnackPosition.BOTTOM);
+      await Future.delayed(Duration(seconds: 5));
+      if (!isConnected.value) {
+        print('ChatController: Retrying socket connection');
+        await connect();
+      }
+    } finally {
+      _isConnecting = false;
+    }
+  }
+
+  Future<void> _handleInvalidToken() async {
+    print('ChatController: Handling invalid token');
+    final refreshed = await apiService.refreshToken();
+    if (refreshed) {
+      print('ChatController: Token refreshed, retrying connection');
+      await connect();
+    } else {
+      print('ChatController: Token refresh failed, redirecting to login');
+      storageService.clear();
+      errorMessage.value = 'session_expired'.tr;
+      Get.offAllNamed(AppRoutes.getSignInPage());
+    }
   }
 
   Future<void> send(String text, String receiverId) async {
-    if (text.trim().isEmpty || currentUserId == null) return;
+    if (text.trim().isEmpty || currentUserId == null) {
+      print('ChatController: Empty text or no userId');
+      return;
+    }
     final isValidReceiver = allUsers.any((u) => u['email'] == receiverId);
     if (!isValidReceiver) {
       print('ChatController: Invalid receiverId: $receiverId');
@@ -270,12 +329,18 @@ class ChatController extends GetxController {
     }
     final key = 'messages_${currentUserId!}';
     final stored = storageService.box.read(key) ?? <String>[];
-    if (!stored.any((s) => jsonDecode(s)['messageId'] == message['messageId'])) {
-      stored.add(jsonEncode(message));
-      if (stored.length > 1000) stored.removeAt(0);
-      await storageService.box.write(key, stored);
-      print('ChatController: Saved message: ${message['messageId']}');
-    }
+    // Ensure no duplicates by messageId
+    stored.removeWhere((s) {
+      try {
+        return jsonDecode(s)['messageId'] == message['messageId'];
+      } catch (e) {
+        return false;
+      }
+    });
+    stored.add(jsonEncode(message));
+    if (stored.length > 1000) stored.removeAt(0);
+    await storageService.box.write(key, stored);
+    print('ChatController: Saved message: ${message['messageId']}');
   }
 
   Future<void> loadLocalMessages() async {
@@ -292,7 +357,9 @@ class ChatController extends GetxController {
           return decoded is Map<String, dynamic> &&
                   decoded['messageId'] != null &&
                   decoded['senderId'] != null &&
-                  decoded['receiverId'] != null
+                  decoded['receiverId'] != null &&
+                  decoded['message'] != null &&
+                  decoded['timestamp'] != null
               ? decoded
               : <String, dynamic>{};
         } catch (e) {
@@ -300,16 +367,21 @@ class ChatController extends GetxController {
           return <String, dynamic>{};
         }
       }).where((m) => m.isNotEmpty).toList();
-      messages.assignAll(decodedMessages);
+      // Deduplicate by messageId
+      final uniqueMessages = <String, Map<String, dynamic>>{};
+      for (var msg in decodedMessages) {
+        uniqueMessages[msg['messageId']] = msg;
+      }
+      messages.assignAll(uniqueMessages.values);
+      print('ChatController: Loaded ${uniqueMessages.length} local messages');
       _updateAllUsersLastMessageTime();
-      print('ChatController: Loaded ${decodedMessages.length} local messages');
     } catch (e) {
       print('ChatController: loadLocalMessages error: $e');
       errorMessage.value = 'failed_to_load_messages'.tr;
     }
   }
 
-  Future<void> fetchMessagesFromBackend(String receiverId, {int retryCount = 0, int maxRetries = 3}) async {
+  Future<void> fetchMessagesFromBackend(String receiverId, {int retryCount = 0, int maxRetries = 5}) async {
     if (currentUserId == null || receiverId.isEmpty) {
       print('ChatController: Invalid fetch params: userId=$currentUserId, receiverId=$receiverId');
       return;
@@ -320,26 +392,42 @@ class ChatController extends GetxController {
       Get.offAllNamed(AppRoutes.getSignInPage());
       return;
     }
+    final isValidReceiver = allUsers.any((u) => u['email'] == receiverId);
+    if (!isValidReceiver) {
+      print('ChatController: Invalid receiverId: $receiverId');
+      errorMessage.value = 'invalid_receiver'.tr;
+      Get.snackbar('Error', 'invalid_receiver'.tr, snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     isLoadingMessages.value = true;
     try {
       final backendMessages = await apiService.getMessages(currentUserId!, receiverId);
-      final newMessages = backendMessages.where((msg) => !messages.any((m) => m['messageId'] == msg['messageId'])).toList();
-      if (newMessages.isEmpty && backendMessages.isEmpty) {
-        messages.removeWhere((m) => m['receiverId'] == receiverId || m['senderId'] == receiverId);
-        Get.snackbar('Info', 'No messages found', snackPosition: SnackPosition.BOTTOM);
-      } else {
-        messages.addAll(newMessages);
-        for (var msg in newMessages) {
-          await saveLocalMessage(msg);
-        }
-        _updateUserLastMessageTime({
-          'senderId': newMessages.last['senderId'],
-          'receiverId': newMessages.last['receiverId'],
-          'timestamp': newMessages.last['timestamp'],
-        });
+      print('ChatController: Received ${backendMessages.length} messages from backend');
+      final existingMessages = Map<String, Map<String, dynamic>>.fromEntries(
+        messages.where((m) => m['senderId'] == receiverId || m['receiverId'] == receiverId).map(
+              (m) => MapEntry(m['messageId'], Map<String, dynamic>.from(m)),
+            ),
+      );
+      final newMessages = backendMessages.where((msg) => !existingMessages.containsKey(msg['messageId'])).toList();
+      // Update messages with backend data
+      for (var msg in backendMessages) {
+        existingMessages[msg['messageId']] = Map<String, dynamic>.from(msg);
       }
+      // Update messages list
+      messages.removeWhere((m) => m['senderId'] == receiverId || m['receiverId'] == receiverId);
+      messages.addAll(existingMessages.values);
+      print('ChatController: Updated messages list with ${existingMessages.length} messages for $receiverId');
+      // Save new messages to local storage
+      for (var msg in newMessages) {
+        await saveLocalMessage(msg);
+      }
+      _updateUserLastMessageTime({
+        'senderId': newMessages.isNotEmpty ? newMessages.last['senderId'] : currentUserId,
+        'receiverId': receiverId,
+        'timestamp': newMessages.isNotEmpty ? newMessages.last['timestamp'] : DateTime.now().toIso8601String(),
+      });
       errorMessage.value = '';
-      print('ChatController: Fetched ${newMessages.length} new messages for $receiverId');
+      print('ChatController: Successfully fetched ${newMessages.length} new messages for $receiverId');
     } catch (e) {
       print('ChatController: fetchMessagesFromBackend error: $e');
       if (e.toString().contains('Invalid token') && retryCount < maxRetries) {
@@ -353,16 +441,15 @@ class ChatController extends GetxController {
           errorMessage.value = 'session_expired'.tr;
           Get.offAllNamed(AppRoutes.getSignInPage());
         }
-      } else if (e.toString().contains('Server error') && retryCount < maxRetries) {
-        print('ChatController: Server error, retrying ${retryCount + 1}/$maxRetries');
+      } else if (retryCount < maxRetries && !e.toString().contains('ScrollController')) {
+        print('ChatController: Retrying fetchMessages ${retryCount + 1}/$maxRetries');
         await Future.delayed(Duration(seconds: (retryCount + 1) * 2));
         await fetchMessagesFromBackend(receiverId, retryCount: retryCount + 1, maxRetries: maxRetries);
-      } else if (e.toString().contains('404')) {
-        messages.removeWhere((m) => m['receiverId'] == receiverId || m['senderId'] == receiverId);
-        Get.snackbar('Info', 'No messages found', snackPosition: SnackPosition.BOTTOM);
       } else {
+        print('ChatController: Using local messages for $receiverId');
         errorMessage.value = 'failed_to_load_messages'.tr;
-        Get.snackbar('Error', 'failed_to_load_messages'.tr, snackPosition: SnackPosition.BOTTOM);
+        await loadLocalMessages(); // Ensure local messages are reloaded
+        Get.snackbar('Warning', 'showing_local_messages'.tr, snackPosition: SnackPosition.BOTTOM);
       }
     } finally {
       isLoadingMessages.value = false;
@@ -376,9 +463,11 @@ class ChatController extends GetxController {
     }
     final offlineKey = 'offline_${currentUserId!}';
     final stored = storageService.box.read(offlineKey) ?? <String>[];
-    stored.add(jsonEncode(msg));
-    await storageService.box.write(offlineKey, stored);
-    print('ChatController: Stored offline message: ${msg['messageId']}');
+    if (!stored.any((s) => jsonDecode(s)['messageId'] == msg['messageId'])) {
+      stored.add(jsonEncode(msg));
+      await storageService.box.write(offlineKey, stored);
+      print('ChatController: Stored offline message: ${msg['messageId']}');
+    }
   }
 
   Future<void> syncLocalMessages() async {
@@ -388,13 +477,22 @@ class ChatController extends GetxController {
     }
     final offlineKey = 'offline_${currentUserId!}';
     final stored = storageService.box.read(offlineKey) ?? <String>[];
-    for (var msgStr in List.from(stored)) {
-      final msg = jsonDecode(msgStr) as Map<String, dynamic>;
-      socketClient.sendMessage(msg['senderId'], msg['receiverId'], msg['message'], msg['messageId']);
-      stored.remove(msgStr);
+    final messagesToSend = List.from(stored);
+    for (var msgStr in messagesToSend) {
+      try {
+        final msg = jsonDecode(msgStr) as Map<String, dynamic>;
+        if (!messages.any((m) => m['messageId'] == msg['messageId']) ||
+            messages.firstWhere((m) => m['messageId'] == msg['messageId'])['delivered'] == false) {
+          socketClient.sendMessage(msg['senderId'], msg['receiverId'], msg['message'], msg['messageId']);
+          print('ChatController: Sent offline message: ${msg['messageId']}');
+        }
+        stored.remove(msgStr);
+      } catch (e) {
+        print('ChatController: Error syncing message: $msgStr, error: $e');
+      }
     }
     await storageService.box.write(offlineKey, stored);
-    print('ChatController: Synced ${stored.length} offline messages');
+    print('ChatController: Synced ${messagesToSend.length} offline messages');
   }
 
   int getUnseenMessageCount(String receiverId) {
@@ -411,7 +509,10 @@ class ChatController extends GetxController {
   }
 
   void selectReceiver(String receiverId) async {
-    if (receiverId.isEmpty || currentUserId == null) return;
+    if (receiverId.isEmpty || currentUserId == null) {
+      print('ChatController: Invalid selectReceiver: receiverId=$receiverId, userId=$currentUserId');
+      return;
+    }
     selectedReceiverId.value = receiverId;
     await fetchMessagesFromBackend(receiverId);
     final unreadMessages = messages
@@ -425,7 +526,7 @@ class ChatController extends GetxController {
       msg['read'] = true;
       await saveLocalMessage(msg);
     }
-    print('ChatController: Selected receiver: $receiverId');
+    print('ChatController: Selected receiver: $receiverId, messages: ${messages.length}');
   }
 
   void clearReceiver() {
@@ -462,7 +563,7 @@ class ChatController extends GetxController {
       final aTime = _parseTimestamp(a['lastMessageTime']);
       final bTime = _parseTimestamp(b['lastMessageTime']);
       if (aTime.isAtSameMomentAs(bTime)) return 0;
-      return bTime.compareTo(aTime); // Most recent first
+      return bTime.compareTo(aTime);
     });
     allUsers.refresh();
   }

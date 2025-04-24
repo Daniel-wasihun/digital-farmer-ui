@@ -52,18 +52,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeController themeController = Get.find<ThemeController>();
 
-    // Use GetBuilder to avoid early Obx reactivity
-    return GetBuilder<ThemeController>(
-      builder: (controller) => GetMaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'auth_app'.tr,
-        translations: AppTranslations(),
-        locale: Get.deviceLocale,
-        fallbackLocale: const Locale('en', 'US'),
-        initialRoute: AppRoutes.getInitialRoute(),
-        getPages: AppRoutes.routes,
-        theme: controller.getTheme(),
-      ),
-    );
+    return Obx(() => GetMaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'auth_app'.tr,
+          translations: AppTranslations(),
+          locale: Get.deviceLocale,
+          fallbackLocale: const Locale('en', 'US'),
+          initialRoute: AppRoutes.getInitialRoute(),
+          getPages: AppRoutes.routes,
+          theme: themeController.getTheme(),
+          darkTheme: themeController.getDarkTheme(),
+          themeMode: themeController.isDarkMode.value ? ThemeMode.dark : ThemeMode.light,
+        ));
   }
 }

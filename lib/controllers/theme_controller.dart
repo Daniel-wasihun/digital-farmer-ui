@@ -15,11 +15,14 @@ class ThemeController extends GetxController {
   void toggleTheme() {
     isDarkMode.value = !isDarkMode.value;
     storage.write('isDarkMode', isDarkMode.value);
-    Get.changeTheme(getTheme());
   }
 
   ThemeData getTheme() {
     return isDarkMode.value ? _darkTheme : _lightTheme;
+  }
+
+  ThemeData getDarkTheme() {
+    return _darkTheme;
   }
 
   final ThemeData _lightTheme = ThemeData(
