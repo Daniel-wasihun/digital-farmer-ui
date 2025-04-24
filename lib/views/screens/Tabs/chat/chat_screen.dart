@@ -80,8 +80,8 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       final newMessages = chatController.messages
           .where((msg) =>
-              msg['senderId']?.toString().toLowerCase() == widget.receiverId.toLowerCase() &&
-              msg['receiverId']?.toString().toLowerCase() == chatController.currentUserId?.toLowerCase() &&
+              msg['senderId']?.toString() == widget.receiverId &&
+              msg['receiverId']?.toString() == chatController.currentUserId &&
               !(msg['read'] as bool? ?? false))
           .toList();
       final isAtBottom = _scrollController.hasClients &&
@@ -157,6 +157,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       final messages = chatController.messages
                           .where((msg) => _isValidMessage(msg))
                           .toList();
+                      print('ChatScreen: Filtered ${messages.length} messages for ${widget.receiverId}: $messages');
                       if (messages.isEmpty) {
                         return Center(
                           child: Text(
@@ -183,8 +184,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             return _buildDateHeader(item['value'], scaleFactor, context);
                           }
                           final msg = item['message'];
-                          final isSent = msg['senderId'].toString().toLowerCase() ==
-                              chatController.currentUserId?.toLowerCase();
+                          final isSent = msg['senderId'].toString() ==
+                              chatController.currentUserId;
                           return _MessageBubble(
                             key: ValueKey(msg['messageId']),
                             message: msg,
@@ -273,15 +274,19 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   bool _isValidMessage(Map<String, dynamic> msg) {
-    return msg['senderId'] != null &&
+    final isValid = msg['senderId'] != null &&
         msg['receiverId'] != null &&
         msg['message'] != null &&
         msg['messageId'] != null &&
         msg['timestamp'] != null &&
-        ((msg['senderId'].toString().toLowerCase() == chatController.currentUserId?.toLowerCase() &&
-                msg['receiverId'].toString().toLowerCase() == widget.receiverId.toLowerCase()) ||
-            (msg['senderId'].toString().toLowerCase() == widget.receiverId.toLowerCase() &&
-                msg['receiverId'].toString().toLowerCase() == chatController.currentUserId?.toLowerCase()));
+        ((msg['senderId'].toString() == chatController.currentUserId &&
+                msg['receiverId'].toString() == widget.receiverId) ||
+            (msg['senderId'].toString() == widget.receiverId &&
+                msg['receiverId'].toString() == chatController.currentUserId));
+    if (!isValid) {
+      print('ChatScreen: Invalid message: $msg');
+    }
+    return isValid;
   }
 
   Map<String, List<Map<String, dynamic>>> _groupMessagesByDate(List<Map<String, dynamic>> messages) {

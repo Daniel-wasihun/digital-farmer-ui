@@ -97,8 +97,8 @@ class ChatController extends GetxController {
     isLoadingUsers.value = true;
     try {
       final response = await apiService.getUsers();
-      final users = (response).cast<Map<String, dynamic>>();
-      allUsers.assignAll(users.where((Map<String, dynamic> u) {
+      final users = response.cast<Map<String, dynamic>>();
+      allUsers.assignAll(users.where((u) {
         final email = u['email']?.toString() ?? '';
         return email != currentUserId && email.isNotEmpty;
       }).map((u) => {
@@ -293,6 +293,7 @@ class ChatController extends GetxController {
       messages.add(message);
       await saveLocalMessage(message);
       _updateUserLastMessageTime(message);
+      messages.refresh(); // Ensure UI updates
       print('ChatController: Added message: $messageId to $receiverId');
     }
     if (isConnected.value && socketClient.socket?.connected == true) {
@@ -329,7 +330,6 @@ class ChatController extends GetxController {
     }
     final key = 'messages_${currentUserId!}';
     final stored = storageService.box.read(key) ?? <String>[];
-    // Ensure no duplicates by messageId
     stored.removeWhere((s) {
       try {
         return jsonDecode(s)['messageId'] == message['messageId'];
@@ -367,7 +367,6 @@ class ChatController extends GetxController {
           return <String, dynamic>{};
         }
       }).where((m) => m.isNotEmpty).toList();
-      // Deduplicate by messageId
       final uniqueMessages = <String, Map<String, dynamic>>{};
       for (var msg in decodedMessages) {
         uniqueMessages[msg['messageId']] = msg;
@@ -375,6 +374,7 @@ class ChatController extends GetxController {
       messages.assignAll(uniqueMessages.values);
       print('ChatController: Loaded ${uniqueMessages.length} local messages');
       _updateAllUsersLastMessageTime();
+      messages.refresh();
     } catch (e) {
       print('ChatController: loadLocalMessages error: $e');
       errorMessage.value = 'failed_to_load_messages'.tr;
@@ -402,32 +402,37 @@ class ChatController extends GetxController {
     isLoadingMessages.value = true;
     try {
       final backendMessages = await apiService.getMessages(currentUserId!, receiverId);
-      print('ChatController: Received ${backendMessages.length} messages from backend');
+      print('ChatController: Received ${backendMessages.length} messages from backend: $backendMessages');
       final existingMessages = Map<String, Map<String, dynamic>>.fromEntries(
-        messages.where((m) => m['senderId'] == receiverId || m['receiverId'] == receiverId).map(
-              (m) => MapEntry(m['messageId'], Map<String, dynamic>.from(m)),
-            ),
+        messages.map((m) => MapEntry(m['messageId'], Map<String, dynamic>.from(m))),
       );
-      final newMessages = backendMessages.where((msg) => !existingMessages.containsKey(msg['messageId'])).toList();
-      // Update messages with backend data
       for (var msg in backendMessages) {
-        existingMessages[msg['messageId']] = Map<String, dynamic>.from(msg);
+        if (msg['senderId'] != null && msg['receiverId'] != null) {
+          existingMessages[msg['messageId']] = {
+            'senderId': msg['senderId'].toString(),
+            'receiverId': msg['receiverId'].toString(),
+            'message': msg['message']?.toString() ?? '',
+            'messageId': msg['messageId']?.toString() ?? Uuid().v4(),
+            'timestamp': msg['timestamp']?.toString() ?? DateTime.now().toIso8601String(),
+            'delivered': msg['delivered'] as bool? ?? false,
+            'read': msg['read'] as bool? ?? false,
+          };
+        }
       }
-      // Update messages list
-      messages.removeWhere((m) => m['senderId'] == receiverId || m['receiverId'] == receiverId);
-      messages.addAll(existingMessages.values);
-      print('ChatController: Updated messages list with ${existingMessages.length} messages for $receiverId');
-      // Save new messages to local storage
-      for (var msg in newMessages) {
-        await saveLocalMessage(msg);
+      messages.assignAll(existingMessages.values);
+      for (var msg in backendMessages) {
+        if (!existingMessages.containsKey(msg['messageId'])) {
+          await saveLocalMessage(msg);
+        }
       }
       _updateUserLastMessageTime({
-        'senderId': newMessages.isNotEmpty ? newMessages.last['senderId'] : currentUserId,
+        'senderId': backendMessages.isNotEmpty ? backendMessages.last['senderId'] : currentUserId,
         'receiverId': receiverId,
-        'timestamp': newMessages.isNotEmpty ? newMessages.last['timestamp'] : DateTime.now().toIso8601String(),
+        'timestamp': backendMessages.isNotEmpty ? backendMessages.last['timestamp'] : DateTime.now().toIso8601String(),
       });
       errorMessage.value = '';
-      print('ChatController: Successfully fetched ${newMessages.length} new messages for $receiverId');
+      print('ChatController: Updated ${existingMessages.length} messages for $receiverId');
+      messages.refresh();
     } catch (e) {
       print('ChatController: fetchMessagesFromBackend error: $e');
       if (e.toString().contains('Invalid token') && retryCount < maxRetries) {
@@ -441,14 +446,14 @@ class ChatController extends GetxController {
           errorMessage.value = 'session_expired'.tr;
           Get.offAllNamed(AppRoutes.getSignInPage());
         }
-      } else if (retryCount < maxRetries && !e.toString().contains('ScrollController')) {
+      } else if (retryCount < maxRetries) {
         print('ChatController: Retrying fetchMessages ${retryCount + 1}/$maxRetries');
         await Future.delayed(Duration(seconds: (retryCount + 1) * 2));
         await fetchMessagesFromBackend(receiverId, retryCount: retryCount + 1, maxRetries: maxRetries);
       } else {
         print('ChatController: Using local messages for $receiverId');
         errorMessage.value = 'failed_to_load_messages'.tr;
-        await loadLocalMessages(); // Ensure local messages are reloaded
+        await loadLocalMessages();
         Get.snackbar('Warning', 'showing_local_messages'.tr, snackPosition: SnackPosition.BOTTOM);
       }
     } finally {
@@ -527,6 +532,7 @@ class ChatController extends GetxController {
       await saveLocalMessage(msg);
     }
     print('ChatController: Selected receiver: $receiverId, messages: ${messages.length}');
+    messages.refresh();
   }
 
   void clearReceiver() {
