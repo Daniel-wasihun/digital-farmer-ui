@@ -3,15 +3,15 @@ import 'package:get/get.dart';
 import '../../../../controllers/weather_controller.dart';
 import 'package:intl/intl.dart';
 
-// Utility method to capitalize the first letter of a string
+// Utility to capitalize the first letter of a string
 String capitalizeFirstLetter(String text) =>
     text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
 
-// Method to format location name with proper capitalization
+// Format location name with capitalization
 String getFormattedLocationName(String? location) =>
     location != null ? capitalizeFirstLetter(location) : 'Unknown';
 
-// Method to get the last 7 days' dates
+// Generate dates for the last 7 days
 List<String> getLast7DaysDates() => List.generate(
       7,
       (i) => DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: i))),
@@ -28,42 +28,52 @@ class WeatherTab extends StatelessWidget {
     final isLargeTablet = size.width > 900;
     final isSmallPhone = size.width < 360;
 
+    // Responsive scaling factor for UI elements
     final double scaleFactor = isLargeTablet ? 1.2 : isTablet ? 1.1 : isSmallPhone ? 0.9 : 1.0;
-    final double padding = isLargeTablet ? 20.0 : isTablet ? 16.0 : isSmallPhone ? 10.0 : 14.0;
+    // Responsive padding
+    final double padding = isLargeTablet ? 24.0 : isTablet ? 20.0 : isSmallPhone ? 12.0 : 16.0;
 
-    const double baseHeaderFontSize = 24.0;
-    const double baseTitleFontSize = 14.0;
-    const double baseSubtitleFontSize = 10.0;
-    const double baseDetailFontSize = 8.0;
+    // Base font sizes
+    const double baseHeaderFontSize = 26.0;
+    const double baseTitleFontSize = 16.0;
+    const double baseSubtitleFontSize = 12.0;
+    const double baseDetailFontSize = 10.0;
 
+    // Scaled font sizes
     final double headerFontSize = baseHeaderFontSize * scaleFactor;
     final double titleFontSize = baseTitleFontSize * scaleFactor;
     final double subtitleFontSize = baseSubtitleFontSize * scaleFactor;
     final double detailFontSize = baseDetailFontSize * scaleFactor;
-    final double historicalDetailFontSize = baseDetailFontSize * scaleFactor * 0.9;
 
     final theme = Theme.of(context);
     final bool isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode
-                ? [Colors.grey[900]!, Colors.grey[850]!]
-                : [Colors.green[50]!.withOpacity(0.8), Colors.green[200]!.withOpacity(0.9)],
+      body: Stack(
+        children: [
+          // Background painter for cloud effects
+          CustomPaint(
+            painter: WeatherBackgroundPainter(isDarkMode: isDarkMode),
+            size: Size.infinite,
           ),
-        ),
-        child: Stack(
-          children: [
-            SafeArea(
+          // Gradient background
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDarkMode
+                    ? [Colors.grey[800]!.withOpacity(0.8), Colors.grey[850]!.withOpacity(0.8)]
+                    : [Colors.white.withOpacity(0.9), Colors.grey[50]!.withOpacity(0.9)],
+              ),
+            ),
+            child: SafeArea(
               child: Obx(() {
+                // Loading state
                 if (controller.isLoading.value) {
                   return Center(
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.green[300]! : Colors.green[500]!),
                       strokeWidth: 4 * scaleFactor,
                     ),
                   );
@@ -72,6 +82,7 @@ class WeatherTab extends StatelessWidget {
                 final weatherData = controller.weatherData.value;
                 final hasValidData = weatherData != null && controller.isValidWeatherData(weatherData);
 
+                // Error state
                 if (!hasValidData && controller.errorMessage.value.isNotEmpty) {
                   return Center(
                     child: Column(
@@ -79,7 +90,7 @@ class WeatherTab extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.error_outline,
-                          size: 50 * scaleFactor,
+                          size: 60 * scaleFactor,
                           color: theme.colorScheme.error,
                         ),
                         SizedBox(height: padding),
@@ -87,7 +98,7 @@ class WeatherTab extends StatelessWidget {
                           controller.errorMessage.value,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: subtitleFontSize,
-                            color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.7) : theme.colorScheme.onSurface,
+                            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                             fontWeight: FontWeight.w500,
                           ),
                           textAlign: TextAlign.center,
@@ -100,16 +111,16 @@ class WeatherTab extends StatelessWidget {
                             city: 'weldiya',
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: theme.colorScheme.primary,
-                            padding: EdgeInsets.symmetric(horizontal: 20 * scaleFactor, vertical: 10 * scaleFactor),
+                            backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+                            padding: EdgeInsets.symmetric(horizontal: 24 * scaleFactor, vertical: 12 * scaleFactor),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * scaleFactor)),
-                            elevation: 5,
+                            elevation: 4,
                           ),
                           child: Text(
                             'Retry'.tr,
                             style: TextStyle(
                               fontSize: subtitleFontSize,
-                              color: theme.colorScheme.onPrimary,
+                              color: Colors.white,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -119,22 +130,31 @@ class WeatherTab extends StatelessWidget {
                   );
                 }
 
+                // No data state
                 if (!hasValidData) {
                   return Center(
                     child: Text(
                       'No Weather Data Available'.tr,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: subtitleFontSize,
-                        color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.7) : theme.colorScheme.onSurface,
+                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                       ),
                     ),
                   );
                 }
 
+                final forecast = weatherData['forecast'] as List;
+                final cardLabels = [
+                  'Today'.tr,
+                  'Tomorrow'.tr,
+                  forecast.length > 2 ? forecast[2]['date'].toString() : 'Day After'.tr,
+                ];
+
                 return SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   child: Column(
                     children: [
+                      // Current Weather Header
                       Padding(
                         padding: EdgeInsets.all(padding),
                         child: Row(
@@ -147,35 +167,36 @@ class WeatherTab extends StatelessWidget {
                                   children: [
                                     Icon(
                                       Icons.location_on,
-                                      size: 24 * scaleFactor,
-                                      color: theme.colorScheme.primary,
+                                      size: 28 * scaleFactor,
+                                      color: isDarkMode ? Colors.green[300] : Colors.green[500],
                                     ),
                                     SizedBox(width: 8 * scaleFactor),
                                     Text(
                                       getFormattedLocationName(weatherData['location']?['name']?.toString()),
                                       style: theme.textTheme.headlineSmall?.copyWith(
                                         fontSize: headerFontSize,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-                                        shadows: const [
+                                        fontWeight: FontWeight.w800,
+                                        color: isDarkMode ? Colors.white : Colors.grey[900],
+                                        shadows: [
                                           Shadow(
-                                            blurRadius: 4.0,
-                                            color: Colors.black26,
-                                            offset: Offset(2, 2),
+                                            blurRadius: 6.0,
+                                            color: isDarkMode ? Colors.black54 : Colors.black26,
+                                            offset: const Offset(2, 2),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 4 * scaleFactor),
+                                SizedBox(height: 6 * scaleFactor),
                                 Row(
                                   children: [
                                     Text(
-                                      weatherData['location']?['local_time']?.toString() ?? DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+                                      weatherData['location']?['local_time']?.toString() ??
+                                          DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
                                       style: theme.textTheme.bodyMedium?.copyWith(
                                         fontSize: detailFontSize,
-                                        color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
+                                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                       ),
                                     ),
                                     if (controller.isOffline.value) ...[
@@ -196,7 +217,8 @@ class WeatherTab extends StatelessWidget {
                             IconButton(
                               icon: Icon(
                                 Icons.refresh,
-                                size: 24 * scaleFactor,
+                                size: 28 * scaleFactor,
+                                color: isDarkMode ? Colors.green[300] : Colors.green[500],
                               ),
                               onPressed: () => controller.fetchWeatherData(
                                 latitude: 11.7833,
@@ -207,883 +229,439 @@ class WeatherTab extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: padding),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              margin: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Padding(
-                                padding: EdgeInsets.all(padding * 1.2),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // Current Weather Card
+                      SizedBox(
+                        height: (size.height * 0.15).clamp(100, 140),
+                        child: Card(
+                          elevation: 3,
+                          color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                          child: Padding(
+                            padding: EdgeInsets.all(padding * 0.8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
                                   children: [
-                                    Column(
-                                      children: [
-                                        AnimatedSwitcher(
-                                          duration: const Duration(milliseconds: 500),
-                                          transitionBuilder: (Widget child, Animation<double> animation) =>
-                                              ScaleTransition(scale: animation, child: child),
-                                          child: Icon(
-                                            _getWeatherIcon(weatherData['current']?['condition']?.toString() ?? 'sunny'),
-                                            key: ValueKey(weatherData['current']?['condition'] ?? 'sunny'),
-                                            color: theme.colorScheme.secondary,
-                                            size: 60 * scaleFactor,
-                                          ),
-                                        ),
-                                        SizedBox(height: 8 * scaleFactor),
-                                        Text(
-                                          (weatherData['current']?['condition']?.toString() ?? 'sunny').toLowerCase().tr,
-                                          style: theme.textTheme.bodyLarge?.copyWith(
-                                            fontSize: subtitleFontSize,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-                                          ),
-                                        ),
-                                      ],
+                                    AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 500),
+                                      transitionBuilder: (Widget child, Animation<double> animation) =>
+                                          ScaleTransition(scale: animation, child: child),
+                                      child: Icon(
+                                        _getWeatherIcon(weatherData['current']?['condition']?.toString() ?? 'sunny'),
+                                        key: ValueKey(weatherData['current']?['condition'] ?? 'sunny'),
+                                        color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                        size: 48 * scaleFactor,
+                                      ),
                                     ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          '${weatherData['current']?['temperature']?['c']?.toString() ?? 'N/A'}°C',
-                                          style: theme.textTheme.displaySmall?.copyWith(
-                                            fontSize: headerFontSize * 1.5,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Feels Like: ${weatherData['current']?['feels_like']?['c']?.toString() ?? 'N/A'}°C'.tr,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontSize: detailFontSize,
-                                            color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                          ),
-                                        ),
-                                        Text(
-                                          'Humidity: ${weatherData['current']?['humidity']?.toString() ?? 'N/A'}%'.tr,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontSize: detailFontSize,
-                                            color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                          ),
-                                        ),
-                                      ],
+                                    SizedBox(height: 4 * scaleFactor),
+                                    Text(
+                                      (weatherData['current']?['condition']?.toString() ?? 'sunny').toLowerCase().tr,
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontSize: subtitleFontSize * 0.9,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDarkMode ? Colors.white : Colors.grey[900],
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              margin: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Padding(
-                                padding: EdgeInsets.all(padding),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.question_answer,
-                                          size: 18 * scaleFactor,
-                                          color: theme.colorScheme.primary,
-                                        ),
-                                        SizedBox(width: 8 * scaleFactor),
-                                        Text(
-                                          'Ask a Question'.tr,
-                                          style: theme.textTheme.titleLarge?.copyWith(
-                                            fontSize: titleFontSize,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8 * scaleFactor),
-                                    TextField(
-                                      controller: controller.questionController,
-                                      decoration: InputDecoration(
-                                        hintText: 'e.g., How is the weather today?'.tr,
-                                        hintStyle: TextStyle(
-                                          fontSize: detailFontSize,
-                                          color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.5) : theme.colorScheme.onSurface.withOpacity(0.5),
-                                        ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12 * scaleFactor),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.white.withOpacity(0.1),
-                                        suffixIcon: IconButton(
-                                          icon: Icon(
-                                            Icons.send,
-                                            size: 18 * scaleFactor,
-                                            color: theme.colorScheme.primary,
-                                          ),
-                                          onPressed: () => controller.askWeatherQuestion(),
-                                        ),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          vertical: 8 * scaleFactor,
-                                          horizontal: 10 * scaleFactor,
-                                        ),
+                                    Text(
+                                      '${weatherData['current']?['temperature']?['c']?.toString() ?? 'N/A'}°C',
+                                      style: theme.textTheme.displaySmall?.copyWith(
+                                        fontSize: headerFontSize * 1.2,
+                                        fontWeight: FontWeight.w900,
+                                        color: isDarkMode ? Colors.white : Colors.grey[900],
                                       ),
-                                      style: TextStyle(
+                                    ),
+                                    Text(
+                                      'Feels Like: ${weatherData['current']?['feels_like']?['c']?.toString() ?? 'N/A'}°C'.tr,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontSize: detailFontSize * 0.9,
+                                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                      ),
+                                    ),
+                                    Text(
+                                      'Humidity: ${weatherData['current']?['humidity']?.toString() ?? 'N/A'}%'.tr,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontSize: detailFontSize * 0.9,
+                                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),  
+                      // Question Input Card
+                      AnimatedOpacity(
+                        opacity: 1.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Card(
+                          elevation: 3,
+                          color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                          child: Padding(
+                            padding: EdgeInsets.all(padding),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.question_answer,
+                                      size: 20 * scaleFactor,
+                                      color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                    ),
+                                    SizedBox(width: 8 * scaleFactor),
+                                    Text(
+                                      'Ask a Question'.tr,
+                                      style: theme.textTheme.titleLarge?.copyWith(
+                                        fontSize: titleFontSize,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDarkMode ? Colors.white : Colors.grey[900],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8 * scaleFactor),
+                                TextField(
+                                  controller: controller.questionController,
+                                  decoration: InputDecoration(
+                                    hintText: 'e.g., How is the weather today?'.tr,
+                                    hintStyle: TextStyle(
+                                      fontSize: detailFontSize,
+                                      color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12 * scaleFactor),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    filled: true,
+                                    fillColor: isDarkMode ? Colors.grey[700] : Colors.grey[100]!.withOpacity(0.9),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        Icons.send,
+                                        size: 20 * scaleFactor,
+                                        color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                      ),
+                                      onPressed: () => controller.askWeatherQuestion(),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 16 * scaleFactor,
+                                      horizontal: 12 * scaleFactor,
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: detailFontSize,
+                                    fontFamily: Get.locale?.languageCode == 'am' ? 'NotoSansEthiopic' : null,
+                                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                                  ),
+                                  onSubmitted: (value) => controller.askWeatherQuestion(),
+                                ),
+                                SizedBox(height: 8 * scaleFactor),
+                                if (controller.isAskLoading.value)
+                                  Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3 * scaleFactor,
+                                      valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.green[300]! : Colors.green[500]!),
+                                    ),
+                                  ),
+                                if (controller.askAnswer.value != null)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 8 * scaleFactor),
+                                    child: Text(
+                                      controller.askAnswer.value!,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
                                         fontSize: detailFontSize,
-                                        color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-                                      ),
-                                      onSubmitted: (value) => controller.askWeatherQuestion(),
-                                    ),
-                                    SizedBox(height: 8 * scaleFactor),
-                                    ElevatedButton(
-                                      onPressed: () => controller.askCropQuestion('teff'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: theme.colorScheme.primary,
-                                        padding: EdgeInsets.symmetric(horizontal: 20 * scaleFactor, vertical: 10 * scaleFactor),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * scaleFactor)),
-                                      ),
-                                      child: Text(
-                                        'Get Teff Tips'.tr,
-                                        style: TextStyle(
-                                          fontSize: subtitleFontSize,
-                                          color: theme.colorScheme.onPrimary,
-                                        ),
+                                        fontFamily: Get.locale?.languageCode == 'am' ? 'NotoSansEthiopic' : null,
+                                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                       ),
                                     ),
-                                    SizedBox(height: 8 * scaleFactor),
-                                    if (controller.isAskLoading.value)
-                                      Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 3 * scaleFactor,
-                                          valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-                                        ),
-                                      ),
-                                    if (controller.askAnswer.value != null)
-                                      Padding(
-                                        padding: EdgeInsets.only(top: 8 * scaleFactor),
-                                        child: Text(
-                                          controller.askAnswer.value!,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontSize: detailFontSize,
-                                            color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                              ],
                             ),
+                          ),
+                        ),
+                      ),
+                      // 3-Day Forecast Section
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: padding, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Row(
                               children: [
                                 Icon(
                                   Icons.calendar_today,
-                                  size: 18 * scaleFactor,
-                                  color: theme.colorScheme.primary,
+                                  size: 20 * scaleFactor,
+                                  color: isDarkMode ? Colors.green[300] : Colors.green[500],
                                 ),
                                 SizedBox(width: 8 * scaleFactor),
                                 Text(
                                   '3-Day Forecast'.tr,
                                   style: theme.textTheme.titleLarge?.copyWith(
                                     fontSize: titleFontSize,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDarkMode ? Colors.white : Colors.grey[900],
                                   ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8 * scaleFactor),
-                            (weatherData['forecast'] is List && (weatherData['forecast'] as List).isNotEmpty)
-                                ? ConstrainedBox(
-                                    constraints: BoxConstraints(maxWidth: size.width),
-                                    child: IntrinsicWidth(
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          for (var index = 0;
-                                              index <
-                                                  ((weatherData['forecast'] as List).length > 3
-                                                      ? 3
-                                                      : (weatherData['forecast'] as List).length);
-                                              index++)
-                                            Expanded(
-                                              child: Card(
-                                                elevation: 2,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(8 * scaleFactor),
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
+                            SizedBox(height: 12 * scaleFactor),
+                            SizedBox(
+                              height: 100 * scaleFactor,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                physics: const ClampingScrollPhysics(),
+                                itemCount: forecast.length > 3 ? 3 : forecast.length,
+                                itemBuilder: (context, index) {
+                                  final dayData = forecast[index]['day'];
+                                  final astroData = forecast[index]['astro'];
+                                  final hourlyData = forecast[index]['hourly'];
+                                  // Wider card width, responsive to screen size
+                                  final double cardWidth = (size.width * 0.45).clamp(220, 250);
+                                  return Padding(
+                                    padding: EdgeInsets.only(right: 0 * scaleFactor),
+                                    child: AnimatedOpacity(
+                                      opacity: 1.0,
+                                      duration: const Duration(milliseconds: 300),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showModalBottomSheet(
+                                            context: context,
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.transparent,
+                                            builder: (context) => ForecastDetailSheet(
+                                              label: cardLabels[index],
+                                              dayData: dayData,
+                                              astroData: astroData,
+                                              hourlyData: hourlyData,
+                                              theme: theme,
+                                              isDarkMode: isDarkMode,
+                                              scaleFactor: scaleFactor,
+                                              padding: padding,
+                                              headerFontSize: headerFontSize,
+                                              subtitleFontSize: subtitleFontSize,
+                                              detailFontSize: detailFontSize,
+                                              titleFontSize: titleFontSize,
+                                            ),
+                                          );
+                                        },
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 300),
+                                          width: cardWidth,
+                                          child: Card(
+                                            elevation: 4,
+                                            color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              // padding: EdgeInsets.all(10 * scaleFactor),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  // Centered day header
+                                                  Text(
+                                                    cardLabels[index],
+                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                      fontSize: detailFontSize * 1.3,
+                                                      fontWeight: FontWeight.w900,
+                                                      color: isDarkMode ? Colors.white : Colors.grey[900],
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  SizedBox(height: 4 * scaleFactor),
+                                                  // Icons   weather
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.start,
                                                     children: [
-                                                      Text(
-                                                        (weatherData['forecast'] as List)[index]['date']?.toString() ?? 'N/A',
-                                                        style: theme.textTheme.bodySmall?.copyWith(
-                                                          fontSize: detailFontSize,
-                                                          color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                                        ),
-                                                        textAlign: TextAlign.center,
-                                                      ),
-                                                      SizedBox(height: 4 * scaleFactor),
+                                                      SizedBox(width: 4 * scaleFactor),
                                                       AnimatedSwitcher(
                                                         duration: const Duration(milliseconds: 500),
                                                         transitionBuilder: (Widget child, Animation<double> animation) =>
                                                             ScaleTransition(scale: animation, child: child),
                                                         child: Icon(
-                                                          _getWeatherIcon(
-                                                              (weatherData['forecast'] as List)[index]['day']?['condition']?.toString() ??
-                                                                  'sunny'),
-                                                          key: ValueKey((weatherData['forecast'] as List)[index]['day']?['condition'] ?? 'sunny'),
-                                                          color: theme.colorScheme.secondary,
-                                                          size: 20 * scaleFactor,
+                                                          _getWeatherIcon(dayData?['condition']?.toString() ?? 'sunny'),
+                                                          key: ValueKey(dayData?['condition'] ?? 'sunny'),
+                                                          color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                                          size: 35 * scaleFactor,
                                                         ),
                                                       ),
-                                                      SizedBox(height: 4 * scaleFactor),
+                                                      SizedBox(width: 8 * scaleFactor),
+                                                      // Temperature range
                                                       Text(
-                                                        ((weatherData['forecast'] as List)[index]['day']?['condition']?.toString() ?? 'sunny')
-                                                            .toLowerCase()
-                                                            .tr,
+                                                        '${dayData?['max_temp']?['c']?.toString() ?? 'N/A'}°C / ${dayData?['min_temp']?['c']?.toString() ?? 'N/A'}°C',
                                                         style: theme.textTheme.bodySmall?.copyWith(
-                                                          fontSize: detailFontSize,
-                                                          fontWeight: FontWeight.w500,
-                                                          color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
+                                                          fontSize: detailFontSize * 1.1,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                                         ),
                                                         textAlign: TextAlign.center,
                                                       ),
-                                                      Text(
-                                                        '${(weatherData['forecast'] as List)[index]['day']?['max_temp']?['c']?.toString() ?? 'N/A'}°C / ${(weatherData['forecast'] as List)[index]['day']?['min_temp']?['c']?.toString() ?? 'N/A'}°C',
-                                                        style: theme.textTheme.bodySmall?.copyWith(
-                                                          fontSize: detailFontSize,
-                                                          color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        'Precip: ${(weatherData['forecast'] as List)[index]['day']?['precipitation']?['chance']?.toString() ?? 'N/A'}'.tr,
-                                                        style: theme.textTheme.bodySmall?.copyWith(
-                                                          fontSize: detailFontSize,
-                                                          color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        'Wind: ${(weatherData['forecast'] as List)[index]['day']?['max_wind']?['kph']?.toString() ?? 'N/A'} kph'.tr,
-                                                        style: theme.textTheme.bodySmall?.copyWith(
-                                                          fontSize: detailFontSize,
-                                                          color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        'UV: ${(weatherData['forecast'] as List)[index]['day']?['uv']?.toString() ?? 'N/A'}'.tr,
-                                                        style: theme.textTheme.bodySmall?.copyWith(
-                                                          fontSize: detailFontSize,
-                                                          color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                                        ),
-                                                      ),
                                                     ],
                                                   ),
-                                                ),
+                                                  // Weather condition
+                                                  Flexible(
+                                                    child: Text(
+                                                      (dayData?['condition']?.toString() ?? 'sunny').toLowerCase().tr,
+                                                      style: theme.textTheme.bodySmall?.copyWith(
+                                                        fontSize: detailFontSize * 0.95,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                : Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
-                                    child: Text(
-                                      'Forecast data not available'.tr,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        fontSize: subtitleFontSize,
-                                        color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                            SizedBox(height: padding),
-                            Divider(
-                              color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                            ),
-                            SizedBox(height: padding),
-                            DefaultTabController(
-                              length: 3, // Added Astro tab
-                              child: Column(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: isDarkMode ? Colors.grey[850]!.withOpacity(0.9) : Colors.white.withOpacity(0.5),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: TabBar(
-                                      labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                                        fontSize: detailFontSize,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                      unselectedLabelStyle: theme.textTheme.bodyMedium?.copyWith(
-                                        fontSize: detailFontSize,
-                                        color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.5) : theme.colorScheme.onSurface.withOpacity(0.5),
-                                      ),
-                                      labelColor: theme.colorScheme.primary,
-                                      unselectedLabelColor:
-                                          isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.5) : theme.colorScheme.onSurface.withOpacity(0.5),
-                                      indicator: BoxDecoration(
-                                        border: Border(
-                                          bottom: BorderSide(
-                                            color: theme.colorScheme.primary,
-                                            width: 3.0,
                                           ),
                                         ),
                                       ),
-                                      indicatorSize: TabBarIndicatorSize.label,
-                                      tabs: [
-                                        Tab(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                                            child: Text(
-                                              'Current Weather'.tr,
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
-                                            ),
-                                          ),
-                                        ),
-                                        Tab(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                                            child: Text(
-                                              'Irrigation Needs'.tr,
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
-                                            ),
-                                          ),
-                                        ),
-                                        Tab(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                                            child: Text(
-                                              'Astronomy'.tr,
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
                                     ),
-                                  ),
-                                  SizedBox(height: 8 * scaleFactor),
-                                  Card(
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                                    child: SizedBox(
-                                      height: size.height * 0.35,
-                                      child: TabBarView(
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        children: [
-                                          SingleChildScrollView(
-                                            padding: EdgeInsets.all(padding),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                _buildDetailRow(
-                                                  'Temperature'.tr,
-                                                  '${weatherData['current']?['temperature']?['c']?.toString() ?? 'N/A'}°C / ${weatherData['current']?['temperature']?['f']?.toString() ?? 'N/A'}°F',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.thermostat,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Feels Like'.tr,
-                                                  '${weatherData['current']?['feels_like']?['c']?.toString() ?? 'N/A'}°C / ${weatherData['current']?['feels_like']?['f']?.toString() ?? 'N/A'}°F',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.thermostat_auto,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Humidity'.tr,
-                                                  '${weatherData['current']?['humidity']?.toString() ?? 'N/A'}%',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.water_drop_outlined,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Wind'.tr,
-                                                  '${weatherData['current']?['wind']?['kph']?.toString() ?? 'N/A'} kph ${weatherData['current']?['wind']?['direction']?.toString() ?? 'N/A'}',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.air,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Pressure'.tr,
-                                                  '${weatherData['current']?['pressure']?['mb']?.toString() ?? 'N/A'} mb',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.compress,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Precipitation'.tr,
-                                                  '${weatherData['current']?['precipitation']?['mm']?.toString() ?? 'N/A'} mm',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.umbrella,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Visibility'.tr,
-                                                  '${weatherData['current']?['visibility']?['km']?.toString() ?? 'N/A'} km',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.visibility,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'UV Index'.tr,
-                                                  weatherData['current']?['uv']?.toString() ?? 'N/A',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.wb_sunny_outlined,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Cloud Cover'.tr,
-                                                  '${weatherData['current']?['cloud']?.toString() ?? 'N/A'}%',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.cloud_outlined,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Dew Point'.tr,
-                                                  '${weatherData['current']?['dew_point']?['c']?.toString() ?? 'N/A'}°C',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  icon: Icons.dew_point,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SingleChildScrollView(
-                                            padding: EdgeInsets.all(padding),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                _buildDetailRow(
-                                                  'Irrigation Needs'.tr,
-                                                  '',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  isTitle: true,
-                                                  icon: Icons.water,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                ...(weatherData['irrigation'] is Map
-                                                        ? (weatherData['irrigation'] as Map).entries
-                                                        : <MapEntry>[]).map<Widget>(
-                                                  (entry) => Column(
-                                                    children: [
-                                                      _buildDetailRow(
-                                                        capitalizeFirstLetter(entry.key.toString()),
-                                                        '${entry.value?.toString() ?? 'N/A'} mm/week',
-                                                        theme,
-                                                        detailFontSize,
-                                                        isDarkMode,
-                                                        icon: Icons.grass,
-                                                      ),
-                                                      Divider(
-                                                        color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                        height: 16 * scaleFactor,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                _buildDetailRow(
-                                                  'Pest and Disease Risk'.tr,
-                                                  weatherData['pestDiseaseRisk']?.toString() ?? 'N/A',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  isTitle: true,
-                                                  icon: Icons.bug_report,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Temperature Stress'.tr,
-                                                  weatherData['tempStress']?.toString() ?? 'N/A',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  isTitle: true,
-                                                  icon: Icons.warning,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                _buildDetailRow(
-                                                  'Planting Windows'.tr,
-                                                  '',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  isTitle: true,
-                                                  icon: Icons.calendar_today,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                ...(weatherData['plantingWindows'] is Map
-                                                        ? (weatherData['plantingWindows'] as Map).entries
-                                                        : <MapEntry>[]).map<Widget>(
-                                                  (entry) => Column(
-                                                    children: [
-                                                      _buildDetailRow(
-                                                        capitalizeFirstLetter(entry.key.toString()),
-                                                        entry.value?.toString() ?? 'N/A',
-                                                        theme,
-                                                        detailFontSize,
-                                                        isDarkMode,
-                                                        icon: Icons.local_florist,
-                                                      ),
-                                                      Divider(
-                                                        color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                        height: 16 * scaleFactor,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SingleChildScrollView(
-                                            padding: EdgeInsets.all(padding),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                _buildDetailRow(
-                                                  'Astronomy'.tr,
-                                                  '',
-                                                  theme,
-                                                  detailFontSize,
-                                                  isDarkMode,
-                                                  isTitle: true,
-                                                  icon: Icons.star,
-                                                ),
-                                                Divider(
-                                                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                  height: 16 * scaleFactor,
-                                                ),
-                                                if (weatherData['forecast'] is List && (weatherData['forecast'] as List).isNotEmpty)
-                                                  ...[
-                                                    _buildDetailRow(
-                                                      'Sunrise'.tr,
-                                                      (weatherData['forecast'] as List)[0]['astro']?['sunrise']?.toString() ?? 'N/A',
-                                                      theme,
-                                                      detailFontSize,
-                                                      isDarkMode,
-                                                      icon: Icons.wb_sunny,
-                                                    ),
-                                                    Divider(
-                                                      color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                      height: 16 * scaleFactor,
-                                                    ),
-                                                    _buildDetailRow(
-                                                      'Sunset'.tr,
-                                                      (weatherData['forecast'] as List)[0]['astro']?['sunset']?.toString() ?? 'N/A',
-                                                      theme,
-                                                      detailFontSize,
-                                                      isDarkMode,
-                                                      icon: Icons.nights_stay,
-                                                    ),
-                                                    Divider(
-                                                      color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                      height: 16 * scaleFactor,
-                                                    ),
-                                                    _buildDetailRow(
-                                                      'Moon Phase'.tr,
-                                                      (weatherData['forecast'] as List)[0]['astro']?['moon_phase']?.toString() ?? 'N/A',
-                                                      theme,
-                                                      detailFontSize,
-                                                      isDarkMode,
-                                                      icon: Icons.nightlight_round,
-                                                    ),
-                                                    Divider(
-                                                      color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                      height: 16 * scaleFactor,
-                                                    ),
-                                                    _buildDetailRow(
-                                                      'Moonrise'.tr,
-                                                      (weatherData['forecast'] as List)[0]['astro']?['moonrise']?.toString() ?? 'N/A',
-                                                      theme,
-                                                      detailFontSize,
-                                                      isDarkMode,
-                                                      icon: Icons.nightlight,
-                                                    ),
-                                                    Divider(
-                                                      color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                      height: 16 * scaleFactor,
-                                                    ),
-                                                    _buildDetailRow(
-                                                      'Moonset'.tr,
-                                                      (weatherData['forecast'] as List)[0]['astro']?['moonset']?.toString() ?? 'N/A',
-                                                      theme,
-                                                      detailFontSize,
-                                                      isDarkMode,
-                                                      icon: Icons.nightlight_outlined,
-                                                    ),
-                                                  ]
-                                                else
-                                                  Text(
-                                                    'Astronomy data not available'.tr,
-                                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                                      fontSize: subtitleFontSize,
-                                                      color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                  );
+                                },
                               ),
                             ),
-                            SizedBox(height: padding),
-                            Divider(
-                              color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.1) : theme.colorScheme.onSurface.withOpacity(0.1),
-                            ),
-                            SizedBox(height: padding),
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              margin: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: ExpansionTile(
-                                iconColor: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.5) : theme.colorScheme.onSurface.withOpacity(0.5),
-                                controlAffinity: ListTileControlAffinity.trailing,
-                                title: Row(
+                          ],
+                        ),
+                      ),
+                      // Historical Weather Card
+                      AnimatedOpacity(
+                        opacity: 1.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Card(
+                          elevation: 3,
+                          color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                          child: Padding(
+                            padding: EdgeInsets.all(padding),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
                                     Icon(
                                       Icons.history,
-                                      size: 16 * scaleFactor,
-                                      color: theme.colorScheme.primary,
+                                      size: 20 * scaleFactor,
+                                      color: isDarkMode ? Colors.green[300] : Colors.green[500],
                                     ),
-                                    SizedBox(width: 6 * scaleFactor),
+                                    SizedBox(width: 8 * scaleFactor),
                                     Text(
                                       'Historical Weather (Last 7 Days)'.tr,
                                       style: theme.textTheme.titleLarge?.copyWith(
-                                        fontSize: titleFontSize * 0.9,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
+                                        fontSize: titleFontSize*0.8,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDarkMode ? Colors.white : Colors.grey[900],
                                       ),
                                     ),
                                   ],
                                 ),
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.all(padding * 0.8),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        if (weatherData['historical'] is List && (weatherData['historical'] as List).isNotEmpty)
-                                          StatefulBuilder(
-                                            builder: (BuildContext context, StateSetter setState) {
-                                              final isExpandedList = List.generate(
-                                                (weatherData['historical'] as List).length,
-                                                (_) => false,
-                                              );
-
-                                              return Column(
-                                                children: [
-                                                  for (var index = 0; index < (weatherData['historical'] as List).length; index++)
-                                                    Theme(
-                                                      data: Theme.of(context)
-                                                          .copyWith(iconTheme: IconThemeData(size: 16 * scaleFactor)),
-                                                      child: ExpansionTile(
-                                                        iconColor: isDarkMode
-                                                            ? theme.colorScheme.onSurface.withOpacity(0.5)
-                                                            : theme.colorScheme.onSurface.withOpacity(0.5),
-                                                        controlAffinity: ListTileControlAffinity.trailing,
-                                                        backgroundColor: isExpandedList[index]
-                                                            ? Colors.green[100]!.withOpacity(0.9)
-                                                            : Colors.transparent,
-                                                        onExpansionChanged: (bool expanded) {
-                                                          setState(() => isExpandedList[index] = expanded);
-                                                        },
-                                                        title: WeatherAccordionHeader(
-                                                          date: (weatherData['historical'] as List)[index]['date']?.toString() ?? 'N/A',
-                                                          temperature:
-                                                              '${(weatherData['historical'] as List)[index]['avg_temp']?.toString() ?? 'N/A'}°C',
-                                                          precipitation:
-                                                              '${(weatherData['historical'] as List)[index]['total_precip']?.toString() ?? 'N/A'} mm',
-                                                          theme: theme,
-                                                          isDarkMode: isDarkMode,
-                                                          historicalDetailFontSize: historicalDetailFontSize,
-                                                          scaleFactor: scaleFactor,
-                                                        ),
-                                                        children: [
-                                                          Padding(
-                                                            padding: EdgeInsets.symmetric(
-                                                                horizontal: 16 * scaleFactor,
-                                                                vertical: 8 * scaleFactor),
-                                                            child: Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                _buildDetailRow(
-                                                                  'Avg Temp'.tr,
-                                                                  '${(weatherData['historical'] as List)[index]['avg_temp']?.toString() ?? 'N/A'}°C',
-                                                                  theme,
-                                                                  historicalDetailFontSize,
-                                                                  isDarkMode,
-                                                                  icon: Icons.thermostat,
-                                                                ),
-                                                                Divider(
-                                                                  color: isDarkMode
-                                                                      ? theme.colorScheme.onSurface.withOpacity(0.1)
-                                                                      : theme.colorScheme.onSurface.withOpacity(0.1),
-                                                                  height: 12 * scaleFactor,
-                                                                ),
-                                                                _buildDetailRow(
-                                                                  'Precipitation'.tr,
-                                                                  '${(weatherData['historical'] as List)[index]['total_precip']?.toString() ?? 'N/A'} mm',
-                                                                  theme,
-                                                                  historicalDetailFontSize,
-                                                                  isDarkMode,
-                                                                  icon: Icons.umbrella,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                ],
-                                              );
-                                            },
-                                          )
-                                        else
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
-                                            child: Text(
-                                              'Historical data not available'.tr,
-                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                fontSize: subtitleFontSize,
-                                                color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
+                                SizedBox(height: 12 * scaleFactor),
+                                if (weatherData['historical'] is List && (weatherData['historical'] as List).isNotEmpty)
+                                  ...List.generate(
+                                    (weatherData['historical'] as List).length,
+                                    (index) {
+                                      final historical = (weatherData['historical'] as List)[index];
+                                      final precip = double.tryParse(historical['total_precip']?.toString() ?? '0') ?? 0;
+                                      return Padding(
+                                        padding: EdgeInsets.symmetric(vertical: 6 * scaleFactor),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              _getHistoricalIcon(precip),
+                                              size: 18 * scaleFactor,
+                                              color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                            ),
+                                            SizedBox(width: 8 * scaleFactor),
+                                            Expanded(
+                                              child: Text(
+                                                historical['date']?.toString() ?? 'N/A',
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  fontSize: detailFontSize,
+                                                  color: isDarkMode ? Colors.white : Colors.grey[900],
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                      ],
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  '${historical['avg_temp']?.toString() ?? 'N/A'}°C',
+                                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                                    fontSize: detailFontSize,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Precip: ${historical['total_precip']?.toString() ?? 'N/A'} mm'.tr,
+                                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                                    fontSize: detailFontSize * 0.9,
+                                                    color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  )
+                                else
+                                  Text(
+                                    'Historical data not available'.tr,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontSize: subtitleFontSize,
+                                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                     ),
                                   ),
-                                ],
-                              ),
+                              ],
                             ),
-                            SizedBox(height: padding),
-                          ],
+                          ),
                         ),
                       ),
+                      SizedBox(height: padding * 2),
                     ],
                   ),
                 );
               }),
             ),
-            Positioned(
-              bottom: 8 * scaleFactor,
-              right: 8 * scaleFactor,
-              child: FloatingActionButton(
-                onPressed: () => controller.toggleLanguage(),
-                backgroundColor: Colors.green[600],
-                tooltip: 'Toggle Language'.tr,
-                mini: true,
-                child: Icon(
-                  Icons.language,
-                  color: Colors.white,
-                  size: 16 * scaleFactor,
-                ),
+          ),
+          // Language Toggle FAB
+          Positioned(
+            bottom: 12 * scaleFactor,
+            right: 12 * scaleFactor,
+            child: FloatingActionButton(
+              onPressed: () => controller.toggleLanguage(),
+              backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+              tooltip: 'Toggle Language'.tr,
+              mini: true,
+              child: Icon(
+                Icons.language,
+                color: Colors.white,
+                size: 20 * scaleFactor,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  bool _isValidWeatherData(Map<String, dynamic> data) {
-    return data.containsKey('location') &&
-        data['location'] is Map &&
-        data['location'].containsKey('name') &&
-        data.containsKey('current') &&
-        data['current'] is Map &&
-        data['current'].containsKey('condition') &&
-        data['current'].containsKey('temperature') &&
-        data.containsKey('forecast') &&
-        data['forecast'] is List &&
-        data.containsKey('historical') &&
-        data['historical'] is List &&
-        data.containsKey('cropData') &&
-        data.containsKey('irrigation') &&
-        data.containsKey('pestDiseaseRisk') &&
-        data.containsKey('tempStress') &&
-        data.containsKey('plantingWindows');
-  }
-
+  // Get weather icon based on condition
   IconData _getWeatherIcon(String condition) {
     switch (condition.toLowerCase()) {
       case 'sunny':
@@ -1091,6 +669,7 @@ class WeatherTab extends StatelessWidget {
       case 'clear':
         return Icons.nights_stay;
       case 'partly cloudy':
+        return Icons.cloud_queue;
       case 'cloudy':
       case 'overcast':
         return Icons.cloud;
@@ -1104,18 +683,305 @@ class WeatherTab extends StatelessWidget {
     }
   }
 
+  // Get historical weather icon based on precipitation
+  IconData _getHistoricalIcon(double precip) {
+    if (precip > 0.5) {
+      return Icons.water_drop;
+    } else if (precip > 0) {
+      return Icons.cloud_queue;
+    } else {
+      return Icons.wb_sunny;
+    }
+  }
+}
+
+class ForecastDetailSheet extends StatelessWidget {
+  final String label;
+  final dynamic dayData;
+  final dynamic astroData;
+  final dynamic hourlyData;
+  final ThemeData theme;
+  final bool isDarkMode;
+  final double scaleFactor;
+  final double padding;
+  final double headerFontSize;
+  final double subtitleFontSize;
+  final double detailFontSize;
+  final double titleFontSize;
+
+  const ForecastDetailSheet({
+    super.key,
+    required this.label,
+    required this.dayData,
+    required this.astroData,
+    required this.hourlyData,
+    required this.theme,
+    required this.isDarkMode,
+    required this.scaleFactor,
+    required this.padding,
+    required this.headerFontSize,
+    required this.subtitleFontSize,
+    required this.detailFontSize,
+    required this.titleFontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      child: Card(
+        elevation: 4,
+        color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Column(
+          children: [
+            // Drag handle
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
+              child: Container(
+                width: 40 * scaleFactor,
+                height: 4 * scaleFactor,
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(padding),
+                child: AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            label,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontSize: headerFontSize,
+                              fontWeight: FontWeight.w800,
+                              color: isDarkMode ? Colors.white : Colors.grey[900],
+                            ),
+                          ),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 500),
+                            transitionBuilder: (Widget child, Animation<double> animation) =>
+                                ScaleTransition(scale: animation, child: child),
+                            child: Icon(
+                              _getWeatherIcon(dayData?['condition']?.toString() ?? 'sunny'),
+                              key: ValueKey(dayData?['condition'] ?? 'sunny'),
+                              color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                              size: 44 * scaleFactor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8 * scaleFactor),
+                      Text(
+                        (dayData?['condition']?.toString() ?? 'sunny').toLowerCase().tr,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontSize: subtitleFontSize,
+                          fontWeight: FontWeight.w700,
+                          color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                        ),
+                      ),
+                      Divider(
+                        color: isDarkMode ? Colors.grey[600]!.withOpacity(0.2) : Colors.grey[200]!.withOpacity(0.2),
+                        height: 16 * scaleFactor,
+                      ),
+                      _buildDetailRow(
+                        'Max/Min Temp'.tr,
+                        '${dayData?['max_temp']?['c']?.toString() ?? 'N/A'}°C / ${dayData?['min_temp']?['c']?.toString() ?? 'N/A'}°C',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.thermostat,
+                      ),
+                      _buildDetailRow(
+                        'Avg Temp'.tr,
+                        '${dayData?['avg_temp']?['c']?.toString() ?? 'N/A'}°C',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.thermostat_auto,
+                      ),
+                      _buildDetailRow(
+                        'Precipitation'.tr,
+                        dayData?['precipitation']?['chance']?.toString() ?? 'N/A',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.umbrella,
+                      ),
+                      _buildDetailRow(
+                        'Wind'.tr,
+                        '${dayData?['max_wind']?['kph']?.toString() ?? 'N/A'} kph',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.air,
+                      ),
+                      _buildDetailRow(
+                        'Humidity'.tr,
+                        '${dayData?['humidity']?.toString() ?? 'N/A'}%',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.water_drop_outlined,
+                      ),
+                      _buildDetailRow(
+                        'UV Index'.tr,
+                        dayData?['uv']?.toString() ?? 'N/A',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.wb_sunny_outlined,
+                      ),
+                      _buildDetailRow(
+                        'Visibility'.tr,
+                        '${dayData?['visibility']?['km']?.toString() ?? 'N/A'} km',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.visibility,
+                      ),
+                      SizedBox(height: 12 * scaleFactor),
+                      Text(
+                        'Hourly Forecast'.tr,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: titleFontSize,
+                          fontWeight: FontWeight.w800,
+                          color: isDarkMode ? Colors.white : Colors.grey[900],
+                        ),
+                      ),
+                      SizedBox(height: 8 * scaleFactor),
+                      _buildDetailRow(
+                        'Morning'.tr,
+                        '${hourlyData?['morning']?['temp_range']?[0]?.toString() ?? 'N/A'}°C - ${hourlyData?['morning']?['temp_range']?[1]?.toString() ?? 'N/A'}°C, ${(hourlyData?['morning']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.wb_sunny,
+                      ),
+                      _buildDetailRow(
+                        'Midday'.tr,
+                        '${hourlyData?['midday']?['temp_range']?[0]?.toString() ?? 'N/A'}°C - ${hourlyData?['midday']?['temp_range']?[1]?.toString() ?? 'N/A'}°C, ${(hourlyData?['midday']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.wb_sunny,
+                      ),
+                      _buildDetailRow(
+                        'Evening'.tr,
+                        '${hourlyData?['evening']?['temp_range']?[0]?.toString() ?? 'N/A'}°C - ${hourlyData?['evening']?['temp_range']?[1]?.toString() ?? 'N/A'}°C, ${(hourlyData?['evening']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
+                        theme,
+                        detailFontSize,
+                        isDarkMode,
+                        icon: Icons.nights_stay,
+                      ),
+                      if (astroData != null) ...[
+                        SizedBox(height: 12 * scaleFactor),
+                        Text(
+                          'Astronomy'.tr,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: titleFontSize,
+                            fontWeight: FontWeight.w800,
+                            color: isDarkMode ? Colors.white : Colors.grey[900],
+                          ),
+                        ),
+                        SizedBox(height: 8 * scaleFactor),
+                        _buildDetailRow(
+                          'Sunrise'.tr,
+                          astroData['sunrise']?.toString() ?? 'N/A',
+                          theme,
+                          detailFontSize,
+                          isDarkMode,
+                          icon: Icons.wb_sunny,
+                        ),
+                        _buildDetailRow(
+                          'Sunset'.tr,
+                          astroData['sunset']?.toString() ?? 'N/A',
+                          theme,
+                          detailFontSize,
+                          isDarkMode,
+                          icon: Icons.nights_stay,
+                        ),
+                        _buildDetailRow(
+                          'Moon Phase'.tr,
+                          astroData['moon_phase']?.toString() ?? 'N/A',
+                          theme,
+                          detailFontSize,
+                          isDarkMode,
+                          icon: Icons.nightlight_round,
+                        ),
+                        _buildDetailRow(
+                          'Moonrise'.tr,
+                          astroData['moonrise']?.toString() ?? 'N/A',
+                          theme,
+                          detailFontSize,
+                          isDarkMode,
+                          icon: Icons.nightlight,
+                        ),
+                        _buildDetailRow(
+                          'Moonset'.tr,
+                          astroData['moonset']?.toString() ?? 'N/A',
+                          theme,
+                          detailFontSize,
+                          isDarkMode,
+                          icon: Icons.nightlight_outlined,
+                        ),
+                      ],
+                      SizedBox(height: 16 * scaleFactor),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Get weather icon for forecast detail
+  IconData _getWeatherIcon(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'sunny':
+        return Icons.wb_sunny;
+      case 'clear':
+        return Icons.nights_stay;
+      case 'partly cloudy':
+        return Icons.cloud_queue;
+      case 'cloudy':
+      case 'overcast':
+        return Icons.cloud;
+      case 'rain':
+      case 'light rain':
+      case 'moderate rain':
+      case 'heavy rain':
+        return Icons.water_drop;
+      default:
+        return Icons.wb_sunny;
+    }
+  }
+
+  // Build detail row for forecast details
   Widget _buildDetailRow(
     String label,
     String value,
     ThemeData theme,
     double fontSize,
     bool isDarkMode, {
-    bool isTitle = false,
     IconData? icon,
+    bool isTitle = false,
   }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: EdgeInsets.symmetric(vertical: 6 * fontSize / 8),
+      padding: EdgeInsets.symmetric(vertical: 6 * fontSize / 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1123,19 +989,19 @@ class WeatherTab extends StatelessWidget {
             children: [
               if (icon != null)
                 Padding(
-                  padding: EdgeInsets.only(right: 8 * fontSize / 8),
+                  padding: EdgeInsets.only(right: 8 * fontSize / 10),
                   child: Icon(
                     icon,
-                    size: 16 * fontSize / 8,
-                    color: isTitle ? theme.colorScheme.primary : (isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9)),
+                    size: 18 * fontSize / 10,
+                    color: isDarkMode ? Colors.green[300] : Colors.green[500],
                   ),
                 ),
               Text(
                 label,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: fontSize,
-                  fontWeight: isTitle ? FontWeight.w600 : FontWeight.normal,
-                  color: isTitle ? theme.colorScheme.primary : isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
+                  fontWeight: isTitle ? FontWeight.w800 : FontWeight.w600,
+                  color: isDarkMode ? Colors.white : Colors.grey[900],
                 ),
               ),
             ],
@@ -1146,7 +1012,7 @@ class WeatherTab extends StatelessWidget {
                 value,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: fontSize,
-                  color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
+                  color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                 ),
                 textAlign: TextAlign.right,
                 overflow: TextOverflow.ellipsis,
@@ -1158,83 +1024,43 @@ class WeatherTab extends StatelessWidget {
   }
 }
 
-class WeatherAccordionHeader extends StatelessWidget {
-  final String date;
-  final String temperature;
-  final String precipitation;
-  final ThemeData theme;
+class WeatherBackgroundPainter extends CustomPainter {
   final bool isDarkMode;
-  final double historicalDetailFontSize;
-  final double scaleFactor;
 
-  const WeatherAccordionHeader({
-    super.key,
-    required this.date,
-    required this.temperature,
-    required this.precipitation,
-    required this.theme,
-    required this.isDarkMode,
-    required this.historicalDetailFontSize,
-    required this.scaleFactor,
-  });
+  WeatherBackgroundPainter({required this.isDarkMode});
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Flexible(
-          child: Text(
-            date,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: historicalDetailFontSize,
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        SizedBox(width: 8 * scaleFactor),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              temperature,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: historicalDetailFontSize,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
-              ),
-            ),
-            Text(
-              'Precip: $precipitation'.tr,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: historicalDetailFontSize * 0.9,
-                color: isDarkMode ? theme.colorScheme.onSurface.withOpacity(0.9) : theme.colorScheme.onSurface.withOpacity(0.9),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class RainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey.withOpacity(0.2)
-      ..strokeWidth = 1.0;
+      ..style = PaintingStyle.fill
+      ..shader = LinearGradient(
+        colors: isDarkMode
+            ? [Colors.grey[800]!.withOpacity(0.4), Colors.grey[850]!.withOpacity(0.4)]
+            : [Colors.white.withOpacity(0.4), Colors.grey[50]!.withOpacity(0.4)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
-    for (var i = 0; i < 50; i++) {
-      final x = (i * size.width / 50) + (size.width * 0.02 * (i % 3));
-      final yStart = (i % 5) * size.height / 5;
-      final yEnd = yStart + 15;
-      canvas.drawLine(Offset(x, yStart), Offset(x, yEnd), paint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+
+    // Draw cloud shapes
+    for (var i = 0; i < 3; i++) {
+      final cloudPaint = Paint()
+        ..color = isDarkMode ? Colors.grey[500]!.withOpacity(0.3) : Colors.grey[300]!.withOpacity(0.4)
+        ..style = PaintingStyle.fill;
+
+      final cloudPath = Path()
+        ..moveTo(50 + i * 200, 100 + i * 50)
+        ..quadraticBezierTo(80 + i * 200, 80 + i * 50, 110 + i * 200, 100 + i * 50)
+        ..quadraticBezierTo(140 + i * 200, 120 + i * 50, 170 + i * 200, 100 + i * 50)
+        ..quadraticBezierTo(200 + i * 200, 80 + i * 50, 230 + i * 200, 100 + i * 50)
+        ..quadraticBezierTo(230 + i * 200, 140 + i * 50, 190 + i * 200, 140 + i * 50)
+        ..quadraticBezierTo(160 + i * 200, 160 + i * 50, 130 + i * 200, 140 + i * 50)
+        ..quadraticBezierTo(90 + i * 200, 160 + i * 50, 50 + i * 200, 140 + i * 50)
+        ..close();
+
+      canvas.drawPath(cloudPath, cloudPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

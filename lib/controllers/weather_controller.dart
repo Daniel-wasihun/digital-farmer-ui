@@ -15,8 +15,8 @@ class WeatherController extends GetxController {
   var askAnswer = Rxn<String>();
   var isAskLoading = false.obs;
 
-  // Configurable API base URL (update for production)
-  static const String apiBaseUrl = 'http://127.0.0.1:8000'; // Replace with Vercel URL in production
+  // Use 'http://10.0.2.2:8000' for Android emulator, 'http://127.0.0.1:8000' for browser
+  static const String apiBaseUrl = 'http://127.0.0.1:8000';
 
   @override
   void onInit() {
@@ -82,15 +82,17 @@ class WeatherController extends GetxController {
     isOffline.value = false;
 
     try {
+      print('Fetching weather data for $city ($latitude, $longitude)');
       final response = await http.get(
         Uri.parse('$apiBaseUrl/api/weather?latitude=$latitude&longitude=$longitude&city=$city'),
         headers: {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
         if (isValidWeatherData(data)) {
           weatherData.value = data;
           storage.write('weatherData', jsonEncode(data));
+          print('Weather data fetched successfully');
         } else {
           errorMessage.value = 'Invalid weather data received'.tr;
           loadCachedData();
@@ -98,10 +100,12 @@ class WeatherController extends GetxController {
       } else {
         errorMessage.value = 'Error Fetching Weather Data: ${response.statusCode}'.tr;
         loadCachedData();
+        print('Weather fetch error: ${response.statusCode}');
       }
     } catch (e) {
       errorMessage.value = 'Error Fetching Weather Data: $e'.tr;
       loadCachedData();
+      print('Weather fetch exception: $e');
     } finally {
       isLoading.value = false;
     }
@@ -116,60 +120,46 @@ class WeatherController extends GetxController {
     isAskLoading.value = true;
     askAnswer.value = null;
     try {
+      final payload = {
+        'question': questionController.text,
+        'latitude': 11.7833,
+        'longitude': 39.6,
+        'city': 'weldiya',
+        'language': Get.locale?.languageCode ?? 'en',
+      };
+      print('Sending request to $apiBaseUrl/api/ask/weather: $payload');
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/ask'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'question': questionController.text,
-          'latitude': 11.7833,
-          'longitude': 39.6,
-          'city': 'weldiya',
-        }),
+        Uri.parse('$apiBaseUrl/api/ask/weather'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(payload),
+        encoding: Encoding.getByName('utf-8'),
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
         askAnswer.value = data['answer']?.toString() ?? 'No answer provided';
+        print('Received answer: ${askAnswer.value}');
       } else {
-        Get.snackbar('Error'.tr, 'Error Fetching Answer: ${response.statusCode}'.tr);
+        final errorBody = utf8.decode(response.bodyBytes);
+        final errorDetail = response.statusCode == 400 || response.statusCode == 500
+            ? (jsonDecode(errorBody)['detail'] ?? 'Server error: ${response.statusCode}')
+            : 'Server error: ${response.statusCode}';
+        Get.snackbar('Error'.tr, 'Error Fetching Answer: $errorDetail'.tr);
+        print('Error response: status=${response.statusCode}, body=$errorBody');
       }
     } catch (e) {
       Get.snackbar('Error'.tr, 'Error Fetching Answer: $e'.tr);
-    } finally {
-      isAskLoading.value = false;
-    }
-  }
-
-  Future<void> askCropQuestion(String crop) async {
-    isAskLoading.value = true;
-    askAnswer.value = null;
-    try {
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/ask/$crop'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'latitude': 11.7833,
-          'longitude': 39.6,
-          'city': 'weldiya',
-        }),
-      ).timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        askAnswer.value = data['answer']?.toString() ?? 'No answer provided';
-      } else {
-        Get.snackbar('Error'.tr, 'Error Fetching Crop Answer: ${response.statusCode}'.tr);
-      }
-    } catch (e) {
-      Get.snackbar('Error'.tr, 'Error Fetching Crop Answer: $e'.tr);
+      print('Request error: $e');
     } finally {
       isAskLoading.value = false;
     }
   }
 
   void toggleLanguage() {
-    if (Get.locale?.languageCode == 'en') {
-      Get.updateLocale(const Locale('am', 'ET'));
-    } else {
-      Get.updateLocale(const Locale('en', 'US'));
-    }
+    final newLocale = Get.locale?.languageCode == 'en' ? const Locale('am', 'ET') : const Locale('en', 'US');
+    Get.updateLocale(newLocale);
+    print('Locale changed to: ${newLocale.languageCode}');
   }
 }

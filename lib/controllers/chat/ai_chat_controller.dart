@@ -6,114 +6,79 @@ import 'package:http/http.dart' as http;
 import 'package:get_storage/get_storage.dart';
 
 class AIChatController extends GetxController {
-  // Text and Scroll Controllers
   final TextEditingController textController = TextEditingController();
   final ScrollController scrollController = ScrollController();
-
-  // Observable list of messages, each a map with sender, text, isRich, and timestamp
   final RxList<Map<String, dynamic>> messages = <Map<String, dynamic>>[].obs;
-
-  // Observable boolean for loading state
   final RxBool isLoading = false.obs;
-
-  // Observable double for text scale factor, allowing user-controlled text sizing
   final RxDouble textScaleFactor = 1.0.obs;
-
-  // GetStorage instance for local storage
+  final RxBool _showScrollToBottom = false.obs; // RxBool field
+  bool get showScrollToBottom => _showScrollToBottom.value; // Getter returns bool
   final GetStorage _storage = GetStorage();
-  static const String _chatHistoryKey = 'ai_chat_history'; // Key for chat history in storage
-
-  // API URL:  Make sure to replace with your actual server address.
-  static const String _apiUrl =
-      'http://localhost:8000/ask'; //  e.g., 'http://192.168.1.100:8000/ask'   OR http://10.0.2.2:8000/ask for android emulator
-
-  // Add this!  RxBool to hold the state, and a getter to expose it.
-  final RxBool _showScrollToBottom = false.obs;
-  bool get showScrollToBottom => _showScrollToBottom.value;
+  static const String _chatHistoryKey = 'ai_chat_history';
+  static const String _apiUrl = 'http://localhost:8000/ask/agriculture'; // Use 'http://10.0.2.2:8000/ask/agriculture' for Android emulator
 
   @override
   void onInit() {
     super.onInit();
-    _loadChatHistory(); // Load chat history when the controller is initialized
-    scrollController.addListener(scrollListener); //listen
+    _loadChatHistory();
+    scrollController.addListener(scrollListener);
   }
 
   @override
   void onClose() {
-    // Dispose controllers to prevent memory leaks
     textController.dispose();
     scrollController.dispose();
-    _saveChatHistory(); // Save chat history when the controller is closed
+    _saveChatHistory();
     super.onClose();
   }
 
-  // Load chat history from local storage
   Future<void> _loadChatHistory() async {
     try {
-      await GetStorage.init(); // Ensure GetStorage is initialized.
+      await GetStorage.init();
       final storedHistory = _storage.read<String>(_chatHistoryKey);
       if (storedHistory != null) {
         final List<dynamic> decoded = jsonDecode(storedHistory);
-        // Ensure the loaded data is of the correct type and convert timestamp back to DateTime
         messages.value = decoded.map((item) {
           return {
             'sender': item['sender'],
             'text': item['text'],
-            'isRich': item['isRich'],
-            'timestamp': DateTime.parse(item['timestamp']), // Convert back to DateTime
-            if (item.containsKey('isError')) 'isError': item['isError'],
-            if (item.containsKey('query')) 'query': item['query'],
+            'isRich': item['isRich'] ?? false,
+            'timestamp': DateTime.parse(item['timestamp']),
+            'isError': item['isError'] ?? false,
+            'query': item['query'],
           };
         }).toList().cast<Map<String, dynamic>>();
-
-        // Scroll to the bottom after loading the history
         WidgetsBinding.instance.addPostFrameCallback((_) {
           scrollToBottom(animated: false);
         });
       }
     } catch (e) {
-      // Handle errors during JSON decoding or storage read
       print('Error loading chat history: $e');
-      // Optionally, show a user-friendly message
-      Get.snackbar(
-        'Error',
-        'Failed to load chat history.  Starting a new chat. Error: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 5),
-      );
-      messages.value = []; // Clear messages to start fresh.
+      Get.snackbar('Error'.tr, 'Failed to load chat history: $e'.tr);
+      messages.clear();
     }
   }
 
-  // Save chat history to local storage
   Future<void> _saveChatHistory() async {
     try {
       await GetStorage.init();
-      // Encode the message list as a JSON string, converting DateTime to ISO string
       final encoded = jsonEncode(messages.map((message) {
         return {
           'sender': message['sender'],
           'text': message['text'],
           'isRich': message['isRich'],
-          'timestamp': message['timestamp'].toIso8601String(), // Convert to ISO string
-          if (message.containsKey('isError')) 'isError': message['isError'],
-          if (message.containsKey('query')) 'query': message['query'],
+          'timestamp': message['timestamp'].toIso8601String(),
+          'isError': message['isError'],
+          'query': message['query'],
         };
       }).toList());
       await _storage.write(_chatHistoryKey, encoded);
     } catch (e) {
-      // Handle errors during storage write
       print('Error saving chat history: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to save chat history: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 5),
-      );
+      Get.snackbar('Error'.tr, 'Failed to save chat history: $e'.tr);
     }
   }
 
-  // Helper method to scroll to the bottom of the chat
   void scrollToBottom({bool animated = false}) {
     if (scrollController.hasClients) {
       if (animated) {
@@ -128,56 +93,65 @@ class AIChatController extends GetxController {
     }
   }
 
-  // Reformat the raw response from the AI for better presentation
+  void scrollListener() {
+    _showScrollToBottom.value = scrollController.position.pixels > 200;
+  }
+
   String _reformatResponse(String rawResponse) {
+    if (rawResponse.contains('I am only aware of agricultural') ||
+        rawResponse.contains('እኔ የማውቀው ስለ እርሻ')) {
+      return rawResponse;
+    }
+
     final lines = rawResponse.split('\n');
     final formattedLines = <String>[];
     bool inBulletSection = false;
 
     for (var line in lines) {
       line = line.trim();
-      if (line.isEmpty) continue;
+      if (line.isEmpty) {
+        formattedLines.add('');
+        continue;
+      }
 
       if (line.startsWith('* **') && line.endsWith('**')) {
-        // Bold titles
-        formattedLines.add(
-            '**${line.replaceFirst('* **', '').replaceAll('**', '')}**');
+        formattedLines.add('**${line.replaceFirst('* **', '').replaceAll('**', '')}**');
         inBulletSection = false;
       } else if (line.startsWith('* ')) {
-        // Bullet points
         formattedLines.add('• ${line.replaceFirst('* ', '')}');
         inBulletSection = true;
       } else if (inBulletSection && !line.startsWith('* ')) {
-        // Continuation of bullet point
         formattedLines.add(line);
         inBulletSection = false;
       } else {
-        // Regular text
         formattedLines.add(line);
       }
     }
     return formattedLines.join('\n');
   }
 
-  // Send a message to the AI and handle the response
   Future<void> sendMessage(String query, {bool isRetry = false}) async {
-    if (query.trim().isEmpty) return; // Don't send empty messages
+    if (query.trim().isEmpty) {
+      Get.snackbar('Error'.tr, 'Query cannot be empty'.tr);
+      return;
+    }
 
     final userMessage = {
       'sender': 'user',
       'text': query,
       'isRich': false,
       'timestamp': DateTime.now(),
+      'isError': false,
+      'query': query,
     };
 
     if (!isRetry) {
-      messages.add(userMessage); // Add user message to the list
-      _saveChatHistory(); // Save the user message
-      isLoading.value = true; // Show loading indicator
-      textController.clear(); // Clear the input field
+      messages.add(userMessage);
+      _saveChatHistory();
+      isLoading.value = true;
+      textController.clear();
     }
 
-    // Scroll to bottom after sending user message
     WidgetsBinding.instance.addPostFrameCallback((_) {
       scrollToBottom(animated: true);
     });
@@ -185,101 +159,83 @@ class AIChatController extends GetxController {
     http.Client? client;
     try {
       client = http.Client();
+      final payload = {
+        'query': query,
+        'language': Get.locale?.languageCode ?? 'en',
+      };
+      print('Sending request: $payload');
       final response = await client.post(
         Uri.parse(_apiUrl),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({'query': query}),
+        body: jsonEncode(payload),
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(const Duration(seconds: 30), onTimeout: () {
-        // Increased timeout to 30 seconds
-        throw TimeoutException(
-            'Request timed out after 30 seconds.  Please check your connection and the server.');
-      });
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
-        // Successful response
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        final formattedResponse = _reformatResponse(data['response']);
+        final rawResponse = data['response'];
+        final formattedResponse = _reformatResponse(rawResponse);
         final botMessage = {
           'sender': 'bot',
           'text': formattedResponse,
-          'isRich': true,
+          'isRich': !rawResponse.contains('I am only aware of agricultural') &&
+              !rawResponse.contains('እኔ የማውቀው ስለ እርሻ'),
           'timestamp': DateTime.now(),
+          'isError': false,
+          'query': query,
         };
         messages.add(botMessage);
       } else {
-        // Handle server errors
+        final errorDetail = response.statusCode == 400 || response.statusCode == 500
+            ? jsonDecode(utf8.decode(response.bodyBytes))['detail']
+            : 'Server error: ${response.statusCode}';
+        print('Error response: ${response.body}');
         final errorMessage = {
           'sender': 'bot',
-          'text':
-          'Server Error: Please try again later.',
+          'text': errorDetail,
           'isRich': false,
           'isError': true,
-          'query': query, // Include the query for retry
+          'query': query,
           'timestamp': DateTime.now(),
         };
         messages.add(errorMessage);
-        Get.snackbar(
-          'Error',
-          'Server error: ${response.statusCode}',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 5),
-        );
+        Get.snackbar('Error'.tr, errorDetail.tr);
       }
     } on TimeoutException catch (e) {
-      // Handle timeout exceptions
-      final timeoutMessage = {
-        'sender': 'bot',
-        'text':
-        'Connection Timeout: Please check your internet connection and try again.',
-        'isRich': false,
-        'isError': true,
-        'query': query, // Include the query for retry
-        'timestamp': DateTime.now(),
-      };
-      messages.add(timeoutMessage);
-      Get.snackbar(
-        'Timeout',
-        e.message ?? 'Timeout Error',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 5),
-      );
-    } catch (e) {
-      // Handle other exceptions (e.g., network errors, JSON errors)
       final errorMessage = {
         'sender': 'bot',
-        'text': 'Error: Please check your connection and the server.',
+        'text': 'Connection Timeout: Please check your internet connection.'.tr,
         'isRich': false,
         'isError': true,
-        'query': query, // Include the query for retry
+        'query': query,
         'timestamp': DateTime.now(),
       };
       messages.add(errorMessage);
-      Get.snackbar(
-        'Error',
-        'An error occurred: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 5),
-        );
+      Get.snackbar('Timeout'.tr, e.message ?? 'Request timed out'.tr);
+    } catch (e) {
+      print('Request error: $e');
+      final errorMessage = {
+        'sender': 'bot',
+        'text': 'Error: $e'.tr,
+        'isRich': false,
+        'isError': true,
+        'query': query,
+        'timestamp': DateTime.now(),
+      };
+      messages.add(errorMessage);
+      Get.snackbar('Error'.tr, 'An error occurred: $e'.tr);
     } finally {
-      isLoading.value =
-          false; // Ensure loading indicator is hidden, even on errors
+      isLoading.value = false;
       client?.close();
-      _saveChatHistory(); // Save the updated message list
+      _saveChatHistory();
+      messages.refresh();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         scrollToBottom(animated: true);
       });
     }
   }
-  
 
-  // Retry sending a message
   void retryMessage(String query) {
     sendMessage(query, isRetry: true);
-  }
-
-  void scrollListener() {
-    _showScrollToBottom.value =
-        scrollController.position.pixels > 200; // Example threshold
   }
 }

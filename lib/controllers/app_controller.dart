@@ -1,11 +1,12 @@
+import 'package:agri/services/storage_service.dart';
+import 'package:agri/views/screens/Tabs/chat/chat_tab.dart';
+import 'package:agri/views/screens/Tabs/market_tab.dart';
+import 'package:agri/views/screens/Tabs/settings/settings_tab.dart';
+import 'package:agri/views/screens/Tabs/tip/crop_tips_tab.dart';
+import 'package:agri/views/screens/Tabs/weather/weather_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/storage_service.dart';
-import '../views/screens/Tabs/chat/chat_tab.dart';
-import '../views/screens/Tabs/tip/crop_tips_tab.dart';
-import '../views/screens/Tabs/market_tab.dart';
-import '../views/screens/Tabs/settings/settings_tab.dart';
-import '../views/screens/Tabs/weather/weather_tab.dart';
+
 import 'auth/auth_controller.dart';
 import 'theme_controller.dart';
 

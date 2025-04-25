@@ -39,7 +39,7 @@ class CropTipsController extends GetxController {
     try {
       // Request with the current locale
       var response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/ask/$cropType'),
+        Uri.parse('http://127.0.0.1:8000/api/ask/agriculture/$cropType'),
         headers: {'Content-Type': 'application/json; charset=utf-8'},
         body: jsonEncode({
           'latitude': 11.7833,
