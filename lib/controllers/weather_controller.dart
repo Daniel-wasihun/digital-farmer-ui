@@ -15,8 +15,10 @@ class WeatherController extends GetxController {
   var askAnswer = Rxn<String>();
   var isAskLoading = false.obs;
 
-  // Use 'http://10.0.2.2:8000' for Android emulator, 'http://127.0.0.1:8000' for browser
-  static const String apiBaseUrl = 'http://127.0.0.1:8000';
+  // Determine the base URL based on the environment
+  static const String apiBaseUrl = 'http://127.0.0.1:8000'; // For Android emulator
+  // For physical device, use host machine's IP, e.g., 'http://192.168.1.x:8000'
+  // For browser/local testing, use 'http://127.0.0.1:8000'
 
   @override
   void onInit() {
@@ -136,7 +138,7 @@ class WeatherController extends GetxController {
         },
         body: jsonEncode(payload),
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30)); // Increased timeout
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         askAnswer.value = data['answer']?.toString() ?? 'No answer provided';

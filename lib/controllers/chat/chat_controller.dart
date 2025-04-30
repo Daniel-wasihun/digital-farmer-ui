@@ -1,3 +1,4 @@
+// chat_controller.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ class ChatController extends GetxController {
 
   // State
   final currentUserId = RxnString();
-  final messages = <String, Map<String, dynamic>>{}.obs; // Keyed by messageId
+  final messages = <String, Map<String, dynamic>>{}.obs;
   final allUsers = <Map<String, dynamic>>[].obs;
   final filteredUsers = <Map<String, dynamic>>[].obs;
   final typingUsers = <String>{}.obs;
@@ -26,10 +27,12 @@ class ChatController extends GetxController {
   final isLoadingUsers = false.obs;
   final isLoadingMessages = false.obs;
   final searchController = TextEditingController();
+  final unseenNotifications = <String, List<Map<String, dynamic>>>{}.obs; // Track notifications per user
 
   // Internal
   Timer? _searchDebounceTimer;
   bool _isConnecting = false;
+  bool _disposed = false;
   static const _maxRetries = 3;
   static const _baseRetryDelay = Duration(seconds: 2);
 
@@ -43,14 +46,16 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    _disposed = true;
     socketClient.disconnect();
     _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = null;
+    searchController.removeListener(debounceSearch);
     searchController.dispose();
     super.onClose();
     print('ChatController: Closed');
   }
 
-  // Initialization
   Future<void> _initialize() async {
     try {
       final user = storageService.getUser();
@@ -94,13 +99,13 @@ class ChatController extends GetxController {
     allUsers.clear();
     filteredUsers.clear();
     typingUsers.clear();
+    unseenNotifications.clear();
     selectedReceiverId.value = '';
     searchController.clear();
     errorMessage.value = '';
     isConnected.value = false;
   }
 
-  // Data Loading
   Future<void> loadLocalData() async {
     if (currentUserId.value == null) {
       print('ChatController: No userId for loading local data');
@@ -114,6 +119,7 @@ class ChatController extends GetxController {
         print('ChatController: Loaded ${allUsers.length} users from storage');
       }
       await _loadLocalMessages();
+      _loadUnseenNotifications();
     } catch (e) {
       print('ChatController: loadLocalData error: $e');
       errorMessage.value = 'failed_to_load_local_data'.tr;
@@ -136,7 +142,22 @@ class ChatController extends GetxController {
     print('ChatController: Loaded ${loadedMessages.length} messages from storage');
   }
 
-  // User Fetching
+  void _loadUnseenNotifications() {
+    final notificationsKey = 'unseen_notifications_${currentUserId.value}';
+    final storedNotifications = storageService.box.read(notificationsKey) ?? <String, List<dynamic>>{};
+    unseenNotifications.clear();
+    storedNotifications.forEach((receiverId, messages) {
+      unseenNotifications[receiverId] = (messages as List).cast<Map<String, dynamic>>().map(_normalizeMessage).toList();
+    });
+    print('ChatController: Loaded unseen notifications for ${unseenNotifications.length} users');
+  }
+
+  Future<void> saveUnseenNotifications() async {
+    final notificationsKey = 'unseen_notifications_${currentUserId.value}';
+    await storageService.box.write(notificationsKey, unseenNotifications);
+    print('ChatController: Saved unseen notifications for ${unseenNotifications.length} users');
+  }
+
   Future<void> fetchUsers({int retryCount = 0}) async {
     if (isLoadingUsers.value || currentUserId.value == null) {
       print('ChatController: Skipping fetchUsers: loading=${isLoadingUsers.value}, userId=${currentUserId.value}');
@@ -151,13 +172,26 @@ class ChatController extends GetxController {
           .map((u) => _normalizeUser(u))
           .toList();
 
-      if (_hasUserChanges(newUsers)) {
-        allUsers.assignAll(newUsers);
-        _updateFilteredUsers();
-        await storageService.saveUsers(currentUserId.value!, newUsers);
-        print('ChatController: Fetched and saved ${allUsers.length} users');
-      } else {
-        print('ChatController: No changes in users, skipping update');
+      final updatedUsers = <Map<String, dynamic>>[];
+      for (var newUser in newUsers) {
+        final existingUser = allUsers.firstWhereOrNull((u) => u['email'] == newUser['email']);
+        if (existingUser != null) {
+          updatedUsers.add({
+            ...newUser,
+            'lastMessageTime': existingUser['lastMessageTime'] ?? newUser['lastMessageTime'],
+          });
+        } else {
+          updatedUsers.add(newUser);
+        }
+      }
+      allUsers.assignAll(updatedUsers);
+      _updateFilteredUsers();
+      await storageService.saveUsers(currentUserId.value!, allUsers);
+      print('ChatController: Fetched and saved ${allUsers.length} users');
+
+      for (var user in allUsers) {
+        final receiverId = user['email'] as String;
+        await fetchMessagesFromBackend(receiverId);
       }
       errorMessage.value = '';
     } catch (e) {
@@ -167,7 +201,6 @@ class ChatController extends GetxController {
     }
   }
 
-  // Socket Connection
   Future<void> connect() async {
     if (_isConnecting || isConnected.value || currentUserId.value == null) {
       print('ChatController: Skipping connect: connecting=$_isConnecting, connected=${isConnected.value}, userId=${currentUserId.value}');
@@ -182,7 +215,7 @@ class ChatController extends GetxController {
     }
     _isConnecting = true;
     try {
-      await apiService.user.getUsers(); // Verify token
+      await apiService.user.getUsers();
       await socketClient.disconnect();
       socketClient.connect(
         currentUserId.value!,
@@ -202,6 +235,8 @@ class ChatController extends GetxController {
         _handleNewUser,
         (email) => _updateUserStatus(email, true),
         (email) => _updateUserStatus(email, false),
+        onMessageDelivered: _handleMessageDelivered,
+        onMessageRead: _handleMessageRead,
       );
     } catch (e) {
       await _handleSocketConnectError(e);
@@ -210,7 +245,6 @@ class ChatController extends GetxController {
     }
   }
 
-  // Message Handling
   Future<void> send(String text, String receiverId) async {
     if (text.trim().isEmpty || currentUserId.value == null) {
       print('ChatController: Empty text or no userId');
@@ -225,6 +259,14 @@ class ChatController extends GetxController {
     await _addMessage(message);
     if (isConnected.value && socketClient.socket?.connected == true) {
       socketClient.sendMessage(currentUserId.value!, receiverId, text, message['messageId']);
+      Get.snackbar(
+        'Message Sent'.tr,
+        'Your message to $receiverId has been sent'.tr,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
     } else {
       await storeOfflineMessage(message);
       Get.snackbar('offline'.tr, 'message_stored_locally'.tr, backgroundColor: Colors.grey, colorText: Colors.white);
@@ -244,7 +286,7 @@ class ChatController extends GetxController {
       final newMessages = backendMessages.map(_normalizeMessage).toList();
       await _mergeMessages(newMessages, receiverId);
       errorMessage.value = '';
-      print('ChatController: Fetched and saved ${newMessages.length} messages for $receiverId');
+      print('ChatController: Fetched and merged ${newMessages.length} messages for $receiverId');
     } catch (e) {
       await _handleFetchError(e, retryCount, () => fetchMessagesFromBackend(receiverId, retryCount: retryCount + 1));
     } finally {
@@ -285,11 +327,10 @@ class ChatController extends GetxController {
         print('ChatController: Error syncing message: $msgStr, error: $e');
       }
     }
-    await storageService.box.write(offlineKey, []); // Clear after sync
+    await storageService.box.write(offlineKey, []);
     print('ChatController: Synced ${stored.length} offline messages');
   }
 
-  // Public method to save messages for a user
   Future<void> saveMessagesForUser(String receiverId) async {
     final relatedMessages = messages.values
         .where((m) =>
@@ -300,7 +341,6 @@ class ChatController extends GetxController {
     print('ChatController: Saved ${relatedMessages.length} messages for $receiverId');
   }
 
-  // UI State
   void selectReceiver(String receiverId) async {
     if (receiverId.isEmpty || currentUserId.value == null) {
       print('ChatController: Invalid selectReceiver: receiverId=$receiverId, userId=${currentUserId.value}');
@@ -308,14 +348,6 @@ class ChatController extends GetxController {
     }
     selectedReceiverId.value = receiverId;
     await fetchMessagesFromBackend(receiverId);
-    final unreadMessages = messages.values
-        .where((msg) => msg['senderId'] == receiverId && msg['receiverId'] == currentUserId.value && !msg['read'])
-        .toList();
-    for (var msg in unreadMessages) {
-      socketClient.markAsRead(msg['messageId']);
-      msg['read'] = true;
-      await saveMessagesForUser(msg['senderId']);
-    }
     print('ChatController: Selected receiver: $receiverId, messages: ${messages.length}');
   }
 
@@ -338,9 +370,7 @@ class ChatController extends GetxController {
   }
 
   int getUnseenMessageCount(String receiverId) {
-    return messages.values
-        .where((msg) => msg['senderId'] == receiverId && msg['receiverId'] == currentUserId.value && !msg['read'])
-        .length;
+    return unseenNotifications[receiverId]?.length ?? 0;
   }
 
   List<Map<String, dynamic>> get userListItems {
@@ -360,14 +390,13 @@ class ChatController extends GetxController {
     }).toList();
   }
 
-  // Helpers
   Map<String, dynamic> _normalizeUser(Map<String, dynamic> u) {
     return {
       'email': u['email']?.toString() ?? '',
       'username': u['username']?.toString() ?? 'Unknown',
       'online': u['online'] as bool? ?? false,
       'profilePicture': u['profilePicture']?.toString() ?? '',
-      'lastMessageTime': _getLatestMessageTime(u['email']?.toString() ?? ''),
+      'lastMessageTime': u['lastMessageTime']?.toString() ?? '',
     };
   }
 
@@ -429,31 +458,53 @@ class ChatController extends GetxController {
       return;
     }
     messages[message['messageId']] = message;
-    await saveMessagesForUser(message['senderId'] == currentUserId.value ? message['receiverId'] : message['senderId']);
+    final receiverId = message['senderId'] == currentUserId.value ? message['receiverId'] : message['senderId'];
+    await saveMessagesForUser(receiverId);
     _updateUserLastMessageTime(message);
+    _updateFilteredUsers();
   }
 
   Future<void> _mergeMessages(List<Map<String, dynamic>> newMessages, String receiverId) async {
-    for (var msg in newMessages) {
-      if (_isValidMessage(msg)) {
-        messages[msg['messageId']] = msg;
+    for (var newMsg in newMessages) {
+      if (_isValidMessage(newMsg)) {
+        final existingMsg = messages[newMsg['messageId']];
+        if (existingMsg == null) {
+          messages[newMsg['messageId']] = newMsg;
+        } else {
+          final existingTime = DateTime.parse(existingMsg['timestamp']);
+          final newTime = DateTime.parse(newMsg['timestamp']);
+          if (newTime.isAfter(existingTime)) {
+            messages[newMsg['messageId']] = newMsg;
+          } else {
+            existingMsg['delivered'] = newMsg['delivered'] ?? existingMsg['delivered'];
+            existingMsg['read'] = newMsg['read'] ?? existingMsg['read'];
+          }
+        }
       }
     }
     await saveMessagesForUser(receiverId);
     _updateUserLastMessageTime(newMessages.isNotEmpty ? newMessages.last : {'receiverId': receiverId});
+    _updateFilteredUsers();
   }
-  
 
   void _updateFilteredUsers() {
+    if (_disposed) return;
+    // Safely access searchController.text
     final query = searchController.text.trim().toLowerCase();
     filteredUsers.value = query.isEmpty
         ? allUsers
         : allUsers.where((user) => user['username'].toString().toLowerCase().contains(query)).toList();
+    filteredUsers.refresh();
   }
 
   void debounceSearch() {
+    if (_disposed) return;
     _searchDebounceTimer?.cancel();
-    _searchDebounceTimer = Timer(const Duration(milliseconds: 300), _updateFilteredUsers);
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!_disposed) {
+        _updateFilteredUsers();
+      }
+    });
   }
 
   bool _hasUserChanges(List<Map<String, dynamic>> newUsers) {
@@ -464,8 +515,7 @@ class ChatController extends GetxController {
       if (newUser['email'] != oldUser['email'] ||
           newUser['username'] != oldUser['username'] ||
           newUser['online'] != oldUser['online'] ||
-          newUser['profilePicture'] != oldUser['profilePicture'] ||
-          newUser['lastMessageTime'] != oldUser['lastMessageTime']) {
+          newUser['profilePicture'] != oldUser['profilePicture']) {
         return true;
       }
     }
@@ -475,16 +525,79 @@ class ChatController extends GetxController {
   void _handleReceivedMessage(Map<String, dynamic> data) {
     if (data['receiverId'] == currentUserId.value || data['senderId'] == currentUserId.value) {
       if (_isValidMessage(data) && !messages.containsKey(data['messageId'])) {
-        _addMessage(_normalizeMessage(data));
+        final normalizedMessage = _normalizeMessage(data);
+        _addMessage(normalizedMessage);
         print('ChatController: Received message: ${data['messageId']}');
+
+        final senderId = data['senderId'];
+        final isViewingChat = senderId != currentUserId.value &&
+            (selectedReceiverId.value == senderId && Get.currentRoute == AppRoutes.getChatPage(senderId, ''));
+
+        if (!isViewingChat) {
+          unseenNotifications[senderId] ??= [];
+          if (!unseenNotifications[senderId]!.any((msg) => msg['messageId'] == data['messageId'])) {
+            unseenNotifications[senderId]!.add(normalizedMessage);
+            saveUnseenNotifications();
+            print('ChatController: Added to unseen notifications for $senderId: ${data['messageId']}');
+
+            Get.snackbar(
+              'New Message'.tr,
+              'You received a message from $senderId'.tr,
+              snackPosition: SnackPosition.TOP,
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.blue,
+              colorText: Colors.white,
+              onTap: (snack) {
+                Get.toNamed(AppRoutes.getChatPage(senderId, allUsers.firstWhere((u) => u['email'] == senderId, orElse: () => {'username': 'Unknown'})['username']));
+              },
+            );
+          }
+        } else {
+          socketClient.markAsRead(data['messageId']);
+          messages[data['messageId']]!['read'] = true;
+          saveMessagesForUser(senderId);
+        }
       }
     }
   }
 
   void _handleSentMessage(Map<String, dynamic> data) {
-    if (data['senderId'] == currentUserId.value && _isValidMessage(data) && !messages.containsKey(data['messageId'])) {
-      _addMessage(_normalizeMessage(data));
+    if (data['senderId'] == currentUserId.value && _isValidMessage(data)) {
+      messages[data['messageId']] = _normalizeMessage(data);
+      final receiverId = data['receiverId'];
+      saveMessagesForUser(receiverId);
+      _updateUserLastMessageTime(data);
+      _updateFilteredUsers();
       print('ChatController: Message sent: ${data['messageId']}');
+    }
+  }
+
+  void _handleMessageDelivered(String messageId) {
+    if (messages.containsKey(messageId)) {
+      messages[messageId]!['delivered'] = true;
+      final receiverId = messages[messageId]!['receiverId'];
+      saveMessagesForUser(receiverId);
+      _updateFilteredUsers();
+      print('ChatController: Message delivered: $messageId');
+      Get.snackbar(
+        'Message Delivered'.tr,
+        'Your message has been delivered'.tr,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _handleMessageRead(String messageId) {
+    if (messages.containsKey(messageId)) {
+      messages[messageId]!['delivered'] = true;
+      messages[messageId]!['read'] = true;
+      final receiverId = messages[messageId]!['receiverId'];
+      saveMessagesForUser(receiverId);
+      _updateFilteredUsers();
+      print('ChatController: Message read: $messageId');
     }
   }
 
@@ -497,6 +610,17 @@ class ChatController extends GetxController {
         typingUsers.remove(senderId);
         print('ChatController: Stopped typing: $senderId');
       }
+      typingUsers.refresh();
+    }
+  }
+
+  void _updateUserStatus(String email, bool online) {
+    final user = allUsers.firstWhereOrNull((u) => u['email'] == email);
+    if (user != null && user['online'] != online) {
+      user['online'] = online;
+      allUsers.refresh();
+      storageService.saveUsers(currentUserId.value!, allUsers);
+      print('ChatController: User ${online ? 'online' : 'offline'}: $email');
     }
   }
 
@@ -528,43 +652,20 @@ class ChatController extends GetxController {
     }
   }
 
-  void _updateUserStatus(String email, bool online) {
-    final user = allUsers.firstWhereOrNull((u) => u['email'] == email);
-    if (user != null && user['online'] != online) {
-      user['online'] = online;
-      allUsers.refresh();
-      storageService.saveUsers(currentUserId.value!, allUsers);
-      print('ChatController: User ${online ? 'online' : 'offline'}: $email');
-    }
-  }
-
   Future<void> _handleInvalidToken() async {
     print('ChatController: Handling invalid token');
-    final refreshed = await apiService.auth.refreshToken();
-    if (refreshed) {
-      print('ChatController: Token refreshed, retrying connection');
-      await connect();
-    } else {
-      print('ChatController: Token refresh failed, redirecting to login');
-      storageService.clear();
-      errorMessage.value = 'session_expired'.tr;
-      Get.offAllNamed(AppRoutes.getSignInPage());
-    }
+    storageService.clear();
+    errorMessage.value = 'session_expired'.tr;
+    Get.offAllNamed(AppRoutes.getSignInPage());
   }
 
   Future<void> _handleFetchError(dynamic e, int retryCount, Future<void> Function() retry) async {
     print('ChatController: Fetch error: $e');
     if (e.toString().contains('Invalid token') && retryCount < _maxRetries) {
-      print('ChatController: Attempting token refresh');
-      final refreshed = await apiService.auth.refreshToken();
-      if (refreshed) {
-        await retry();
-      } else {
-        print('ChatController: Token refresh failed, redirecting to login');
-        storageService.clear();
-        errorMessage.value = 'session_expired'.tr;
-        Get.offAllNamed(AppRoutes.getSignInPage());
-      }
+      print('ChatController: Invalid token detected, redirecting to login');
+      storageService.clear();
+      errorMessage.value = 'session_expired'.tr;
+      Get.offAllNamed(AppRoutes.getSignInPage());
     } else if (retryCount < _maxRetries) {
       print('ChatController: Retrying ${retryCount + 1}/$_maxRetries');
       await Future.delayed(_baseRetryDelay * (retryCount + 1));
@@ -572,12 +673,6 @@ class ChatController extends GetxController {
     } else {
       errorMessage.value = 'failed_to_load_data'.tr;
       Get.snackbar('Error', 'failed_to_load_data'.tr, snackPosition: SnackPosition.BOTTOM);
-      final storedUsers = storageService.getUsers(currentUserId.value!);
-      if (storedUsers.isNotEmpty) {
-        allUsers.assignAll(storedUsers);
-        filteredUsers.assignAll(storedUsers);
-        print('ChatController: Loaded ${allUsers.length} users from storage as fallback');
-      }
     }
   }
 

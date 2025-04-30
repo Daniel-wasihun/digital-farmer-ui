@@ -1,3 +1,4 @@
+// chat_screen_controller.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,14 +10,12 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   final String receiverId;
   final String receiverUsername;
 
-  // Reactive state
-  final unseenMessages = <String, Map<String, dynamic>>{}.obs; // Keyed by messageId
+  final unseenMessages = <String, Map<String, dynamic>>{}.obs;
   final unseenCount = 0.obs;
   final showScrollArrow = false.obs;
   final messageItems = <Map<String, dynamic>>[].obs;
   final isAtBottom = true.obs;
 
-  // Controllers
   late final ScrollController scrollController;
   late final TextEditingController messageController;
   late final AnimationController animationController;
@@ -24,17 +23,18 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   late final Animation<double> dot2;
   late final Animation<double> dot3;
 
-  // Internal
-  Timer? _debounceTimer;
+  Timer? _typingTimer;
   bool _needsInitialScroll = true;
-  static const _debounceDuration = Duration(milliseconds: 100);
+  static const _typingDebounceDuration = Duration(milliseconds: 500);
+  bool _isTyping = false;
+  bool _disposed = false;
+  final messageText = ''.obs;
 
   ChatScreenController({required this.receiverId, required this.receiverUsername});
 
   @override
   void onInit() {
     super.onInit();
-    // Initialize controllers
     scrollController = ScrollController();
     messageController = TextEditingController();
     animationController = AnimationController(
@@ -42,7 +42,6 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       duration: const Duration(milliseconds: 1000),
     )..repeat();
 
-    // Setup typing dot animations
     dot1 = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: animationController, curve: const Interval(0.0, 0.33, curve: Curves.easeInOut)),
     );
@@ -53,11 +52,53 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       CurvedAnimation(parent: animationController, curve: const Interval(0.66, 1.0, curve: Curves.easeInOut)),
     );
 
-    // Initialize chat
-    chatController.selectReceiver(receiverId);
-    _setupScrollListener();
-    _setupMessageListener();
-    _scheduleInitialScroll();
+    Get.closeAllSnackbars();
+
+    // Defer initialization to after the initial build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      chatController.selectReceiver(receiverId);
+      _updateMessageItems();
+      _markMessagesAsReadAndClearNotifications();
+      _setupScrollListener();
+      _setupMessageListener();
+      _scheduleInitialScroll();
+      _loadUnseenMessages();
+    });
+  }
+
+  void _markMessagesAsReadAndClearNotifications() {
+    final unreadMessages = chatController.messages.values
+        .where((msg) =>
+            msg['senderId'] == receiverId &&
+            msg['receiverId'] == chatController.currentUserId.value &&
+            !msg['read'])
+        .toList();
+
+    for (var msg in unreadMessages) {
+      chatController.socketClient.markAsRead(msg['messageId']);
+      msg['read'] = true;
+      chatController.messages[msg['messageId']]!['read'] = true;
+    }
+    chatController.saveMessagesForUser(receiverId);
+
+    if (chatController.unseenNotifications.containsKey(receiverId)) {
+      chatController.unseenNotifications.remove(receiverId);
+      chatController.saveUnseenNotifications();
+    }
+    unseenMessages.clear();
+    unseenCount.value = 0;
+  }
+
+  void _loadUnseenMessages() {
+    if (chatController.unseenNotifications.containsKey(receiverId)) {
+      final unseen = chatController.unseenNotifications[receiverId]!;
+      for (var msg in unseen) {
+        if (!unseenMessages.containsKey(msg['messageId'])) {
+          unseenMessages[msg['messageId']] = msg;
+        }
+      }
+      unseenCount.value = unseenMessages.length;
+    }
   }
 
   void _scheduleInitialScroll() {
@@ -77,13 +118,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       duration: immediate ? Duration.zero : const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
-    for (var msg in unseenMessages.values) {
-      chatController.socketClient.markAsRead(msg['messageId']);
-      msg['read'] = true;
-      chatController.saveMessagesForUser(receiverId);
-    }
-    unseenMessages.clear();
-    unseenCount.value = 0;
+    showScrollArrow.value = false;
   }
 
   void _setupScrollListener() {
@@ -95,54 +130,19 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
         isAtBottom.value = newIsAtBottom;
         showScrollArrow.value = !newIsAtBottom;
       }
-      if (newIsAtBottom && unseenMessages.isNotEmpty) {
-        scrollToBottom();
-      }
     });
   }
 
   void _setupMessageListener() {
     ever(chatController.messages, (_) {
-      _debounceTimer?.cancel();
-      _debounceTimer = Timer(_debounceDuration, _processMessages);
-    });
-  }
-
-  void _processMessages() {
-    final newMessages = chatController.messages.values
-        .where((msg) =>
-            msg['senderId'] == receiverId &&
-            msg['receiverId'] == chatController.currentUserId.value &&
-            !msg['read'])
-        .toList();
-
-    if (!isAtBottom.value) {
-      for (var msg in newMessages) {
-        if (!unseenMessages.containsKey(msg['messageId'])) {
-          unseenMessages[msg['messageId']] = msg;
-          unseenCount.value = unseenMessages.length;
-        }
-      }
-    } else {
-      for (var msg in newMessages) {
-        if (!msg['read']) {
-          chatController.socketClient.markAsRead(msg['messageId']);
-          msg['read'] = true;
-          chatController.saveMessagesForUser(receiverId);
-        }
-      }
-      unseenMessages.clear();
-      unseenCount.value = 0;
-    }
-
-    if (!chatController.isLoadingMessages.value && chatController.messages.isNotEmpty) {
+      // Schedule the update after the current build phase
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateMessageItems();
         if (scrollController.hasClients && isAtBottom.value) {
           scrollToBottom();
         }
       });
-    }
-    _updateMessageItems();
+    });
   }
 
   bool _isValidMessage(Map<String, dynamic> msg) {
@@ -185,7 +185,8 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   }
 
   void _updateMessageItems() {
-    final messages = chatController.messages.values.where(_isValidMessage).toList();
+    final messages = chatController.messages.values.where(_isValidMessage).toList()
+      ..sort((a, b) => DateTime.parse(a['timestamp']).compareTo(DateTime.parse(b['timestamp'])));
     final groupedMessages = _groupMessagesByDate(messages);
     final items = <Map<String, dynamic>>[];
     final sortedKeys = groupedMessages.keys.toList()
@@ -193,8 +194,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
 
     for (var key in sortedKeys) {
       items.add({'type': 'header', 'value': key, 'key': key});
-      final msgs = groupedMessages[key]!
-        ..sort((a, b) => DateTime.parse(a['timestamp']).compareTo(DateTime.parse(b['timestamp'])));
+      final msgs = groupedMessages[key]!;
       items.addAll(msgs.map((msg) => {
             'type': 'message',
             'message': msg,
@@ -226,13 +226,38 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     }
   }
 
+  void onMessageChanged(String text) {
+    if (_disposed) return;
+
+    messageText.value = text;
+
+    if (text.trim().isNotEmpty && !_isTyping) {
+      _isTyping = true;
+      chatController.onTyping(receiverId);
+    } else if (text.trim().isEmpty && _isTyping) {
+      _isTyping = false;
+      chatController.onStopTyping(receiverId);
+    }
+
+    _typingTimer?.cancel();
+    _typingTimer = Timer(_typingDebounceDuration, () {
+      if (_disposed) return;
+      if (!_isTyping || messageText.value.trim().isEmpty) {
+        _isTyping = false;
+        chatController.onStopTyping(receiverId);
+      }
+    });
+  }
+
   void sendMessage(String text) {
     if (text.trim().isEmpty || chatController.currentUserId.value == null) {
       print('ChatScreenController: Empty text or no userId');
       return;
     }
     chatController.send(text.trim(), receiverId);
-    messageController.clear();
+    messageText.value = '';
+    messageController.text = '';
+    _isTyping = false;
     chatController.onStopTyping(receiverId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {
@@ -254,10 +279,14 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
 
   @override
   void onClose() {
-    _debounceTimer?.cancel();
+    _disposed = true;
+    _typingTimer?.cancel();
+    _typingTimer = null;
     scrollController.dispose();
-    messageController.dispose();
     animationController.dispose();
+    messageController.text = '';
+    messageController.dispose();
+    messageText.value = '';
     chatController.clearReceiver();
     super.onClose();
     print('ChatScreenController: Closed');

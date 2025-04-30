@@ -1,3 +1,4 @@
+// socket_client.dart
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -5,9 +6,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 class SocketClient {
   IO.Socket? socket;
   bool _isConnecting = false;
-  // Configure base URL based on environment
-  // Update this IP for physical devices
-  static const String _deviceBaseUrl = 'http://localhost:5000'; // Replace with your machine's IP
+  static const String _deviceBaseUrl = 'http://localhost:5000';
   static const String _emulatorBaseUrl = 'http://localhost:5000';
   String get _baseUrl => defaultTargetPlatform == TargetPlatform.android && !kIsWeb ? _emulatorBaseUrl : _deviceBaseUrl;
 
@@ -22,8 +21,10 @@ class SocketClient {
     Function(String) onError,
     Function(Map<String, dynamic>) onNewUser,
     Function(String) onUserOnline,
-    Function(String) onUserOffline,
-  ) async {
+    Function(String) onUserOffline, {
+    required Function(String) onMessageDelivered,
+    required Function(String) onMessageRead,
+  }) async {
     if (_isConnecting || socket?.connected == true) {
       print('SocketClient: Already connecting or connected for $userId');
       return;
@@ -67,6 +68,24 @@ class SocketClient {
           onMessageSent(data);
         } else {
           print('SocketClient: Invalid messageSent data: $data');
+        }
+      });
+
+      socket!.on('messageDelivered', (data) {
+        if (data is Map<String, dynamic> && data['messageId'] is String) {
+          print('SocketClient: Message delivered: ${data['messageId']}');
+          onMessageDelivered(data['messageId']);
+        } else {
+          print('SocketClient: Invalid messageDelivered data: $data');
+        }
+      });
+
+      socket!.on('messageRead', (data) {
+        if (data is Map<String, dynamic> && data['messageId'] is String) {
+          print('SocketClient: Message read: ${data['messageId']}');
+          onMessageRead(data['messageId']);
+        } else {
+          print('SocketClient: Invalid messageRead data: $data');
         }
       });
 
@@ -134,7 +153,7 @@ class SocketClient {
 
       socket!.on('forceDisconnect', (data) {
         print('SocketClient: Force disconnected for $userId: $data');
-        disconnect();
+        _disconnect();
       });
 
       socket!.connect();
@@ -188,12 +207,14 @@ class SocketClient {
     print('SocketClient: Marked as read: $messageId');
   }
 
-  Future<void> disconnect() async {
+  Future<void> _disconnect() async {
     if (socket != null) {
       socket!.off('connect');
       socket!.off('registered');
       socket!.off('receiveMessage');
       socket!.off('messageSent');
+      socket!.off('messageDelivered');
+      socket!.off('messageRead');
       socket!.off('userTyping');
       socket!.off('userStoppedTyping');
       socket!.off('newUser');
@@ -207,5 +228,9 @@ class SocketClient {
       socket = null;
       print('SocketClient: Disconnected');
     }
+  }
+
+  Future<void> disconnect() async {
+    await _disconnect();
   }
 }

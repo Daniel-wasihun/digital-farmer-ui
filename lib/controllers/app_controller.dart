@@ -23,7 +23,7 @@ class AppController extends GetxController {
   final List<Widget Function()> pageFactories = [
     () => const CropTipsTab(),
     () => const WeatherTab(),
-    () => const MarketTab(),
+    () => const MarketPage(),
     () => ChatTab(), // Remove const to ensure fresh instance
     () => const SettingsTab(),
   ];
