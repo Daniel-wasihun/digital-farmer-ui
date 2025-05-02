@@ -20,216 +20,259 @@ class ChatScreen extends StatelessWidget {
       receiverUsername: receiverUsername,
     ));
     final screenSize = MediaQuery.of(context).size;
-    final scaleFactor = (screenSize.width / 400 * screenSize.height / 800).clamp(0.5, 0.85);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final scaleFactor = (screenSize.width / 400 * screenSize.height / 800).clamp(0.7, 1.05);
+    final fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'];
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: Theme.of(context).brightness == Brightness.dark
-                    ? [const Color(0xFF121212), const Color(0xFF1E1E1E)]
-                    : [const Color(0xFFF5F7FA), const Color(0xFFE8ECEF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
+    return Obx(() => Theme(
+          data: Theme.of(context),
+          child: Scaffold(
+            backgroundColor: Theme.of(context).cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+            body: Stack(
               children: [
-                _buildAppBar(context, scaleFactor, controller),
-                Expanded(
-                  child: Obx(
-                    () {
-                      if (controller.chatController.isLoadingMessages.value) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: AppConstants.primaryColor,
+                Column(
+                  children: [
+                    controller.isSelectionMode.value
+                        ? _buildSelectionAppBar(context, scaleFactor, controller, fontFamilyFallbacks)
+                        : _buildAppBar(context, scaleFactor, controller, fontFamilyFallbacks),
+                    Expanded(
+                      child: Obx(() {
+                        controller.textScaleFactor.value; // Trigger rebuild on text scale change
+                        if (controller.chatController.isLoadingMessages.value) {
+                          return Center(
+                            child: CircularProgressIndicator(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          );
+                        }
+                        if (controller.messageItems.isEmpty) {
+                          return Center(
+                            child: Text(
+                              'no_messages'.tr,
+                              style: TextStyle(
+                                fontFamily: GoogleFonts.poppins().fontFamily,
+                                fontFamilyFallback: fontFamilyFallbacks,
+                                fontSize: 15 * scaleFactor * controller.textScaleFactor.value,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                          );
+                        }
+                        return GestureDetector(
+                          onScaleUpdate: controller.isSelectionMode.value
+                              ? null
+                              : (details) {
+                                  final newScale = (controller.textScaleFactor.value * details.scale).clamp(0.7, 1.8);
+                                  controller.textScaleFactor.value = newScale;
+                                },
+                          behavior: HitTestBehavior.opaque,
+                          child: Stack(
+                            alignment: Alignment.bottomLeft,
+                            children: [
+                              ListView.builder(
+                                key: const ValueKey('chat_list'),
+                                controller: controller.scrollController,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 8 * scaleFactor,
+                                  horizontal: 8 * scaleFactor,
+                                ).copyWith(bottom: 20 * scaleFactor),
+                                itemCount: controller.messageItems.length,
+                                itemBuilder: (context, index) {
+                                  final item = controller.messageItems[index];
+                                  final itemKey = item['key'] as String;
+                                  if (item['type'] == 'header') {
+                                    return _buildDateHeader(
+                                        item['value'] as String,
+                                        scaleFactor,
+                                        context,
+                                        controller.textScaleFactor.value,
+                                        fontFamilyFallbacks,
+                                        key: ValueKey('header_$itemKey'));
+                                  }
+                                  final msg = item['message'] as Map<String, dynamic>;
+                                  final isSent = msg['senderId'].toString() == controller.chatController.currentUserId.toString();
+                                  final isNew = item['isNew'] as bool? ?? false;
+                                  final isSelected = controller.selectedIndices.contains(index);
+                                  return GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      if (controller.isSelectionMode.value) {
+                                        controller.toggleMessageSelection(index);
+                                      }
+                                    },
+                                    onLongPress: () {
+                                      if (!controller.isSelectionMode.value) {
+                                        controller.toggleSelectionMode();
+                                        controller.toggleMessageSelection(index);
+                                      }
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 100),
+                                      curve: Curves.easeInOut,
+                                      padding: EdgeInsets.symmetric(vertical: 3.5 * scaleFactor),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? Theme.of(context).colorScheme.primary.withOpacity(0.25)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(12 * scaleFactor),
+                                      ),
+                                      child: isNew
+                                          ? FadeInUp(
+                                              key: ValueKey('message_$itemKey'),
+                                              duration: const Duration(milliseconds: 400),
+                                              child: _MessageBubble(
+                                                key: ValueKey('message_$itemKey'),
+                                                message: msg,
+                                                isSent: isSent,
+                                                scaleFactor: scaleFactor,
+                                                screenWidth: screenSize.width,
+                                                controller: controller,
+                                                isSelected: isSelected,
+                                                textScaleFactor: controller.textScaleFactor.value,
+                                                fontFamilyFallbacks: fontFamilyFallbacks,
+                                              ),
+                                            )
+                                          : _MessageBubble(
+                                              key: ValueKey('message_$itemKey'),
+                                              message: msg,
+                                              isSent: isSent,
+                                              scaleFactor: scaleFactor,
+                                              screenWidth: screenSize.width,
+                                              controller: controller,
+                                              isSelected: isSelected,
+                                              textScaleFactor: controller.textScaleFactor.value,
+                                              fontFamilyFallbacks: fontFamilyFallbacks,
+                                            ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (controller.showScrollArrow.value && !controller.isSelectionMode.value)
+                                Positioned(
+                                  bottom: 10 * scaleFactor,
+                                  left: 16 * scaleFactor,
+                                  child: FloatingActionButton(
+                                    heroTag: 'scroll_to_bottom_chat',
+                                    mini: true,
+                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.85),
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12 * scaleFactor),
+                                    ),
+                                    onPressed: () => controller.scrollToBottom(),
+                                    child: Icon(
+                                      Icons.arrow_drop_down_rounded,
+                                      color: Theme.of(context).colorScheme.onPrimary,
+                                      size: 24 * scaleFactor,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         );
-                      }
-                      if (controller.messageItems.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'no_messages'.tr,
-                            style: GoogleFonts.poppins(
-                              fontSize: 12 * scaleFactor,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      }),
+                    ),
+                    _buildInputArea(context, scaleFactor, controller, fontFamilyFallbacks),
+                  ],
+                ),
+                Positioned(
+                  bottom: 80 * scaleFactor,
+                  right: 16 * scaleFactor,
+                  child: Obx(
+                    () => AnimatedOpacity(
+                      opacity: controller.unseenCount.value > 0 && !controller.isSelectionMode.value ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Visibility(
+                        visible: controller.unseenCount.value > 0 && !controller.isSelectionMode.value,
+                        child: GestureDetector(
+                          onTap: () => controller.scrollToBottom(),
+                          child: Container(
+                            padding: EdgeInsets.all(10 * scaleFactor),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondary.withOpacity(0.9),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 8 * scaleFactor,
+                                  offset: Offset(0, 4 * scaleFactor),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              controller.unseenCount.value.toString(),
+                              style: TextStyle(
+                                fontFamily: GoogleFonts.poppins().fontFamily,
+                                fontFamilyFallback: fontFamilyFallbacks,
+                                color: Theme.of(context).colorScheme.onSecondary,
+                                fontSize: 16 * scaleFactor,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        );
-                      }
-                      return ListView.builder(
-                        key: const ValueKey('chat_list'),
-                        controller: controller.scrollController,
-                        padding: EdgeInsets.symmetric(vertical: 6 * scaleFactor, horizontal: 6 * scaleFactor),
-                        itemCount: controller.messageItems.length,
-                        itemBuilder: (context, index) {
-                          final item = controller.messageItems[index];
-                          final itemKey = item['key'] as String;
-                          if (item['type'] == 'header') {
-                            return _buildDateHeader(
-                              item['value'] as String,
-                              scaleFactor,
-                              context,
-                              key: ValueKey('header_$itemKey'),
-                            );
-                          }
-                          final msg = item['message'] as Map<String, dynamic>;
-                          final isSent = msg['senderId'].toString() == controller.chatController.currentUserId.toString();
-                          print('Message $itemKey: isSent=$isSent, senderId=${msg['senderId']}, currentUserId=${controller.chatController.currentUserId}');
-                          final isNew = item['isNew'] as bool? ?? false;
-                          return isNew
-                              ? FadeInUp(
-                                  key: ValueKey('message_$itemKey'),
-                                  duration: const Duration(milliseconds: 400),
-                                  child: _MessageBubble(
-                                    key: ValueKey('message_$itemKey'),
-                                    message: msg,
-                                    isSent: isSent,
-                                    scaleFactor: scaleFactor,
-                                    screenWidth: screenSize.width,
-                                    controller: controller,
-                                  ),
-                                )
-                              : _MessageBubble(
-                                  key: ValueKey('message_$itemKey'),
-                                  message: msg,
-                                  isSent: isSent,
-                                  scaleFactor: scaleFactor,
-                                  screenWidth: screenSize.width,
-                                  controller: controller,
-                                );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                _buildInputArea(context, scaleFactor, controller),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 70 * scaleFactor,
-            left: 12 * scaleFactor,
-            child: Obx(
-              () => AnimatedOpacity(
-                opacity: controller.showScrollArrow.value ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: Visibility(
-                  visible: controller.showScrollArrow.value,
-                  child: GestureDetector(
-                    onTap: () => controller.scrollToBottom(),
-                    child: Container(
-                      padding: EdgeInsets.all(10 * scaleFactor),
-                      decoration: BoxDecoration(
-                        color: AppConstants.primaryColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 4 * scaleFactor,
-                            offset: Offset(0, 2 * scaleFactor),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.white,
-                        size: 16 * scaleFactor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 60 * scaleFactor,
-            right: 12 * scaleFactor,
-            child: Obx(
-              () => AnimatedOpacity(
-                opacity: controller.unseenCount.value > 0 ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: Visibility(
-                  visible: controller.unseenCount.value > 0,
-                  child: GestureDetector(
-                    onTap: () => controller.scrollToBottom(),
-                    child: Container(
-                      padding: EdgeInsets.all(6 * scaleFactor),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 4 * scaleFactor,
-                            offset: Offset(0, 2 * scaleFactor),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        controller.unseenCount.value.toString(),
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 12 * scaleFactor,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
+        ));
   }
 
-  Widget _buildDateHeader(String date, double scaleFactor, BuildContext context, {Key? key}) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      key: key,
-      padding: EdgeInsets.symmetric(vertical: 6 * scaleFactor, horizontal: 12 * scaleFactor),
-      child: Center(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 10 * scaleFactor, vertical: 3 * scaleFactor),
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.grey[800]!.withOpacity(0.9) : Colors.grey[200]!.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(12 * scaleFactor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 2 * scaleFactor,
-                offset: Offset(0, 1 * scaleFactor),
-              ),
-            ],
-          ),
-          child: Text(
-            date,
-            style: GoogleFonts.poppins(
-              fontSize: 10 * scaleFactor,
-              color: isDarkMode ? Colors.white70 : Colors.black87,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context, double scaleFactor, ChatScreenController controller) {
+  Widget _buildSelectionAppBar(
+      BuildContext context, double scaleFactor, ChatScreenController controller, List<String> fontFamilyFallbacks) {
     return AppBar(
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      elevation: 2,
+      shadowColor: Colors.black26,
+      title: Obx(() => Text(
+            '${controller.selectedIndices.length} ${controller.selectedIndices.length == 1 ? 'message_selected'.tr : 'messages_selected'.tr}',
+            style: TextStyle(
+              fontFamily: GoogleFonts.poppins().fontFamily,
+              fontFamilyFallback: fontFamilyFallbacks,
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontSize: 18 * scaleFactor,
+              fontWeight: FontWeight.w600,
+            ),
+          )),
+      leading: IconButton(
+        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
+        onPressed: controller.clearSelection,
+        tooltip: 'cancel'.tr,
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.copy, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
+          onPressed: controller.copySelectedMessages,
+          tooltip: 'copy'.tr,
+        ),
+        IconButton(
+          icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
+          onPressed: () => controller.deleteSelectedMessages(),
+          tooltip: 'delete'.tr,
+        ),
+      ],
       flexibleSpace: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppConstants.primaryColor, Color(0xFF2E7D32)],
+            colors: [
+              Theme.of(context).colorScheme.primary.withOpacity(0.6),
+              Theme.of(context).colorScheme.secondary.withOpacity(0.6),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAppBar(
+      BuildContext context, double scaleFactor, ChatScreenController controller, List<String> fontFamilyFallbacks) {
+    return AppBar(
+      backgroundColor: Theme.of(context).colorScheme.primary,
       elevation: 2,
       shadowColor: Colors.black26,
       titleSpacing: 0,
@@ -250,29 +293,29 @@ class ChatScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              SizedBox(width: 0 * scaleFactor),
+              SizedBox(width: 8 * scaleFactor),
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 16 * scaleFactor,
-                    backgroundColor: Colors.white,
+                    radius: 20 * scaleFactor,
+                    backgroundColor: Theme.of(context).colorScheme.onPrimary,
                     child: user != null && user['profilePicture']?.isNotEmpty == true
                         ? ClipOval(
                             child: CachedNetworkImage(
                               imageUrl: 'http://localhost:5000${user['profilePicture']}',
                               fit: BoxFit.cover,
-                              width: 32 * scaleFactor,
-                              height: 32 * scaleFactor,
+                              width: 40 * scaleFactor,
+                              height: 40 * scaleFactor,
                               placeholder: (context, url) => const CircularProgressIndicator(),
                               errorWidget: (context, url, error) {
                                 print('AppBar profile picture error: $error, URL: $url');
                                 return Text(
-                                  receiverUsername.isNotEmpty
-                                      ? receiverUsername[0].toUpperCase()
-                                      : '?',
+                                  receiverUsername.isNotEmpty ? receiverUsername[0].toUpperCase() : '?',
                                   style: TextStyle(
-                                    color: AppConstants.primaryColor,
-                                    fontSize: 16 * scaleFactor,
+                                    fontFamily: GoogleFonts.poppins().fontFamily,
+                                    fontFamilyFallback: fontFamilyFallbacks,
+                                    color: Theme.of(context).colorScheme.primary,
+                                    fontSize: 20 * scaleFactor,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 );
@@ -280,12 +323,12 @@ class ChatScreen extends StatelessWidget {
                             ),
                           )
                         : Text(
-                            receiverUsername.isNotEmpty
-                                ? receiverUsername[0].toUpperCase()
-                                : '?',
+                            receiverUsername.isNotEmpty ? receiverUsername[0].toUpperCase() : '?',
                             style: TextStyle(
-                              color: AppConstants.primaryColor,
-                              fontSize: 16 * scaleFactor,
+                              fontFamily: GoogleFonts.poppins().fontFamily,
+                              fontFamilyFallback: fontFamilyFallbacks,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 20 * scaleFactor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -295,27 +338,29 @@ class ChatScreen extends StatelessWidget {
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        width: 8 * scaleFactor,
-                        height: 8 * scaleFactor,
+                        width: 10 * scaleFactor,
+                        height: 10 * scaleFactor,
                         decoration: BoxDecoration(
                           color: Colors.green,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1 * scaleFactor),
+                          border: Border.all(color: Theme.of(context).colorScheme.onPrimary, width: 1.5 * scaleFactor),
                         ),
                       ),
                     ),
                 ],
               ),
-              SizedBox(width: 6 * scaleFactor),
+              SizedBox(width: 8 * scaleFactor),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       receiverUsername,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 14 * scaleFactor,
+                      style: TextStyle(
+                        fontFamily: GoogleFonts.poppins().fontFamily,
+                        fontFamilyFallback: fontFamilyFallbacks,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontSize: 18 * scaleFactor,
                         fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -324,13 +369,15 @@ class ChatScreen extends StatelessWidget {
                       children: [
                         Text(
                           isTyping ? 'typing'.tr : isOnline ? 'online'.tr : 'offline'.tr,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 10 * scaleFactor,
+                          style: TextStyle(
+                            fontFamily: GoogleFonts.poppins().fontFamily,
+                            fontFamilyFallback: fontFamilyFallbacks,
+                            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                            fontSize: 13 * scaleFactor,
                           ),
                         ),
                         if (isTyping) ...[
-                          SizedBox(width: 3 * scaleFactor),
+                          SizedBox(width: 5 * scaleFactor),
                           _TypingDots(scaleFactor: scaleFactor, controller: controller),
                         ],
                       ],
@@ -343,9 +390,9 @@ class ChatScreen extends StatelessWidget {
         );
       }),
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Colors.white, size: 20 * scaleFactor),
+        icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
         onPressed: () {
-          Get.delete<ChatScreenController>(); // Ensure controller is deleted when navigating back
+          Get.delete<ChatScreenController>();
           Get.offNamed(AppRoutes.getHomePage());
         },
         tooltip: 'back'.tr,
@@ -353,120 +400,189 @@ class ChatScreen extends StatelessWidget {
       actions: [
         Obx(() => controller.chatController.errorMessage.value.isNotEmpty
             ? IconButton(
-                icon: Icon(Icons.error, color: Colors.redAccent, size: 20 * scaleFactor),
-                onPressed: () => Get.snackbar('Error', controller.chatController.errorMessage.value,
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: Colors.redAccent.withOpacity(0.8),
-                    colorText: Colors.white,
-                    margin: EdgeInsets.all(6 * scaleFactor),
-                    icon: Icon(Icons.error_outline, color: Colors.white, size: 20 * scaleFactor),
-                    shouldIconPulse: true,
-                  ),
+                icon: Icon(Icons.error, color: Colors.redAccent, size: 24 * scaleFactor),
+                onPressed: () => Get.snackbar(
+                  'Error',
+                  controller.chatController.errorMessage.value,
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.redAccent.withOpacity(0.8),
+                  colorText: Theme.of(context).colorScheme.onPrimary,
+                  margin: EdgeInsets.all(8 * scaleFactor),
+                  icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
+                  shouldIconPulse: true,
+                ),
                 tooltip: 'show_error'.tr,
               )
             : const SizedBox.shrink()),
         IconButton(
-          icon: Icon(Icons.more_vert, color: Colors.white, size: 20 * scaleFactor),
+          icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
           onPressed: () {
             // TODO: Implement chat options/info
           },
           tooltip: 'more_options'.tr,
         ),
       ],
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary.withOpacity(0.6),
+              Theme.of(context).colorScheme.secondary.withOpacity(0.6),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildInputArea(BuildContext context, double scaleFactor, ChatScreenController controller) {
+  Widget _buildDateHeader(
+    String date,
+    double scaleFactor,
+    BuildContext context,
+    double textScaleFactor,
+    List<String> fontFamilyFallbacks, {
+    Key? key,
+  }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6 * scaleFactor, vertical: 6 * scaleFactor),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 6 * scaleFactor),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2E2E2E) : Colors.white,
-          borderRadius: BorderRadius.circular(20 * scaleFactor),
-          border: Border.all(
-            color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-            width: 1 * scaleFactor,
+      key: key,
+      padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor, horizontal: 16 * scaleFactor),
+      child: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14 * scaleFactor, vertical: 5 * scaleFactor),
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.grey[800]!.withOpacity(0.9) : Colors.grey[200]!.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(16 * scaleFactor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 3 * scaleFactor,
+                offset: Offset(0, 1.5 * scaleFactor),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
-              blurRadius: 6 * scaleFactor,
-              offset: Offset(0, 3 * scaleFactor),
+          child: Text(
+            date,
+            style: TextStyle(
+              fontFamily: GoogleFonts.poppins().fontFamily,
+              fontFamilyFallback: fontFamilyFallbacks,
+              fontSize: 13 * scaleFactor * textScaleFactor,
+              color: isDarkMode ? Colors.white70 : Colors.black87,
+              fontWeight: FontWeight.w500,
             ),
-          ],
+          ),
         ),
-        height: 40 * scaleFactor,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: Icon(
-                Icons.sentiment_satisfied_alt_rounded,
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                size: 18 * scaleFactor,
-              ),
-              onPressed: () {
-                // TODO: Implement emoji picker
-              },
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints(maxWidth: 32 * scaleFactor),
-              alignment: Alignment.center,
-            ),
-            SizedBox(width: 3 * scaleFactor),
-            Expanded(
-              child: TextField(
-                controller: controller.messageController,
-                style: GoogleFonts.poppins(
-                  fontSize: 12 * scaleFactor,
-                  color: isDarkMode ? Colors.white : Colors.black,
+      ),
+    );
+  }
+
+  Widget _buildInputArea(
+      BuildContext context, double scaleFactor, ChatScreenController controller, List<String> fontFamilyFallbacks) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2E2E2E) : Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16 * scaleFactor)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.08 : 0.15),
+            blurRadius: 6 * scaleFactor,
+            offset: Offset(0, -2 * scaleFactor),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 8 * scaleFactor),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller.messageController,
+              decoration: InputDecoration(
+                hintText: 'type_message'.tr,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12 * scaleFactor),
+                  borderSide: BorderSide.none,
                 ),
-                decoration: InputDecoration(
-                  hintText: 'type_message'.tr,
-                  hintStyle: GoogleFonts.poppins(
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                    fontSize: 12 * scaleFactor,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 8 * scaleFactor,
-                    horizontal: 6 * scaleFactor,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12 * scaleFactor),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12 * scaleFactor),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.secondary.withOpacity(0.6),
+                    width: 0.8 * scaleFactor,
                   ),
                 ),
-                minLines: 1,
-                maxLines: 3,
-                onChanged: controller.onMessageChanged, // Use debounced handler
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12 * scaleFactor,
+                  vertical: 10 * scaleFactor,
+                ),
+                prefixIcon: Icon(
+                  Icons.message_rounded,
+                  color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+                  size: 18 * scaleFactor,
+                ),
+                suffixIcon: controller.messageController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear_rounded,
+                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.35),
+                          size: 18 * scaleFactor,
+                        ),
+                        onPressed: () => controller.messageController.clear(),
+                      )
+                    : null,
+                filled: true,
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor?.withOpacity(0.8) ??
+                    (isDarkMode ? Colors.grey[800] : Colors.grey[100]),
+                hintStyle: TextStyle(
+                  fontFamily: GoogleFonts.poppins().fontFamily,
+                  fontFamilyFallback: fontFamilyFallbacks,
+                  color: Theme.of(context).textTheme.bodyMedium!.color!.withOpacity(0.3),
+                  fontSize: 15 * scaleFactor,
+                ),
               ),
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.attach_file,
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                size: 18 * scaleFactor,
+              style: TextStyle(
+                fontFamily: GoogleFonts.poppins().fontFamily,
+                fontFamilyFallback: fontFamilyFallbacks,
+                fontSize: 15 * scaleFactor,
+                color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87.withOpacity(0.9),
               ),
-              onPressed: () {
-                // TODO: Implement file attachment
+              minLines: 1,
+              maxLines: 3,
+              onChanged: controller.onMessageChanged,
+              onSubmitted: (value) {
+                controller.sendMessage(value);
               },
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints(maxWidth: 32 * scaleFactor),
-              alignment: Alignment.center,
             ),
-            SizedBox(width: 3 * scaleFactor),
-            FloatingActionButton(
-              mini: true,
-              backgroundColor: AppConstants.primaryColor,
-              elevation: 0,
-              onPressed: () => controller.sendMessage(controller.messageController.text),
-              tooltip: 'send_message'.tr,
+          ),
+          SizedBox(width: 8 * scaleFactor),
+          SizedBox(
+            width: 44 * scaleFactor,
+            height: 44 * scaleFactor,
+            child: ElevatedButton(
+              onPressed: () {
+                controller.sendMessage(controller.messageController.text);
+              },
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12 * scaleFactor),
+                ),
+                padding: EdgeInsets.zero,
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                elevation: 1,
+              ),
               child: Icon(
-                Icons.send,
-                color: Colors.white,
-                size: 16 * scaleFactor,
+                Icons.send_rounded,
+                color: Theme.of(context).colorScheme.onSecondary,
+                size: 20 * scaleFactor,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -478,6 +594,9 @@ class _MessageBubble extends StatelessWidget {
   final double scaleFactor;
   final double screenWidth;
   final ChatScreenController controller;
+  final bool isSelected;
+  final double textScaleFactor;
+  final List<String> fontFamilyFallbacks;
 
   const _MessageBubble({
     super.key,
@@ -486,58 +605,67 @@ class _MessageBubble extends StatelessWidget {
     required this.scaleFactor,
     required this.screenWidth,
     required this.controller,
+    required this.isSelected,
+    required this.textScaleFactor,
+    required this.fontFamilyFallbacks,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final maxBubbleWidth = screenWidth * 0.75;
-    final fontSize = 12 * scaleFactor;
-    final padding = 6 * scaleFactor;
+    final maxBubbleWidth = screenWidth * 0.65;
     final messageText = message['message'] ?? 'Error';
-    final edgePadding = 12 * scaleFactor;
+    final edgePadding = 16 * scaleFactor;
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 3 * scaleFactor, horizontal: 6 * scaleFactor),
+      padding: EdgeInsets.symmetric(vertical: 5 * scaleFactor, horizontal: 8 * scaleFactor),
       child: Column(
         crossAxisAlignment: isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              if (!isSent && isSelected)
+                Padding(
+                  padding: EdgeInsets.only(right: 8 * scaleFactor),
+                  child: Container(
+                    padding: EdgeInsets.all(4 * scaleFactor),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      size: 12 * scaleFactor,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-                child: CustomPaint(
-                  painter: ChatBubblePainter(
-                    isSent: isSent,
-                    gradient: isSent
-                        ? const LinearGradient(
-                            colors: [AppConstants.primaryColor, Color(0xFF2E7D32)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: isSent
-                        ? null
-                        : isDarkMode
-                            ? const Color(0xFF2E2E2E)
-                            : Colors.white,
-                    scaleFactor: scaleFactor,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12 * scaleFactor).copyWith(
+                    bottomRight: isSent ? Radius.zero : Radius.circular(12 * scaleFactor),
+                    bottomLeft: isSent ? Radius.circular(12 * scaleFactor) : Radius.zero,
                   ),
+                  color: isSent
+                      ? Theme.of(context).colorScheme.secondary.withOpacity(0.7)
+                      : Theme.of(context).cardTheme.color?.withOpacity(0.95) ?? (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12 * scaleFactor,
-                      vertical: padding,
-                    ),
+                    padding: EdgeInsets.all(12 * scaleFactor),
                     child: Text(
                       messageText,
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: GoogleFonts.poppins().fontFamily,
+                        fontFamilyFallback: fontFamilyFallbacks,
                         color: isSent
-                            ? Colors.white
+                            ? Theme.of(context).colorScheme.onSecondary
                             : isDarkMode
-                                ? Colors.white
-                                : Colors.black,
-                        fontSize: fontSize,
+                                ? Colors.white.withOpacity(0.9)
+                                : Colors.black87,
+                        fontSize: 14 * scaleFactor * textScaleFactor,
                         fontWeight: FontWeight.w400,
                       ),
                       softWrap: true,
@@ -545,26 +673,44 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isSent && isSelected)
+                Padding(
+                  padding: EdgeInsets.only(left: 8 * scaleFactor),
+                  child: Container(
+                    padding: EdgeInsets.all(4 * scaleFactor),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      size: 12 * scaleFactor,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
             ],
           ),
           Padding(
             padding: EdgeInsets.only(
               left: isSent ? 0 : edgePadding,
               right: isSent ? edgePadding : 0,
-              top: 1 * scaleFactor,
+              top: 4 * scaleFactor,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   controller.formatTime(message['timestamp']),
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: GoogleFonts.poppins().fontFamily,
+                    fontFamilyFallback: fontFamilyFallbacks,
                     color: isDarkMode ? Colors.white70 : Colors.black54,
-                    fontSize: 8 * scaleFactor,
+                    fontSize: 11 * scaleFactor * textScaleFactor,
                   ),
                 ),
                 if (isSent) ...[
-                  SizedBox(width: 3 * scaleFactor),
+                  SizedBox(width: 5 * scaleFactor),
                   Row(
                     children: [
                       Text(
@@ -573,12 +719,14 @@ class _MessageBubble extends StatelessWidget {
                             : message['delivered'] == true
                                 ? 'delivered'.tr
                                 : 'sent'.tr,
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: GoogleFonts.poppins().fontFamily,
+                          fontFamilyFallback: fontFamilyFallbacks,
                           color: isDarkMode ? Colors.white70 : Colors.black54,
-                          fontSize: 8 * scaleFactor,
+                          fontSize: 11 * scaleFactor * textScaleFactor,
                         ),
                       ),
-                      SizedBox(width: 2 * scaleFactor),
+                      SizedBox(width: 3 * scaleFactor),
                       Icon(
                         message['delivered'] == true || message['read'] == true
                             ? Icons.done_all
@@ -588,7 +736,7 @@ class _MessageBubble extends StatelessWidget {
                             : isDarkMode
                                 ? Colors.white70
                                 : Colors.black54,
-                        size: 10 * scaleFactor,
+                        size: 13 * scaleFactor,
                       ),
                     ],
                   ),
@@ -602,134 +750,6 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
-class ChatBubblePainter extends CustomPainter {
-  final bool isSent;
-  final LinearGradient? gradient;
-  final Color? color;
-  final double scaleFactor;
-
-  ChatBubblePainter({
-    required this.isSent,
-    this.gradient,
-    this.color,
-    required this.scaleFactor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    if (gradient != null) {
-      final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-      paint.shader = gradient!.createShader(rect);
-    } else {
-      paint.color = color ?? Colors.grey;
-    }
-
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.08)
-      ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 * scaleFactor);
-
-    final path = Path();
-    final shadowPath = Path();
-    final cornerRadius = 8.0 * scaleFactor;
-    final tailSize = 8.0 * scaleFactor;
-    final tailCurveControl1 = 3.0 * scaleFactor;
-    final tailCurveControl2 = 1.5 * scaleFactor;
-    final tailHeightOffset = 0.4 * scaleFactor;
-
-    if (isSent) {
-      path.moveTo(cornerRadius, 0);
-      shadowPath.moveTo(cornerRadius, 0);
-      path.lineTo(size.width - cornerRadius - tailSize, 0);
-      shadowPath.lineTo(size.width - cornerRadius - tailSize, 0);
-      path.quadraticBezierTo(
-          size.width - tailSize, 0, size.width - tailSize, cornerRadius);
-      shadowPath.quadraticBezierTo(
-          size.width - tailSize, 0, size.width - tailSize, cornerRadius);
-      path.lineTo(size.width - tailSize, size.height - cornerRadius - tailSize * 0.5);
-      shadowPath.lineTo(size.width - tailSize, size.height - cornerRadius - tailSize * 0.5);
-      path.quadraticBezierTo(
-          size.width - tailSize + tailCurveControl1,
-          size.height - cornerRadius - tailHeightOffset,
-          size.width - tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.2);
-      shadowPath.quadraticBezierTo(
-          size.width - tailSize + tailCurveControl1,
-          size.height - cornerRadius - tailHeightOffset,
-          size.width - tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.2);
-      path.quadraticBezierTo(
-          size.width - tailSize + tailCurveControl2,
-          size.height - tailHeightOffset,
-          size.width - tailSize - cornerRadius,
-          size.height);
-      shadowPath.quadraticBezierTo(
-          size.width - tailSize + tailCurveControl2,
-          size.height - tailHeightOffset,
-          size.width - tailSize - cornerRadius,
-          size.height);
-      path.lineTo(cornerRadius, size.height);
-      shadowPath.lineTo(cornerRadius, size.height);
-      path.quadraticBezierTo(0, size.height, 0, size.height - cornerRadius);
-      shadowPath.quadraticBezierTo(0, size.height, 0, size.height - cornerRadius);
-      path.lineTo(0, cornerRadius);
-      shadowPath.lineTo(0, cornerRadius);
-      path.quadraticBezierTo(0, 0, cornerRadius, 0);
-      shadowPath.quadraticBezierTo(0, 0, cornerRadius, 0);
-    } else {
-      path.moveTo(size.width - cornerRadius, 0);
-      shadowPath.moveTo(size.width - cornerRadius, 0);
-      path.lineTo(cornerRadius + tailSize, 0);
-      shadowPath.lineTo(cornerRadius + tailSize, 0);
-      path.quadraticBezierTo(tailSize, 0, tailSize, cornerRadius);
-      shadowPath.quadraticBezierTo(tailSize, 0, tailSize, cornerRadius);
-      path.lineTo(tailSize, size.height - cornerRadius - tailSize * 0.5);
-      shadowPath.lineTo(tailSize, size.height - cornerRadius - tailSize * 0.5);
-      path.quadraticBezierTo(
-          tailSize - tailCurveControl1,
-          size.height - cornerRadius - tailHeightOffset,
-          tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.2);
-      shadowPath.quadraticBezierTo(
-          tailSize - tailCurveControl1,
-          size.height - cornerRadius - tailHeightOffset,
-          tailCurveControl2,
-          size.height - cornerRadius + tailSize * 0.2);
-      path.quadraticBezierTo(
-          tailSize - tailCurveControl2,
-          size.height - tailHeightOffset,
-          cornerRadius,
-          size.height);
-      shadowPath.quadraticBezierTo(
-          tailSize - tailCurveControl2,
-          size.height - tailHeightOffset,
-          cornerRadius,
-          size.height);
-      path.lineTo(size.width - cornerRadius, size.height);
-      shadowPath.lineTo(size.width - cornerRadius, size.height);
-      path.quadraticBezierTo(
-          size.width, size.height, size.width, size.height - cornerRadius);
-      shadowPath.quadraticBezierTo(
-          size.width, size.height, size.width, size.height - cornerRadius);
-      path.lineTo(size.width, cornerRadius);
-      shadowPath.lineTo(size.width, cornerRadius);
-      path.quadraticBezierTo(size.width, 0, size.width - cornerRadius, 0);
-      shadowPath.quadraticBezierTo(size.width, 0, size.width - cornerRadius, 0);
-    }
-
-    path.close();
-    shadowPath.close();
-
-    canvas.drawPath(shadowPath, shadowPaint);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
 class _TypingDots extends StatelessWidget {
   final double scaleFactor;
   final ChatScreenController controller;
@@ -738,38 +758,54 @@ class _TypingDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller.animationController,
-      builder: (context, _) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Bounce(
-            duration: const Duration(milliseconds: 1000),
-            child: _buildDot(controller.dot1.value, scaleFactor),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedBuilder(
+          animation: controller.dot1,
+          builder: (context, _) => Opacity(
+            opacity: controller.dot1.value,
+            child: Container(
+              width: 7 * scaleFactor,
+              height: 7 * scaleFactor,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-          SizedBox(width: 2 * scaleFactor),
-          Bounce(
-            duration: const Duration(milliseconds: 1000),
-            delay: const Duration(milliseconds: 200),
-            child: _buildDot(controller.dot2.value, scaleFactor),
+        ),
+        SizedBox(width: 3 * scaleFactor),
+        AnimatedBuilder(
+          animation: controller.dot2,
+          builder: (context, _) => Opacity(
+            opacity: controller.dot2.value,
+            child: Container(
+              width: 7 * scaleFactor,
+              height: 7 * scaleFactor,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-          SizedBox(width: 2 * scaleFactor),
-          Bounce(
-            duration: const Duration(milliseconds: 1000),
-            delay: const Duration(milliseconds: 400),
-            child: _buildDot(controller.dot3.value, scaleFactor),
+        ),
+        SizedBox(width: 3 * scaleFactor),
+        AnimatedBuilder(
+          animation: controller.dot3,
+          builder: (context, _) => Opacity(
+            opacity: controller.dot3.value,
+            child: Container(
+              width: 7 * scaleFactor,
+              height: 7 * scaleFactor,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-
-  Widget _buildDot(double opacity, double scaleFactor) => Opacity(
-        opacity: opacity,
-        child: Container(
-          width: 5 * scaleFactor,
-          height: 5 * scaleFactor,
-          decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
-        ),
-      );
 }

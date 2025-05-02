@@ -1,8 +1,12 @@
-// chat_screen_controller.dart
 import 'dart:async';
+import 'package:agri/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:get_storage/get_storage.dart';
 import 'chat_controller.dart';
 
 class ChatScreenController extends GetxController with GetSingleTickerProviderStateMixin {
@@ -15,6 +19,9 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   final showScrollArrow = false.obs;
   final messageItems = <Map<String, dynamic>>[].obs;
   final isAtBottom = true.obs;
+  final isSelectionMode = false.obs;
+  final selectedIndices = <int>{}.obs;
+  final textScaleFactor = 1.0.obs;
 
   late final ScrollController scrollController;
   late final TextEditingController messageController;
@@ -29,6 +36,8 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   bool _isTyping = false;
   bool _disposed = false;
   final messageText = ''.obs;
+  final GetStorage _storage = GetStorage();
+  static const String _textScaleKey = 'chat_text_scale';
 
   ChatScreenController({required this.receiverId, required this.receiverUsername});
 
@@ -54,7 +63,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
 
     Get.closeAllSnackbars();
 
-    // Defer initialization to after the initial build
+    _loadTextScale();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       chatController.selectReceiver(receiverId);
       _updateMessageItems();
@@ -64,6 +73,27 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       _scheduleInitialScroll();
       _loadUnseenMessages();
     });
+  }
+
+  Future<void> _loadTextScale() async {
+    try {
+      await GetStorage.init();
+      final savedScale = _storage.read<double>(_textScaleKey);
+      if (savedScale != null) {
+        textScaleFactor.value = savedScale.clamp(0.7, 1.8);
+      }
+    } catch (e) {
+      print('Error loading text scale: $e');
+    }
+  }
+
+  Future<void> _saveTextScale() async {
+    try {
+      await GetStorage.init();
+      await _storage.write(_textScaleKey, textScaleFactor.value);
+    } catch (e) {
+      print('Error saving text scale: $e');
+    }
   }
 
   void _markMessagesAsReadAndClearNotifications() {
@@ -102,46 +132,63 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   }
 
   void _scheduleInitialScroll() {
+    if (!_needsInitialScroll) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_needsInitialScroll && chatController.messages.isNotEmpty && scrollController.hasClients) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (_disposed || !scrollController.hasClients) return;
         scrollToBottom(immediate: true);
         _needsInitialScroll = false;
-      }
+        // Retry after another 200ms if not at bottom
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (_disposed || !scrollController.hasClients) return;
+          if (scrollController.offset < scrollController.position.maxScrollExtent) {
+            scrollToBottom(immediate: true);
+          }
+        });
+      });
     });
   }
 
   void scrollToBottom({bool immediate = false}) {
     if (!scrollController.hasClients) return;
-    if (isAtBottom.value && !immediate) return;
-    scrollController.animateTo(
-      scrollController.position.maxScrollExtent,
-      duration: immediate ? Duration.zero : const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
+    final maxExtent = scrollController.position.maxScrollExtent + 20; // Account for bottom padding
+    if (immediate) {
+      scrollController.jumpTo(maxExtent);
+    } else {
+      scrollController.animateTo(
+        maxExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+    isAtBottom.value = true;
     showScrollArrow.value = false;
+    unseenCount.value = 0;
   }
 
   void _setupScrollListener() {
     scrollController.addListener(() {
       final offset = scrollController.offset;
       final maxExtent = scrollController.position.maxScrollExtent;
-      final newIsAtBottom = offset >= maxExtent - 10;
+      final newIsAtBottom = offset >= maxExtent - 20; // Adjusted tolerance for padding
       if (isAtBottom.value != newIsAtBottom) {
         isAtBottom.value = newIsAtBottom;
-        showScrollArrow.value = !newIsAtBottom;
+        showScrollArrow.value = !newIsAtBottom && offset > 200;
       }
     });
   }
 
   void _setupMessageListener() {
     ever(chatController.messages, (_) {
-      // Schedule the update after the current build phase
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _updateMessageItems();
         if (scrollController.hasClients && isAtBottom.value) {
-          scrollToBottom();
+          scrollToBottom(immediate: false);
         }
       });
+    });
+    ever(textScaleFactor, (_) {
+      _saveTextScale();
     });
   }
 
@@ -203,6 +250,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
           }));
     }
     messageItems.assignAll(items);
+    messageItems.refresh();
   }
 
   DateTime _parseDateKey(String key) {
@@ -256,13 +304,21 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     }
     chatController.send(text.trim(), receiverId);
     messageText.value = '';
-    messageController.text = '';
+    messageController.clear();
     _isTyping = false;
     chatController.onStopTyping(receiverId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (scrollController.hasClients) {
-        scrollToBottom();
-      }
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (scrollController.hasClients && !_disposed) {
+          scrollToBottom(immediate: false);
+          // Ensure absolute bottom after animation
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (scrollController.hasClients && !_disposed) {
+              scrollToBottom(immediate: true);
+            }
+          });
+        }
+      });
     });
   }
 
@@ -277,6 +333,131 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     }
   }
 
+  void toggleSelectionMode() {
+    isSelectionMode.value = !isSelectionMode.value;
+    if (!isSelectionMode.value) {
+      selectedIndices.clear();
+    }
+    selectedIndices.refresh();
+    messageItems.refresh();
+  }
+
+  void toggleMessageSelection(int index) {
+    if (index < 0 || index >= messageItems.length || messageItems[index]['type'] == 'header') return;
+    if (selectedIndices.contains(index)) {
+      selectedIndices.remove(index);
+    } else {
+      selectedIndices.add(index);
+    }
+    if (selectedIndices.isEmpty) {
+      isSelectionMode.value = false;
+    }
+    selectedIndices.refresh();
+    messageItems.refresh();
+  }
+
+  void copySelectedMessages() {
+    if (selectedIndices.isEmpty) return;
+    final validIndices = selectedIndices.where((index) => index < messageItems.length && messageItems[index]['type'] == 'message').toList();
+    if (validIndices.isEmpty) {
+      clearSelection();
+      return;
+    }
+    final selectedMessages = validIndices.map((index) => messageItems[index]['message']['message'] as String).join('\n');
+    Clipboard.setData(ClipboardData(text: selectedMessages));
+    Get.snackbar(
+      'copied'.tr,
+      validIndices.length == 1 ? 'message_copied'.tr : 'messages_copied'.tr,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(8),
+      icon: const Icon(Icons.copy, color: Colors.white),
+      duration: const Duration(seconds: 2),
+    );
+    clearSelection();
+  }
+
+  void deleteSelectedMessages() {
+    if (selectedIndices.isEmpty) return;
+    final validIndices = selectedIndices.where((index) => index < messageItems.length && messageItems[index]['type'] == 'message').toList();
+    if (validIndices.isEmpty) {
+      clearSelection();
+      return;
+    }
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          'confirm_delete'.tr,
+          style: TextStyle(
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'delete_messages_confirm'.trParams({
+            'count': validIndices.length.toString(),
+          }),
+          style: TextStyle(
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'cancel'.tr,
+              style: TextStyle(
+                fontFamily: GoogleFonts.poppins().fontFamily,
+                fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
+                color: AppConstants.primaryColor,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              final messagesToDelete = validIndices.map((index) => messageItems[index]['message']['messageId'] as String).toList();
+              for (var messageId in messagesToDelete) {
+                chatController.messages.remove(messageId);
+              }
+              chatController.saveMessagesForUser(receiverId);
+              _updateMessageItems();
+              Get.snackbar(
+                'deleted'.tr,
+                validIndices.length == 1 ? 'message_deleted'.tr : 'messages_deleted'.tr,
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
+                colorText: Colors.white,
+                margin: const EdgeInsets.all(8),
+                icon: const Icon(Icons.delete, color: Colors.white),
+                duration: const Duration(seconds: 2),
+              );
+              clearSelection();
+            },
+            child: Text(
+              'delete'.tr,
+              style: TextStyle(
+                fontFamily: GoogleFonts.poppins().fontFamily,
+                fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
+                color: Get.theme.colorScheme.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void clearSelection() {
+    selectedIndices.clear();
+    isSelectionMode.value = false;
+    selectedIndices.refresh();
+    messageItems.refresh();
+  }
+
   @override
   void onClose() {
     _disposed = true;
@@ -284,11 +465,18 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     _typingTimer = null;
     scrollController.dispose();
     animationController.dispose();
-    messageController.text = '';
+    messageController.clear();
     messageController.dispose();
     messageText.value = '';
     chatController.clearReceiver();
     super.onClose();
     print('ChatScreenController: Closed');
   }
+}
+
+// Placeholder for vsync (replace with actual implementation if needed)
+class PlaceholderVsync implements TickerProvider {
+  const PlaceholderVsync();
+  @override
+  Ticker createTicker(TickerCallback onTick) => Ticker(onTick);
 }

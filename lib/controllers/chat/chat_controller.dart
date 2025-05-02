@@ -15,6 +15,7 @@ class ChatController extends GetxController {
   final StorageService storageService = Get.find<StorageService>();
   final ApiService apiService = Get.find<ApiService>();
 
+
   // State
   final currentUserId = RxnString();
   final messages = <String, Map<String, dynamic>>{}.obs;
@@ -369,9 +370,13 @@ class ChatController extends GetxController {
     }
   }
 
+  
+
   int getUnseenMessageCount(String receiverId) {
     return unseenNotifications[receiverId]?.length ?? 0;
   }
+
+  
 
   List<Map<String, dynamic>> get userListItems {
     return filteredUsers.map((user) {
@@ -631,10 +636,10 @@ class ChatController extends GetxController {
     if (error.contains('Invalid token')) {
       await _handleInvalidToken();
     } else {
-      Get.snackbar('Error', 'socket_error'.tr, snackPosition: SnackPosition.BOTTOM);
+      // Get.snackbar('Error', 'socket_error'.tr, snackPosition: SnackPosition.BOTTOM);
       await Future.delayed(Duration(seconds: 5));
       if (!isConnected.value) {
-        print('ChatController: Retrying socket connection');
+        print('ChatController: Retrying socket ');
         await connect();
       }
     }
@@ -682,7 +687,7 @@ class ChatController extends GetxController {
     Get.snackbar('Error', 'socket_connect_failed'.tr, snackPosition: SnackPosition.BOTTOM);
     await Future.delayed(Duration(seconds: 5));
     if (!isConnected.value) {
-      print('ChatController: Retrying socket connection');
+      print('ChatController: Retrying socket ');
       await connect();
     }
   }

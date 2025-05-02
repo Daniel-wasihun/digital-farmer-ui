@@ -1,3 +1,4 @@
+import 'package:agri/views/widgets/price_screen.dart';
 import 'package:get/get.dart';
 import '../services/storage_service.dart';
 import '../views/screens/Tabs/settings/settings_tab.dart';
@@ -23,7 +24,6 @@ class AppRoutes {
   static const String home = '/home';
   static const String settings = '/settings';
   static const String changePassword = '/change-password';
-  // static const String updateProfile = '/update-profile';
   static const String securityQuestion = '/security-question';
   static const String faq = '/faq';
   static const String contactUs = '/contact-us';
@@ -34,14 +34,14 @@ class AppRoutes {
   static const String requestPasswordReset = '/request-password-reset';
   static const String resetPassword = '/reset-password';
   static const String securityQuestionVerificationPage = '/security-question-verification';
-  static const aiChat = '/aiChat';
-  
+  static const String aiChat = '/aiChat';
+  static const String price = '/price';
+
   static String getSignInPage() => signin;
   static String getSignUpPage() => signup;
   static String getHomePage() => home;
   static String getSettingsPage() => settings;
   static String getChangePasswordPage() => changePassword;
-  // static String getUpdateProfilePage() => updateProfile;
   static String getSecurityQuestionPage() => securityQuestion;
   static String getFaqPage() => faq;
   static String getContactUsPage() => contactUs;
@@ -53,8 +53,10 @@ class AppRoutes {
   static String getVerifyOTPPage() => verifyOTP;
   static String getRequestPasswordResetPage() => requestPasswordReset;
   static String getResetPasswordPage() => resetPassword;
-  static String getSecurityQuestionVerificationPage() =>securityQuestionVerificationPage;
+  static String getSecurityQuestionVerificationPage() => securityQuestionVerificationPage;
   static String getAiChatRoute() => aiChat;
+  static String getPricePage() => price;
+
   static String getInitialRoute() {
     final storageService = Get.find<StorageService>();
     final isLoggedIn = storageService.getToken() != null;
@@ -76,8 +78,8 @@ class AppRoutes {
     ),
     GetPage(
       name: home,
-      page: () => HomeScreen(),
-      transition: Transition.fadeIn,
+      page: () => const HomeScreen(),
+      transition: Transition.zoom,
       transitionDuration: const Duration(milliseconds: 400),
     ),
     GetPage(
@@ -93,18 +95,11 @@ class AppRoutes {
       transitionDuration: const Duration(milliseconds: 400),
     ),
     GetPage(
-    name: securityQuestionVerificationPage,
-    page: () => const SecurityQuestionVerificationScreen(),
-  ),
-    // GetPage(
-    //   name: updateProfile,
-    //   page: () => const UpdateProfileScreen(),
-    //   binding: BindingsBuilder(() {
-    //     Get.put(UpdateProfileController());
-    //   }),
-    //   transition: Transition.fadeIn,
-    //   transitionDuration: const Duration(milliseconds: 400),
-    // ),
+      name: securityQuestionVerificationPage,
+      page: () => const SecurityQuestionVerificationScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
     GetPage(
       name: securityQuestion,
       page: () => const SecurityQuestionScreen(),
@@ -165,9 +160,17 @@ class AppRoutes {
     GetPage(
       name: aiChat,
       page: () => const AIChatScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
       binding: BindingsBuilder(() {
         // Get.lazyPut<AIChatController>(() => AIChatController());
       }),
     ),
+     GetPage(
+          name: price,
+          page: () => const PriceScreen(),
+          transition: Transition.zoom,
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
   ];
 }

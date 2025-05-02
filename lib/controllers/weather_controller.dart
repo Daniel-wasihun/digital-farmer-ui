@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -16,7 +17,7 @@ class WeatherController extends GetxController {
   var isAskLoading = false.obs;
 
   // Determine the base URL based on the environment
-  static const String apiBaseUrl = 'http://127.0.0.1:8000'; // For Android emulator
+  static const String aiBaseUrl = BaseApi.aiBaseUrl; // For Android emulator
   // For physical device, use host machine's IP, e.g., 'http://192.168.1.x:8000'
   // For browser/local testing, use 'http://127.0.0.1:8000'
 
@@ -86,7 +87,7 @@ class WeatherController extends GetxController {
     try {
       print('Fetching weather data for $city ($latitude, $longitude)');
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/api/weather?latitude=$latitude&longitude=$longitude&city=$city'),
+        Uri.parse('$aiBaseUrl/api/weather?latitude=$latitude&longitude=$longitude&city=$city'),
         headers: {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
@@ -129,9 +130,9 @@ class WeatherController extends GetxController {
         'city': 'weldiya',
         'language': Get.locale?.languageCode ?? 'en',
       };
-      print('Sending request to $apiBaseUrl/api/ask/weather: $payload');
+      print('Sending request to $aiBaseUrl/api/ask/weather: $payload');
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/ask/weather'),
+        Uri.parse('$aiBaseUrl/api/ask/weather'),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Accept': 'application/json',

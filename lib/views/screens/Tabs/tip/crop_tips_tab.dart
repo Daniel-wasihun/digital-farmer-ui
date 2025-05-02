@@ -11,699 +11,652 @@ class CropTipsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final CropTipsController controller = Get.put(CropTipsController());
     final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
-    final isLargeTablet = size.width > 900;
-    final isSmallPhone = size.width < 360;
+    final screenWidth = size.width;
 
-    // Adjusted scaleFactor for smaller UI
-    final double scaleFactor = isLargeTablet ? 1.1 : isTablet ? 0.9 : isSmallPhone ? 0.7 : 0.8;
+    // Responsive scaling factor
+    final double scaleFactor = (0.9 + (screenWidth - 320) / (1200 - 320) * (1.6 - 0.9)).clamp(0.9, 1.6);
+    final double adjustedScaleFactor = scaleFactor * 1.1;
 
-    // Reduced padding for smaller UI
-    final double padding = isLargeTablet ? 16.0 : isTablet ? 12.0 : isSmallPhone ? 8.0 : 10.0;
+    // Dynamic responsive padding
+    final double padding = (8 + (screenWidth - 320) / (1200 - 320) * (32 - 8)).clamp(8.0, 32.0);
 
-    // Reduced base font sizes for smaller UI
-    const double baseTitleFontSize = 16.0;
-    const double baseSubtitleFontSize = 14.0;
-    const double baseDetailFontSize = 12.0;
+    // Font sizes
+    const double baseHeaderFontSize = 32.0;
+    const double baseTitleFontSize = 20.0;
+    const double baseSubtitleFontSize = 16.0;
+    const double baseDetailFontSize = 14.0;
 
-    // Calculate responsive font sizes
-    final double titleFontSize = baseTitleFontSize * scaleFactor;
-    final double subtitleFontSize = baseSubtitleFontSize * scaleFactor;
-    final double detailFontSize = baseDetailFontSize * scaleFactor;
+    final double headerFontSize = (baseHeaderFontSize * adjustedScaleFactor).clamp(22.0, 38.0);
+    final double titleFontSize = (baseTitleFontSize * adjustedScaleFactor).clamp(16.0, 28.0);
+    final double subtitleFontSize = (baseSubtitleFontSize * adjustedScaleFactor * 0.9).clamp(12.0, 20.0);
+    final double detailFontSize = (baseDetailFontSize * adjustedScaleFactor * 0.9).clamp(10.0, 18.0);
 
-    // Use theme
-    final theme = Theme.of(context);
-    final bool isDarkMode = theme.brightness == Brightness.dark;
+    // Dynamic grid columns
+    final int crossAxisCount = screenWidth < 360
+        ? 1
+        : screenWidth < 600
+            ? 2
+            : screenWidth < 900
+                ? 3
+                : 4;
 
     // Font fallbacks for Amharic
-    const fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
+    const List<String> fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
-    // Pre-translate labels
-    final cropTipsLabel = 'Crop Tips'.tr;
-    final cropInfoLabel = 'Crop Info'.tr;
-    final searchHintLabel = 'Search Crops'.tr;
-    final selectCropForDetailLabel = 'Select Crop for Detail'.tr;
-
-    // Filtered crops based on search query (cached to avoid recomputation)
-    List<MapEntry<String, Map<String, dynamic>>> getFilteredCrops(String query) {
-      if (query.isEmpty) {
-        return cropData.entries.toList();
-      }
-      return cropData.entries.where((entry) {
-        final translatedCropName = entry.key.tr.toLowerCase();
-        return translatedCropName.contains(query.toLowerCase());
-      }).toList();
-    }
-
-    // Ensure the default value is set in the controller
+    // Ensure default value for selected crop
     if (controller.selectedCrop.value.isEmpty) {
       controller.selectedCrop.value = '';
     }
 
-    return Scaffold(
-      body: SafeArea(
-        child: DefaultTabController(
-          length: 2,
-          child: Column(
-            children: [
-              // Header Section with TabBar
-              Container(
-                padding: EdgeInsets.all(padding),
-                child: Column(
+    return DefaultTabController(
+      length: 2,
+      child: Builder(
+        builder: (context) {
+          final tabController = DefaultTabController.of(context);
+          tabController.addListener(() {
+            controller.currentTabIndex.value = tabController.index;
+          });
+
+          return Scaffold(
+            body: SafeArea(
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardTheme.color ??
+                          (Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.white),
+                    ),
+                    child: Column(
+                      children: [
+                        TabBar(
+                          tabs: [
+                            Tab(text: 'Crop Tips'.tr),
+                            Tab(text: 'Crop Info'.tr),
+                          ],
+                          labelStyle: TextStyle(
+                            fontSize: subtitleFontSize,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                            fontFamilyFallback: fontFamilyFallbacks,
+                          ),
+                          unselectedLabelStyle: TextStyle(
+                            fontSize: subtitleFontSize,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[500],
+                            fontFamilyFallback: fontFamilyFallbacks,
+                          ),
+                          indicatorColor: Colors.green[700],
+                          labelColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                          unselectedLabelColor: Colors.grey[500],
+                        ),
+                        Obx(() => controller.currentTabIndex.value == 0
+                            ? Column(
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
+                                    child: AnimatedOpacity(
+                                      opacity: 1.0,
+                                      duration: const Duration(milliseconds: 300),
+                                      child: SizedBox(
+                                        height: 36 * adjustedScaleFactor,
+                                        child: TextField(
+                                          controller: controller.searchController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Search Crops'.tr,
+                                            hintStyle: TextStyle(
+                                              fontSize: detailFontSize,
+                                              color: Colors.grey[500],
+                                              fontFamilyFallback: fontFamilyFallbacks,
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                                              borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                                              borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                                              borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
+                                            ),
+                                            filled: true,
+                                            fillColor: Theme.of(context).cardTheme.color ??
+                                                (Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.grey[850]
+                                                    : Colors.white),
+                                            prefixIcon: Icon(
+                                              Icons.search,
+                                              color: Colors.green[700],
+                                              size: 18 * adjustedScaleFactor,
+                                            ),
+                                            suffixIcon: Obx(
+                                              () => controller.searchQuery.value.isNotEmpty
+                                                  ? IconButton(
+                                                      icon: Icon(
+                                                        Icons.clear,
+                                                        color: Colors.green[700],
+                                                        size: 18 * adjustedScaleFactor,
+                                                      ),
+                                                      onPressed: controller.clearSearch,
+                                                    )
+                                                  : const SizedBox.shrink(),
+                                            ),
+                                            contentPadding: EdgeInsets.symmetric(
+                                              vertical: 8 * adjustedScaleFactor,
+                                              horizontal: 10 * adjustedScaleFactor,
+                                            ),
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: detailFontSize,
+                                            color: Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white
+                                                : Colors.grey[900],
+                                            fontFamilyFallback: fontFamilyFallbacks,
+                                          ),
+                                          onChanged: (value) {
+                                            controller.searchQuery.value = value;
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
+                                    child: SizedBox(
+                                      height: 36 * adjustedScaleFactor,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: controller.getCategories().length,
+                                        itemBuilder: (context, index) {
+                                          final category = controller.getCategories()[index];
+                                          return Obx(() {
+                                            final isSelected = controller.selectedCategory.value == category;
+                                            return Padding(
+                                              padding: EdgeInsets.only(right: 8 * adjustedScaleFactor),
+                                              child: GestureDetector(
+                                                onTap: () => controller.selectedCategory.value = category,
+                                                child: AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 200),
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 12 * adjustedScaleFactor,
+                                                    vertical: 6 * adjustedScaleFactor,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isSelected
+                                                        ? Colors.green[700]
+                                                        : (Theme.of(context).cardTheme.color ??
+                                                            (Theme.of(context).brightness == Brightness.dark
+                                                                ? Colors.grey[850]
+                                                                : Colors.white)),
+                                                    borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
+                                                    border: Border.all(
+                                                      color: isSelected ? Colors.green[700]! : Colors.grey[500]!,
+                                                      width: 1 * adjustedScaleFactor,
+                                                    ),
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      category.tr,
+                                                      style: TextStyle(
+                                                        fontSize: detailFontSize * 0.9,
+                                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                                        color: isSelected
+                                                            ? Colors.white
+                                                            : (Theme.of(context).brightness == Brightness.dark
+                                                                ? Colors.grey[300]
+                                                                : Colors.grey[800]),
+                                                        fontFamilyFallback: fontFamilyFallbacks,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink()),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 8 * adjustedScaleFactor),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        CropTipsView(
+                          controller: controller,
+                          adjustedScaleFactor: adjustedScaleFactor,
+                          padding: padding,
+                          headerFontSize: headerFontSize,
+                          titleFontSize: titleFontSize,
+                          subtitleFontSize: subtitleFontSize,
+                          detailFontSize: detailFontSize,
+                          crossAxisCount: crossAxisCount,
+                          fontFamilyFallbacks: fontFamilyFallbacks,
+                        ),
+                        CropInfoView(
+                          controller: controller,
+                          adjustedScaleFactor: adjustedScaleFactor,
+                          padding: padding,
+                          detailFontSize: detailFontSize,
+                          fontFamilyFallbacks: fontFamilyFallbacks,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            floatingActionButton: FloatingActionButton(
+              heroTag: 'ai_chat_page', // Unique tag to avoid Hero conflict
+              onPressed: () {
+                Get.to(
+                  () => const AIChatScreen(),
+                  transition: Transition.noTransition,
+                );
+              },
+              backgroundColor: Colors.green[700],
+              tooltip: 'AI Chat'.tr,
+              child: Icon(
+                Icons.psychology,
+                color: Colors.white,
+                size: 24 * adjustedScaleFactor,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class CropTipsView extends StatelessWidget {
+  final CropTipsController controller;
+  final double adjustedScaleFactor;
+  final double padding;
+  final double headerFontSize;
+  final double titleFontSize;
+  final double subtitleFontSize;
+  final double detailFontSize;
+  final int crossAxisCount;
+  final List<String> fontFamilyFallbacks;
+
+  const CropTipsView({
+    super.key,
+    required this.controller,
+    required this.adjustedScaleFactor,
+    required this.padding,
+    required this.headerFontSize,
+    required this.titleFontSize,
+    required this.subtitleFontSize,
+    required this.detailFontSize,
+    required this.crossAxisCount,
+    required this.fontFamilyFallbacks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+      ),
+      child: Obx(() {
+        final filteredCrops = controller.getFilteredCrops();
+        if (filteredCrops.isEmpty) {
+          return Center(
+            child: Text(
+              'No Crops Found'.tr,
+              style: TextStyle(
+                fontSize: subtitleFontSize,
+                color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                fontFamilyFallback: fontFamilyFallbacks,
+              ),
+            ),
+          );
+        }
+        return GridView.builder(
+          padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 0,
+            mainAxisSpacing: 0,
+            childAspectRatio: 3 / 1.95,
+          ),
+          itemCount: filteredCrops.length,
+          itemBuilder: (context, index) {
+            final entry = filteredCrops[index];
+            return GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => CropDetailSheet(
+                    cropName: entry.key.tr,
+                    data: entry.value,
+                    theme: theme,
+                    isDarkMode: isDarkMode,
+                    scaleFactor: adjustedScaleFactor,
+                    padding: padding,
+                    headerFontSize: headerFontSize,
+                    titleFontSize: titleFontSize,
+                    subtitleFontSize: subtitleFontSize,
+                    detailFontSize: detailFontSize,
+                    fontFamilyFallbacks: fontFamilyFallbacks,
+                  ),
+                );
+              },
+              child: Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
+                ),
+                color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                child: Stack(
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? Colors.grey[850]!.withOpacity(0.9) : Colors.white.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TabBar(
-                        labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: detailFontSize + 2,
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.primary,
-                        ),
-                        unselectedLabelStyle: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: detailFontSize + 2,
-                          fontWeight: FontWeight.w500,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                        labelColor: theme.colorScheme.primary,
-                        unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.5),
-                        indicator: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: theme.colorScheme.primary,
-                              width: 3.0,
+                    Padding(
+                      padding: EdgeInsets.all(padding * 0.8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.eco,
+                                color: Colors.green[700],
+                                size: 32 * adjustedScaleFactor,
+                              ),
+                              SizedBox(width: 8 * adjustedScaleFactor),
+                              Expanded(
+                                child: Text(
+                                  entry.key.tr,
+                                  style: TextStyle(
+                                    fontSize: subtitleFontSize,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                                    fontFamilyFallback: fontFamilyFallbacks,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8 * adjustedScaleFactor),
+                          Text(
+                            'Temp: ${entry.value['temp_range'][0]}${'degree_celsius'.tr} - ${entry.value['temp_range'][1]}${'degree_celsius'.tr}',
+                            style: TextStyle(
+                              fontSize: detailFontSize,
+                              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                              fontFamilyFallback: fontFamilyFallbacks,
                             ),
                           ),
-                        ),
-                        indicatorSize: TabBarIndicatorSize.label,
-                        tabs: [
-                          Tab(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                              child: Text(
-                                cropTipsLabel,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                          Tab(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                              child: Text(
-                                cropInfoLabel,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
+                          Text(
+                            'Category: ${(entry.value['category'] as String).tr}',
+                            style: TextStyle(
+                              fontSize: detailFontSize,
+                              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                              fontFamilyFallback: fontFamilyFallbacks,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    Column(
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: padding, vertical: 6.0),
-                          child: SizedBox(
-                            height: 40 * scaleFactor,
-                            child: TextField(
-                              controller: controller.searchController,
-                              decoration: InputDecoration(
-                                hintText: searchHintLabel,
-                                hintStyle: TextStyle(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                  fontSize: detailFontSize - 1,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.search,
-                                  color: theme.colorScheme.primary,
-                                  size: 18 * scaleFactor,
-                                ),
-                                filled: true,
-                                fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                  borderSide: BorderSide.none,
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                  borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.0),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
-                                suffixIcon: Obx(
-                                  () => controller.searchQuery.value.isNotEmpty
-                                      ? IconButton(
-                                          icon: Icon(
-                                            Icons.clear,
-                                            color: theme.colorScheme.onSurface,
-                                            size: 18 * scaleFactor,
-                                          ),
-                                          onPressed: controller.clearSearch,
-                                        )
-                                      : const SizedBox.shrink(),
-                                ),
-                              ),
-                              style: TextStyle(fontSize: detailFontSize - 1),
-                              onChanged: (value) {
-                                controller.searchQuery.value = value;
-                              },
-                              textDirection: TextDirection.ltr,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Obx(() {
-                            final filteredCrops = getFilteredCrops(controller.searchQuery.value);
-                            if (filteredCrops.isEmpty) {
-                              return Center(
-                                child: Text(
-                                  'No Crops Found'.tr,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontSize: detailFontSize,
-                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                    fontFamilyFallback: fontFamilyFallbacks,
-                                  ),
-                                  textDirection: TextDirection.ltr,
-                                ),
-                              );
-                            }
-                            return Stack(
-                              children: [
-                                SingleChildScrollView(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(padding),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: filteredCrops.map<Widget>((entry) {
-                                        return _buildCropData(
-                                          entry.key.tr,
-                                          entry.value,
-                                          theme,
-                                          detailFontSize,
-                                          padding,
-                                          scaleFactor,
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  bottom: 8 * scaleFactor,
-                                  right: 8 * scaleFactor,
-                                  child: FloatingActionButton(
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        PageRouteBuilder(
-                                          pageBuilder: (context, animation, secondaryAnimation) =>
-                                              const AIChatScreen(),
-                                          transitionsBuilder:
-                                              (context, animation, secondaryAnimation, child) {
-                                            const begin = Offset(1.0, 0.0);
-                                            const end = Offset.zero;
-                                            const curve = Curves.easeInOut;
-                                            var tween = Tween(begin: begin, end: end)
-                                                .chain(CurveTween(curve: curve));
-                                            var offsetAnimation = animation.drive(tween);
-                                            return SlideTransition(
-                                              position: offsetAnimation,
-                                              child: child,
-                                            );
-                                          },
-                                          transitionDuration: const Duration(milliseconds: 300),
-                                        ),
-                                      );
-                                    },
-                                    backgroundColor: Colors.green[600],
-                                    tooltip: 'AI Chat'.tr,
-                                    mini: true,
-                                    child: Icon(
-                                      Icons.psychology,
-                                      color: Colors.white,
-                                      size: 16 * scaleFactor,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-                    SingleChildScrollView(
-                      child: Padding(
-                        padding: EdgeInsets.all(padding),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Select a Crop for Detailed Info'.tr,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontSize: titleFontSize,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onSurface,
-                                fontFamilyFallback: fontFamilyFallbacks,
-                              ),
-                              textDirection: TextDirection.ltr,
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              child: SizedBox(
-                                height: 40 * scaleFactor,
-                                child: DropdownButtonFormField<String>(
-                                  value: controller.selectedCrop.value.isEmpty ? '' : controller.selectedCrop.value,
-                                  isExpanded: true,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                      borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.0),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                                  ),
-                                  menuMaxHeight: 200 * scaleFactor,
-                                  items: [
-                                    // Default option
-                                    DropdownMenuItem<String>(
-                                      value: '',
-                                      child: Text(
-                                        selectCropForDetailLabel,
-                                        style: TextStyle(
-                                          fontSize: detailFontSize,
-                                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                          fontFamilyFallback: fontFamilyFallbacks,
-                                        ),
-                                        textDirection: TextDirection.ltr,
-                                      ),
-                                    ),
-                                    // Crop options
-                                    ...cropData.keys.map<DropdownMenuItem<String>>((crop) {
-                                      return DropdownMenuItem<String>(
-                                        value: crop,
-                                        child: Text(
-                                          crop.tr,
-                                          style: TextStyle(
-                                            fontSize: detailFontSize,
-                                            color: theme.colorScheme.onSurface,
-                                            fontFamilyFallback: fontFamilyFallbacks,
-                                          ),
-                                          textDirection: TextDirection.ltr,
-                                        ),
-                                      );
-                                    }),
-                                  ],
-                                  onChanged: (value) {
-                                    if (value != null && value.isNotEmpty) {
-                                      controller.selectedCrop.value = value;
-                                      controller.fetchCropInfo(value);
-                                    } else {
-                                      controller.selectedCrop.value = '';
-                                      controller.cropInfo.value = null;
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Obx(() {
-                              if (controller.isCropInfoLoading.value) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              if (controller.cropInfo.value == null) {
-                                return Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      AnimatedScale(
-                                        scale: controller.selectedCrop.value.isEmpty ? 1.2 : 1.0,
-                                        duration: const Duration(milliseconds: 500),
-                                        curve: Curves.easeInOut,
-                                        child: Icon(
-                                          Icons.eco,
-                                          size: 80 * scaleFactor,
-                                          color: theme.colorScheme.primary.withOpacity(0.7),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Please select a crop to view details'.tr,
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          fontSize: detailFontSize,
-                                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                          fontFamilyFallback: fontFamilyFallbacks,
-                                        ),
-                                        textDirection: TextDirection.ltr,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              final sections = _parsePlainTextResponse(controller.cropInfo.value!);
-                              final isAmharicContent = RegExp(r'[\u1200-\u137F]').hasMatch(controller.cropInfo.value!);
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (isAmharicContent)
-                                    Container(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: Colors.orange, width: 0.5),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.warning_amber,
-                                            color: Colors.orange,
-                                            size: 16 * scaleFactor,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Expanded(
-                                            child: Text(
-                                              'Amharic text may not render properly on this device. For best results, use a device with Amharic support.'.tr,
-                                              style: theme.textTheme.bodySmall?.copyWith(
-                                                fontSize: detailFontSize - 2,
-                                                color: Colors.orange,
-                                              ),
-                                              textDirection: TextDirection.ltr,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    decoration: BoxDecoration(
-                                      color: isDarkMode ? Colors.grey[850] : Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: isDarkMode ? Colors.black54 : Colors.grey[300]!,
-                                          offset: const Offset(2, 2),
-                                          blurRadius: 6,
-                                          spreadRadius: 0.5,
-                                        ),
-                                        BoxShadow(
-                                          color: isDarkMode ? Colors.grey[900]! : Colors.white,
-                                          offset: const Offset(-2, -2),
-                                          blurRadius: 6,
-                                          spreadRadius: 0.5,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Padding(
-                                      padding: EdgeInsets.all(padding),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: sections.asMap().entries.map<Widget>((entry) {
-                                          final section = entry.value;
-                                          final textDirection = TextDirection.ltr;
-
-                                          if (section['type'] == 'header') {
-                                            return Padding(
-                                              padding: EdgeInsets.only(bottom: 12 * scaleFactor),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    section['content'],
-                                                    style: theme.textTheme.headlineSmall?.copyWith(
-                                                      fontSize: titleFontSize,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: theme.colorScheme.primary,
-                                                      fontFamilyFallback: fontFamilyFallbacks,
-                                                    ),
-                                                    textDirection: textDirection,
-                                                  ),
-                                                  const SizedBox(height: 6),
-                                                  Divider(
-                                                    color: theme.colorScheme.onSurface.withOpacity(0.2),
-                                                    thickness: 0.8,
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          } else if (section['type'] == 'subheader') {
-                                            return Padding(
-                                              padding: EdgeInsets.only(top: 12 * scaleFactor, bottom: 6 * scaleFactor),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    section['content'],
-                                                    style: theme.textTheme.titleLarge?.copyWith(
-                                                      fontSize: subtitleFontSize,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: theme.colorScheme.onSurface,
-                                                      fontFamilyFallback: fontFamilyFallbacks,
-                                                    ),
-                                                    textDirection: textDirection,
-                                                  ),
-                                                  const SizedBox(height: 3),
-                                                  Divider(
-                                                    color: theme.colorScheme.onSurface.withOpacity(0.1),
-                                                    thickness: 0.4,
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          } else if (section['type'] == 'paragraph') {
-                                            return Padding(
-                                              padding: EdgeInsets.only(left: 6 * scaleFactor, bottom: 8 * scaleFactor),
-                                              child: Text(
-                                                section['content'],
-                                                style: theme.textTheme.bodyMedium?.copyWith(
-                                                  fontSize: detailFontSize,
-                                                  color: theme.colorScheme.onSurface.withOpacity(0.9),
-                                                  fontFamilyFallback: fontFamilyFallbacks,
-                                                  height: 1.4,
-                                                ),
-                                                textDirection: textDirection,
-                                                softWrap: true,
-                                              ),
-                                            );
-                                          } else if (section['type'] == 'bullet') {
-                                            return Padding(
-                                              padding: EdgeInsets.only(left: 6 * scaleFactor, bottom: 6 * scaleFactor),
-                                              child: Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                textDirection: TextDirection.ltr,
-                                                children: [
-                                                  Text(
-                                                    '• ',
-                                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                                      fontSize: detailFontSize,
-                                                      color: theme.colorScheme.onSurface,
-                                                    ),
-                                                    textDirection: textDirection,
-                                                  ),
-                                                  const SizedBox(width: 3),
-                                                  Flexible(
-                                                    child: Text(
-                                                      section['content'],
-                                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                                        fontSize: detailFontSize,
-                                                        color: theme.colorScheme.onSurface.withOpacity(0.9),
-                                                        fontFamilyFallback: fontFamilyFallbacks,
-                                                        height: 1.4,
-                                                      ),
-                                                      textDirection: textDirection,
-                                                      softWrap: true,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }
-                                          return const SizedBox.shrink();
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }),
-                          ],
-                        ),
+                    Positioned(
+                      right: 8 * adjustedScaleFactor,
+                      bottom: (100 * adjustedScaleFactor - 20 * adjustedScaleFactor) / 2,
+                      child: Icon(
+                        Icons.chevron_right,
+                        size: 20 * adjustedScaleFactor,
+                        color: Colors.green[700],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            );
+          },
+        );
+      }),
     );
   }
+}
 
-  List<Map<String, dynamic>> _parsePlainTextResponse(String response) {
-    final lines = response.split('\n').where((line) => line.trim().isNotEmpty).toList();
-    final sections = <Map<String, dynamic>>[];
-    String? currentSubheader;
+class CropInfoView extends StatelessWidget {
+  final CropTipsController controller;
+  final double adjustedScaleFactor;
+  final double padding;
+  final double detailFontSize;
+  final List<String> fontFamilyFallbacks;
 
-    final headerTranslationMap = {
-      'General Information': 'general_information',
-      'Growth Recommendations': 'growth_recommendations',
-      'Current Weather Impact and Advice': 'current_weather_impact_and_advice',
-    };
+  const CropInfoView({
+    super.key,
+    required this.controller,
+    required this.adjustedScaleFactor,
+    required this.padding,
+    required this.detailFontSize,
+    required this.fontFamilyFallbacks,
+  });
 
-    for (var line in lines) {
-      line = line.trim();
-      if (line.startsWith('Header: ')) {
-        final headerContent = line.replaceFirst('Header: ', '');
-        sections.add({
-          'type': 'header',
-          'content': headerContent,
-        });
-        currentSubheader = null;
-      } else if (line.startsWith('Subheader: ')) {
-        var subheaderContent = line.replaceFirst('Subheader: ', '');
-        if (headerTranslationMap.containsKey(subheaderContent)) {
-          subheaderContent = headerTranslationMap[subheaderContent]!.tr;
-        }
-        currentSubheader = subheaderContent;
-        sections.add({
-          'type': 'subheader',
-          'content': currentSubheader,
-        });
-      } else if (line.startsWith('Conclusion: ')) {
-        sections.add({
-          'type': 'paragraph',
-          'content': line.replaceFirst('Conclusion: ', ''),
-        });
-      } else if (line.startsWith('- ')) {
-        sections.add({
-          'type': 'bullet',
-          'content': line.substring(2),
-        });
-      } else {
-        sections.add({
-          'type': 'paragraph',
-          'content': line,
-        });
-      }
-    }
-    return sections;
-  }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
 
-  Widget _buildCropData(
-    String cropName,
-    Map<String, dynamic> data,
-    ThemeData theme,
-    double fontSize,
-    double padding,
-    double scaleFactor,
-  ) {
-    return Card(
-      elevation: 3,
-      color: theme.cardTheme.color ?? (theme.brightness == Brightness.dark ? Colors.grey[850] : Colors.white),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 6),
+    return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(padding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.grass,
-                  color: theme.colorScheme.primary,
-                  size: 20 * scaleFactor,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    cropName,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: fontSize + 1,
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary,
-                      fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
+            AnimatedOpacity(
+              opacity: 1.0,
+              duration: const Duration(milliseconds: 300),
+              child: SizedBox(
+                height: 36 * adjustedScaleFactor,
+                child: DropdownButtonFormField<String>(
+                  value: controller.selectedCrop.value.isEmpty ? '' : controller.selectedCrop.value,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    hintText: 'Select Crop for Detail'.tr,
+                    hintStyle: TextStyle(
+                      fontSize: detailFontSize,
+                      color: Colors.grey[500],
+                      fontFamilyFallback: fontFamilyFallbacks,
                     ),
-                    textDirection: TextDirection.ltr,
+                    filled: true,
+                    fillColor: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 8 * adjustedScaleFactor,
+                      horizontal: 10 * adjustedScaleFactor,
+                    ),
                   ),
+                  menuMaxHeight: 200 * adjustedScaleFactor,
+                  items: [
+                    DropdownMenuItem<String>(
+                      value: '',
+                      child: Text(
+                        'Select Crop for Detail'.tr,
+                        style: TextStyle(
+                          fontSize: detailFontSize * 0.9,
+                          color: Colors.grey[500],
+                          fontFamilyFallback: fontFamilyFallbacks,
+                        ),
+                      ),
+                    ),
+                    ...cropData.keys.map<DropdownMenuItem<String>>((crop) {
+                      return DropdownMenuItem<String>(
+                        value: crop,
+                        child: Text(
+                          crop.tr,
+                          style: TextStyle(
+                            fontSize: detailFontSize * 0.9,
+                            color: isDarkMode ? Colors.white : Colors.grey[900],
+                            fontFamilyFallback: fontFamilyFallbacks,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      controller.selectedCrop.value = value;
+                      controller.fetchCropInfo(value);
+                    } else {
+                      controller.selectedCrop.value = '';
+                      controller.cropInfo.value = null;
+                    }
+                  },
                 ),
-              ],
+              ),
             ),
-            Divider(
-              color: theme.colorScheme.onSurface.withOpacity(0.1),
-              height: 12,
-              thickness: 0.8,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CropDetailSheet extends StatelessWidget {
+  final String cropName;
+  final Map<String, dynamic> data;
+  final ThemeData theme;
+  final bool isDarkMode;
+  final double scaleFactor;
+  final double padding;
+  final double headerFontSize;
+  final double titleFontSize;
+  final double subtitleFontSize;
+  final double detailFontSize;
+  final List<String> fontFamilyFallbacks;
+
+  const CropDetailSheet({
+    super.key,
+    required this.cropName,
+    required this.data,
+    required this.theme,
+    required this.isDarkMode,
+    required this.scaleFactor,
+    required this.padding,
+    required this.headerFontSize,
+    required this.titleFontSize,
+    required this.subtitleFontSize,
+    required this.detailFontSize,
+    required this.fontFamilyFallbacks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.6,
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20 * scaleFactor),
+        ),
+        color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
+              child: Container(
+                width: 40 * scaleFactor,
+                height: 4 * scaleFactor,
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2 * scaleFactor),
+                ),
+              ),
             ),
-            _buildDataRow(
-              icon: Icons.thermostat,
-              label: 'Optimal Temp Range'.tr,
-              value: '${data['temp_range'][0]}${'degree_celsius'.tr} - ${data['temp_range'][1]}${'degree_celsius'.tr}',
-              theme: theme,
-              fontSize: fontSize,
-              scaleFactor: scaleFactor,
-            ),
-            _buildDataRow(
-              icon: Icons.water_drop,
-              label: 'Weekly Water'.tr,
-              value: '${data['weekly_water_mm'][0]} ${'millimeters'.tr} - ${data['weekly_water_mm'][1]} ${'millimeters'.tr}',
-              theme: theme,
-              fontSize: fontSize,
-              scaleFactor: scaleFactor,
-            ),
-            _buildDataRow(
-              icon: Icons.opacity,
-              label: 'Optimal Humidity'.tr,
-              value: '${data['humidity_range'][0]}${'percent'.tr} - ${data['humidity_range'][1]}${'percent'.tr}',
-              theme: theme,
-              fontSize: fontSize,
-              scaleFactor: scaleFactor,
-            ),
-            _buildDataRow(
-              icon: Icons.height,
-              label: 'Altitude Range'.tr,
-              value: '${data['altitude_range_m'][0]} ${'meters'.tr} - ${data['altitude_range_m'][1]} ${'meters'.tr}',
-              theme: theme,
-              fontSize: fontSize,
-              scaleFactor: scaleFactor,
-            ),
-            _buildDataRow(
-              icon: Icons.landscape,
-              label: 'Soil Type'.tr,
-              value: (data['soil_type'] as List<String>).map((soil) => soil.tr).join(', '),
-              theme: theme,
-              fontSize: fontSize,
-              scaleFactor: scaleFactor,
-            ),
-            _buildDataRow(
-              icon: Icons.calendar_today,
-              label: 'Growing Season'.tr,
-              value: (data['growing_season'] as List<String>).map((season) => season.tr).join(', '),
-              theme: theme,
-              fontSize: fontSize,
-              scaleFactor: scaleFactor,
-            ),
-            _buildDataRow(
-              icon: Icons.category,
-              label: 'Category'.tr,
-              value: (data['category'] as String).tr,
-              theme: theme,
-              fontSize: fontSize,
-              scaleFactor: scaleFactor,
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          cropName,
+                          style: TextStyle(
+                            fontSize: headerFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.grey[900],
+                            fontFamilyFallback: fontFamilyFallbacks,
+                          ),
+                        ),
+                        Icon(
+                          Icons.eco,
+                          color: Colors.green[700],
+                          size: 44 * scaleFactor,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8 * scaleFactor),
+                    Text(
+                      (data['category'] as String).tr,
+                      style: TextStyle(
+                        fontSize: subtitleFontSize,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                        fontFamilyFallback: fontFamilyFallbacks,
+                      ),
+                    ),
+                    Divider(
+                      color: isDarkMode ? Colors.grey[600]!.withOpacity(0.2) : Colors.grey[200]!.withOpacity(0.2),
+                      height: 16 * scaleFactor,
+                    ),
+                    _buildDetailRow(
+                      'Optimal Temp Range'.tr,
+                      '${data['temp_range'][0]}${'degree_celsius'.tr} - ${data['temp_range'][1]}${'degree_celsius'.tr}',
+                      icon: Icons.thermostat,
+                    ),
+                    _buildDetailRow(
+                      'Weekly Water'.tr,
+                      '${data['weekly_water_mm'][0]} ${'millimeters'.tr} - ${data['weekly_water_mm'][1]} ${'millimeters'.tr}',
+                      icon: Icons.water_drop,
+                    ),
+                    _buildDetailRow(
+                      'Optimal Humidity'.tr,
+                      '${data['humidity_range'][0]}${'percent'.tr} - ${data['humidity_range'][1]}${'percent'.tr}',
+                      icon: Icons.opacity,
+                    ),
+                    _buildDetailRow(
+                      'Altitude Range'.tr,
+                      '${data['altitude_range_m'][0]} ${'meters'.tr} - ${data['altitude_range_m'][1]} ${'meters'.tr}',
+                      icon: Icons.height,
+                    ),
+                    _buildDetailRow(
+                      'Soil Type'.tr,
+                      (data['soil_type'] as List<String>).map((soil) => soil.tr).join(', '),
+                      icon: Icons.landscape,
+                    ),
+                    _buildDetailRow(
+                      'Growing Season'.tr,
+                      (data['growing_season'] as List<String>).map((season) => season.tr).join(', '),
+                      icon: Icons.calendar_today,
+                    ),
+                    _buildDetailRow(
+                      'Category'.tr,
+                      (data['category'] as String).tr,
+                      icon: Icons.category,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -711,54 +664,98 @@ class CropTipsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildDataRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required ThemeData theme,
-    required double fontSize,
-    required double scaleFactor,
-  }) {
+  Widget _buildDetailRow(String label, String value, {IconData? icon}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(
-            icon,
-            color: theme.colorScheme.primary.withOpacity(0.8),
-            size: 16 * scaleFactor,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface,
-                fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
+          Row(
+            children: [
+              if (icon != null)
+                Padding(
+                  padding: EdgeInsets.only(right: 8 * scaleFactor),
+                  child: Icon(
+                    icon,
+                    size: 18 * scaleFactor,
+                    color: Colors.green[700],
+                  ),
+                ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: detailFontSize,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white : Colors.grey[900],
+                  fontFamilyFallback: fontFamilyFallbacks,
+                ),
               ),
-              textDirection: TextDirection.ltr,
-            ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Expanded(
-            flex: 3,
+          Flexible(
             child: Text(
               value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: fontSize,
-                color: theme.colorScheme.onSurface.withOpacity(0.9),
-                fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
+              style: TextStyle(
+                fontSize: detailFontSize,
+                color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                fontFamilyFallback: fontFamilyFallbacks,
               ),
               textAlign: TextAlign.right,
-              textDirection: TextDirection.ltr,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+List<Map<String, dynamic>> _parsePlainTextResponse(String response) {
+  final lines = response.split('\n').where((line) => line.trim().isNotEmpty).toList();
+  final sections = <Map<String, dynamic>>[];
+  String? currentSubheader;
+
+  final headerTranslationMap = {
+    'General Information': 'general_information',
+    'Growth Recommendations': 'growth_recommendations',
+    'Current Weather Impact and Advice': 'current_weather_impact_and_advice',
+  };
+
+  for (var line in lines) {
+    line = line.trim();
+    if (line.startsWith('Header: ')) {
+      final headerContent = line.replaceFirst('Header: ', '');
+      sections.add({
+        'type': 'header',
+        'content': headerContent,
+      });
+      currentSubheader = null;
+    } else if (line.startsWith('Subheader: ')) {
+      var subheaderContent = line.replaceFirst('Subheader: ', '');
+      if (headerTranslationMap.containsKey(subheaderContent)) {
+        subheaderContent = headerTranslationMap[subheaderContent]!.tr;
+      }
+      currentSubheader = subheaderContent;
+      sections.add({
+        'type': 'subheader',
+        'content': currentSubheader,
+      });
+    } else if (line.startsWith('Conclusion: ')) {
+      sections.add({
+        'type': 'paragraph',
+        'content': line.replaceFirst('Conclusion: ', ''),
+      });
+    } else if (line.startsWith('- ')) {
+      sections.add({
+        'type': 'bullet',
+        'content': line.substring(2),
+      });
+    } else {
+      sections.add({
+        'type': 'paragraph',
+        'content': line,
+      });
+    }
+  }
+  return sections;
 }

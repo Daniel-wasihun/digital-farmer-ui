@@ -1,4 +1,5 @@
 // socket_client.dart
+import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -6,8 +7,8 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 class SocketClient {
   IO.Socket? socket;
   bool _isConnecting = false;
-  static const String _deviceBaseUrl = 'http://localhost:5000';
-  static const String _emulatorBaseUrl = 'http://localhost:5000';
+  static const String _deviceBaseUrl = BaseApi.imageBaseUrl ;
+  static const String _emulatorBaseUrl = BaseApi.imageBaseUrl ;
   String get _baseUrl => defaultTargetPlatform == TargetPlatform.android && !kIsWeb ? _emulatorBaseUrl : _deviceBaseUrl;
 
   Future<void> connect(

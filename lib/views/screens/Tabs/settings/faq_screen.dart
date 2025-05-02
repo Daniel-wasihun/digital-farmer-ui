@@ -28,11 +28,11 @@ class _FaqScreenState extends State<FaqScreen> {
                 ? 0.85
                 : 1.0;
 
-    // Base font sizes
-    final double baseTitleFontSize = 16.0;
-    final double baseQuestionFontSize = 13.0;
-    final double baseAnswerFontSize = 11.0;
-    final double baseAppBarFontSize = 15.0;
+    // Base font sizes (unchanged from previous update)
+    final double baseTitleFontSize = 17.0;
+    final double baseQuestionFontSize = 14.0;
+    final double baseAnswerFontSize = 12.0;
+    final double baseAppBarFontSize = 16.0;
 
     // Calculate responsive font sizes
     final double titleFontSize = baseTitleFontSize * scaleFactor;
@@ -42,12 +42,12 @@ class _FaqScreenState extends State<FaqScreen> {
 
     // Responsive padding and margins
     final double padding = isLargeTablet
-        ? 20.0
+        ? 16.0 // Reduced from 20.0
         : isTablet
-            ? 16.0
+            ? 12.0 // Reduced from 16.0
             : isSmallPhone
-                ? 12.0
-                : 14.0;
+                ? 8.0 // Reduced from 12.0
+                : 10.0; // Reduced from 14.0
 
     final double cardMargin = isLargeTablet
         ? 6.0
@@ -57,12 +57,12 @@ class _FaqScreenState extends State<FaqScreen> {
                 ? 3.0
                 : 4.0;
 
-    // Responsive max width for the content
+    // Responsive max width for the content, further increased for wider cards
     final double maxWidth = isLargeTablet
-        ? 700
+        ? 900 // Increased from 800
         : isTablet
-            ? 600
-            : size.width * (isSmallPhone ? 0.92 : 0.9);
+            ? 800 // Increased from 700
+        : size.width * (isSmallPhone ? 0.98 : 0.97); // Increased from 0.95/0.94
 
     // List of FAQ items with translated questions and answers
     final List<Map<String, String>> faqItems = [
@@ -153,7 +153,7 @@ class _FaqScreenState extends State<FaqScreen> {
                       children: List.generate(faqItems.length, (index) {
                         return Container(
                           key: ValueKey(index),
-                          margin: EdgeInsets.symmetric(vertical: cardMargin, horizontal: 4.0),
+                          margin: EdgeInsets.symmetric(vertical: cardMargin, horizontal: 1.0), // Reduced from 2.0
                           child: Material(
                             elevation: theme.cardTheme.elevation ?? 2,
                             borderRadius: cardBorderRadius,

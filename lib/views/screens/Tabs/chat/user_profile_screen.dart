@@ -1,3 +1,4 @@
+import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -73,7 +74,7 @@ class UserProfileScreen extends StatelessWidget {
                         backgroundColor: AppConstants.primaryColor,
                         backgroundImage: profilePicture != null &&
                                 profilePicture.isNotEmpty
-                            ? NetworkImage('http://localhost:5000$profilePicture')
+                            ? NetworkImage('${BaseApi.imageBaseUrl}$profilePicture')
                             : null,
                         child: profilePicture == null || profilePicture.isEmpty
                             ? Text(

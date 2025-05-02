@@ -20,6 +20,7 @@ class ThemeController extends GetxController {
   ThemeData getTheme() {
     return isDarkMode.value ? _darkTheme : _lightTheme;
   }
+  
 
   ThemeData getDarkTheme() {
     return _darkTheme;

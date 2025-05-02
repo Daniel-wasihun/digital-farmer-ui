@@ -22,6 +22,8 @@ class FeedbackController extends GetxController {
     resetState();
   }
 
+
+
   @override
   void onClose() {
     feedbackTextController.dispose();

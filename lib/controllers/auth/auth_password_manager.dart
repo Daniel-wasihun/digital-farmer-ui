@@ -1,11 +1,11 @@
-import 'package:agri/controllers/auth/auth_controller_callbacks.dart';
-import 'package:flutter/material.dart'; // Import for Colors or theme
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
-import '../../routes/app_routes.dart'; // Import AppRoutes
+import '../../routes/app_routes.dart';
+import 'auth_controller_callbacks.dart';
 
-/// Manages password related authentication flows (reset, change).
+/// Manages password-related authentication flows (reset, change).
 class AuthPasswordManager {
   final ApiService _apiService;
   final StorageService _storageService;
@@ -20,7 +20,10 @@ class AuthPasswordManager {
       print('Requesting password reset for: $email');
 
       // Call API service to request reset
-      await _apiService.auth.requestPasswordReset(email.toLowerCase());
+      final response = await _apiService.auth.requestPasswordReset(email.toLowerCase());
+      if (response['status'] != 'success') {
+        throw Exception(response['message'] ?? 'password_reset_request_failed'.tr);
+      }
 
       // Show success feedback and navigate to Verify OTP page
       _callbacks.showSnackbar(
@@ -28,20 +31,24 @@ class AuthPasswordManager {
         'otp_sent_to_email'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
       _callbacks.navigateTo(AppRoutes.getVerifyOTPPage(), arguments: {
         'email': email.toLowerCase(),
-        'type': 'password_reset', // Indicate password reset flow
+        'type': 'password_reset',
       });
-
     } catch (e) {
-      // Handle API or other errors
       print('Password reset request failed: $e');
       _callbacks.showSnackbar(
         'error'.tr,
-        e.toString().replaceFirst('Exception: ', ''),
+        e.toString().replaceFirst('Exception: ', '').tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
     } finally {
       _callbacks.setIsLoading(false);
@@ -49,43 +56,41 @@ class AuthPasswordManager {
   }
 
   /// Verifies the OTP for password reset and returns a reset token.
-  /// The controller will handle navigation after receiving the token.
   Future<String?> verifyPasswordResetOTP(String email, String otp) async {
-     // OTP validation is typically handled by the API.
     try {
       _callbacks.setIsLoading(true);
-      print('Verifying password reset OTP for: $email');
+      print('Verifying password reset OTP for: $email, OTP: $otp');
 
       // Call API service to verify password reset OTP
-      final response = await _apiService.auth.verifyPasswordResetOTP(email, otp);
+      final response = await _apiService.auth.verifyPasswordResetOTP(email.toLowerCase(), otp);
+      final resetToken = response['resetToken'] as String?;
+      if (resetToken == null) {
+        throw Exception('reset_token_missing'.tr);
+      }
 
       _callbacks.showSnackbar(
         'success'.tr,
         'otp_verified'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
-
-      final resetToken = response['resetToken'];
-       if (resetToken == null) {
-         // This case should theoretically be handled by the API throwing an error,
-         // but adding a local check can be defensive.
-         throw Exception('reset_token_missing'.tr);
-       }
-       return resetToken;
-
+      return resetToken;
     } catch (e) {
-      // Handle API or other errors
       print('Password reset OTP verification failed: $e');
-       String errorMessage = e.toString().replaceFirst('Exception: ', '');
-       // Specific error handling might be needed here based on API response
-        _callbacks.showSnackbar(
-         'error'.tr,
-         errorMessage,
-         backgroundColor: Get.theme.colorScheme.error,
-         colorText: Get.theme.colorScheme.onError,
-       );
-       return null; // Indicate failure
+      String errorMessage = e.toString().replaceFirst('Exception: ', '').tr;
+      _callbacks.showSnackbar(
+        'error'.tr,
+        errorMessage,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+      );
+      return null;
     } finally {
       _callbacks.setIsLoading(false);
     }
@@ -93,11 +98,15 @@ class AuthPasswordManager {
 
   /// Resets the user's password using a reset token.
   Future<void> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
-    // Validation is assumed to be done by the controller before calling this.
     try {
       _callbacks.setIsLoading(true);
+      print('Resetting password with resetToken: [REDACTED]');
+
       // Call API service to reset password
-      await _apiService.auth.resetPassword(resetToken, newPassword, confirmPassword);
+      final response = await _apiService.auth.resetPassword(resetToken, newPassword, confirmPassword);
+      if (response['status'] != 'success') {
+        throw Exception(response['message'] ?? 'password_reset_failed'.tr);
+      }
 
       // Show success feedback and navigate to Sign In page
       _callbacks.showSnackbar(
@@ -105,16 +114,22 @@ class AuthPasswordManager {
         'password_reset_success'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
-      _callbacks.navigateOffAll(AppRoutes.getSignInPage()); // Go back to sign-in
-
+      await Future.delayed(const Duration(seconds: 1));
+      _callbacks.navigateOffAll(AppRoutes.getSignInPage());
     } catch (e) {
-      // Handle API or other errors
+      print('Password reset failed: $e');
       _callbacks.showSnackbar(
         'error'.tr,
-        e.toString().replaceFirst('Exception: ', ''),
+        e.toString().replaceFirst('Exception: ', '').tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
     } finally {
       _callbacks.setIsLoading(false);
@@ -123,20 +138,20 @@ class AuthPasswordManager {
 
   /// Allows a logged-in user to change their password.
   Future<void> changePassword(String currentPassword, String newPassword, String userEmail) async {
-    // Validation is assumed to be done by the controller before calling this.
     try {
       _callbacks.setIsLoading(true);
       print('Calling ApiService.changePassword for $userEmail');
-      // Call API service to change password
-      await _apiService.auth.changePassword(userEmail, currentPassword, newPassword);
 
-      // Clear fields and errors on success - Controller handles clearing controllers,
-      // but manager can signal success states or clear its own relevant errors if any.
-       _callbacks.resetPasswordErrors(); // Ask controller to clear relevant errors
-       _callbacks.updatePasswordChangeSuccess(true); // Signal success state
+      // Call API service to change password
+      final response = await _apiService.auth.changePassword(userEmail.toLowerCase(), currentPassword, newPassword);
+      if (response['status'] != 'success') {
+        throw Exception(response['message'] ?? 'password_change_failed'.tr);
+      }
+
+      _callbacks.resetPasswordErrors();
+      _callbacks.updatePasswordChangeSuccess(true);
 
       // Show success feedback
-      print('Showing success snackbar');
       _callbacks.showSnackbar(
         'success'.tr,
         'password_changed_successfully'.tr,
@@ -146,21 +161,17 @@ class AuthPasswordManager {
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
       );
-
-      // Navigate after successful password change
-      _callbacks.navigateOffAll(AppRoutes.getHomePage()); // Navigate to Home and clear stack
-
+      await Future.delayed(const Duration(seconds: 1));
+      _callbacks.navigateOffAll(AppRoutes.getHomePage());
     } catch (e) {
-      // Handle API or other errors during password change
       print('Change password error: $e');
       String rawError = e.toString().replaceFirst('Exception: ', '');
-       String errorMessage = 'generic_error'.tr; // Default error
+      String errorMessage = 'generic_error'.tr;
 
-      // Map specific API errors to specific controller errors or generic messages
       if (rawError.contains('Current password is incorrect') || rawError.contains('401')) {
-        _callbacks.setCurrentPasswordError('current_password_incorrect'.tr); // Set specific error on controller
+        _callbacks.updateCurrentPasswordError('current_password_incorrect'.tr);
       } else if (rawError.contains('User not found') || rawError.contains('user_email_not_found') || rawError.contains('404')) {
-        errorMessage = 'user_not_found'.tr; // Use generic snackbar
+        errorMessage = 'user_not_found'.tr;
       } else if (rawError.contains('Server error') || rawError.contains('500')) {
         errorMessage = 'server_error'.tr;
       } else if (rawError.contains('Invalid request') || rawError.contains('400')) {
@@ -168,27 +179,24 @@ class AuthPasswordManager {
       } else if (rawError.contains('Network error')) {
         errorMessage = 'network_error'.tr;
       } else {
-        // Fallback
         errorMessage = rawError.tr.isNotEmpty ? rawError.tr : 'generic_error'.tr;
       }
 
-      // Only show a generic snackbar if the error wasn't specifically assigned
-      // to a password field error. (This check needs to be in the controller
-      // or the manager needs access to the controller's specific error states
-      // which is why passing callbacks is better)
-       // The controller will decide whether to show the snackbar based on
-       // whether setCurrentPasswordError was called.
-
-        // Re-throw the error or indicate failure if the controller needs to know
-        // for further handling (e.g., deciding *not* to show a generic snackbar
-        // if a specific field error was set). Let's re-throw so the controller
-        // can catch and decide on the snackbar.
-        rethrow;
-
-
+      if (!_callbacks.setCurrentPasswordErrorCalled) {
+        _callbacks.showSnackbar(
+          'error'.tr,
+          errorMessage,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+        );
+      }
+      rethrow;
     } finally {
       print('Setting isLoading to false');
-      _callbacks.setIsLoading(false); // Reset loading state
+      _callbacks.setIsLoading(false);
     }
   }
 }

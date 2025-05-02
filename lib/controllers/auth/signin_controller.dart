@@ -16,8 +16,10 @@ class SignInController extends GetxController {
   }
 
   void reset() {
-    email.value = '';
-    password.value = '';
+    email.value = authController.emailController.text;
+    password.value = authController.passwordController.text;
+    authController.emailController.clear();
+    authController.passwordController.clear();
     authController.resetErrors();
   }
 

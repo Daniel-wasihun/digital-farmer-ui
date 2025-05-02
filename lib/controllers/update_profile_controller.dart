@@ -13,6 +13,7 @@ class UpdateProfileController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
   final ImagePicker _picker = ImagePicker();
 
+
   var username = ''.obs;
   var bio = ''.obs;
   var profilePictureUrl = ''.obs;

@@ -24,13 +24,13 @@ class SettingsTab extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
 
-    // Adjusted scale factor for overall smaller content
-    final scaleFactor = isTablet ? 0.9 : 0.8; // Reduced base scale factor
+    // Adjusted scale factor for slightly larger content
+    final scaleFactor = isTablet ? 1.0 : 0.9;
 
-    // Text scale factor, ensuring text doesn't become too small
-    final textScaleFactor = math.min(scaleFactor * 1.1, 1.0); // Slightly larger text relative to other elements
+    // Text scale factor, slightly smaller for settings tiles
+    final textScaleFactor = math.min(scaleFactor * 1.0, 1.0); // Reduced from 1.2/1.1
 
-    const appShareUrl = 'https://example.com/app'; // Replace with your actual app URL
+    const appShareUrl = 'https://example.com/app';
     const shareMessage =
         'Check out this awesome app! Download it at $appShareUrl';
 
@@ -56,14 +56,14 @@ class SettingsTab extends StatelessWidget {
             backgroundColor: Theme.of(context).colorScheme.secondary,
             colorText: Theme.of(context).colorScheme.onSecondary,
             snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(10 * scaleFactor),
+            margin: EdgeInsets.all(12 * scaleFactor),
           );
         },
         'trailing': Obx(() => Text(
               appController.currentLanguage.value,
               textScaleFactor: textScaleFactor,
               style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    fontSize: 14 * textScaleFactor, // Keep font size relative to text scale
+                    fontSize: 14 * textScaleFactor, // Reduced font size
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).colorScheme.secondary,
                   ),
@@ -119,42 +119,40 @@ class SettingsTab extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.all(12 * scaleFactor), // Reduced padding
+              padding: EdgeInsets.all(16 * scaleFactor),
               child: _buildProfileCard(context, storageService, scaleFactor, textScaleFactor),
             ),
             Expanded(
               child: Stack(
                 children: [
                   SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor), // Reduced horizontal padding
+                    padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        SizedBox(height: 6 * scaleFactor), // Reduced space
+                        SizedBox(height: 8 * scaleFactor),
                         ...settingsOptions.map((option) => Padding(
-                              padding:
-                                  EdgeInsets.only(bottom: 6 * scaleFactor), // Reduced space between tiles
+                              padding: EdgeInsets.only(bottom: 8 * scaleFactor),
                               child: _buildSettingsTile(
                                 context,
                                 icon: option['icon'] as IconData,
                                 title: option['title'] as String,
                                 onTap: option['action'] != null
                                     ? option['action'] as VoidCallback
-                                    : () =>
-                                        Get.toNamed(AppRoutes.getHomePage()),
+                                    : () => Get.toNamed(AppRoutes.getHomePage()),
                                 scaleFactor: scaleFactor,
-                                 textScaleFactor: textScaleFactor, // Pass text scale factor
+                                textScaleFactor: textScaleFactor,
                                 trailing: option['trailing'] as Widget?,
                               ),
                             )),
-                        SizedBox(height: 60 * scaleFactor), // Adjusted height for logout button space
+                        SizedBox(height: 80 * scaleFactor),
                       ],
                     ),
                   ),
                   Positioned(
-                    left: 12 * scaleFactor, // Match horizontal padding
-                    right: 12 * scaleFactor, // Match horizontal padding
-                    bottom: 12 * scaleFactor, // Reduced bottom padding
+                    left: 16 * scaleFactor,
+                    right: 16 * scaleFactor,
+                    bottom: 16 * scaleFactor,
                     child: _buildLogoutButton(context, authController, scaleFactor, textScaleFactor),
                   ),
                 ],
@@ -182,20 +180,20 @@ class SettingsTab extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(10 * scaleFactor), // Slightly smaller border radius
+          borderRadius: BorderRadius.circular(12 * scaleFactor),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withOpacity(0.08),
-              blurRadius: 6 * scaleFactor, // Reduced blur
-              offset: Offset(0, 2 * scaleFactor), // Adjusted offset
+              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+              blurRadius: 8 * scaleFactor,
+              offset: Offset(0, 3 * scaleFactor),
             ),
           ],
         ),
-        padding: EdgeInsets.all(12 * scaleFactor), // Reduced padding
+        padding: EdgeInsets.all(16 * scaleFactor),
         child: Row(
           children: [
             CircleAvatar(
-              radius: 24 * scaleFactor, // Reduced avatar size
+              radius: 30 * scaleFactor,
               backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
               foregroundImage: hasProfilePicture
                   ? NetworkImage(
@@ -211,11 +209,11 @@ class SettingsTab extends StatelessWidget {
                   ? null
                   : Icon(
                       Icons.person_rounded,
-                      size: 24 * scaleFactor, // Reduced icon size
+                      size: 30 * scaleFactor,
                       color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),
             ),
-            SizedBox(width: 12 * scaleFactor), // Reduced space
+            SizedBox(width: 16 * scaleFactor),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,16 +223,16 @@ class SettingsTab extends StatelessWidget {
                     textScaleFactor: textScaleFactor,
                     style: Theme.of(context).textTheme.titleSmall!.copyWith(
                           fontWeight: FontWeight.w600,
-                          fontSize: 15 * textScaleFactor, // Adjusted font size
+                          fontSize: 18 * textScaleFactor,
                         ),
                   ),
-                  SizedBox(height: 3 * scaleFactor), // Reduced space
+                  SizedBox(height: 4 * scaleFactor),
                   Text(
                     email,
                     textScaleFactor: textScaleFactor,
                     style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           color: Theme.of(context).colorScheme.outline,
-                          fontSize: 11 * textScaleFactor, // Adjusted font size
+                          fontSize: 13 * textScaleFactor,
                         ),
                   ),
                 ],
@@ -252,46 +250,46 @@ class SettingsTab extends StatelessWidget {
     required String title,
     VoidCallback? onTap,
     required double scaleFactor,
-    required double textScaleFactor, // Receive text scale factor
+    required double textScaleFactor,
     Widget? trailing,
   }) {
     return Material(
       color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(10 * scaleFactor), // Slightly smaller border radius
+      borderRadius: BorderRadius.circular(12 * scaleFactor),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10 * scaleFactor), // Match border radius
+        borderRadius: BorderRadius.circular(12 * scaleFactor),
         child: Padding(
           padding: EdgeInsets.symmetric(
-            vertical: 10 * scaleFactor, // Reduced vertical padding for smaller tile height
-            horizontal: 12 * scaleFactor, // Reduced horizontal padding
+            vertical: 12 * scaleFactor,
+            horizontal: 16 * scaleFactor,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                size: 20 * scaleFactor, // Reduced icon size
+                size: 28 * scaleFactor, // Increased icon size from 24 to 28
                 color: Theme.of(context).colorScheme.primary,
               ),
-              SizedBox(width: 12 * scaleFactor), // Reduced space
+              SizedBox(width: 16 * scaleFactor),
               Expanded(
                 child: Text(
                   title,
-                  textScaleFactor: textScaleFactor, // Use passed text scale factor
+                  textScaleFactor: textScaleFactor,
                   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         fontWeight: FontWeight.w500,
-                        fontSize: 14 * textScaleFactor, // Adjusted font size
+                        fontSize: 14 * textScaleFactor, // Reduced font size from 16 to 14
                       ),
                 ),
               ),
               if (trailing != null)
                 Padding(
-                  padding: EdgeInsets.only(left: 12 * scaleFactor), // Reduced padding
+                  padding: EdgeInsets.only(left: 16 * scaleFactor),
                   child: trailing,
                 ),
               Icon(
                 Icons.arrow_forward_ios_rounded,
-                size: 14 * scaleFactor, // Reduced icon size
+                size: 18 * scaleFactor, // Increased icon size from 16 to 18
                 color: Theme.of(context).colorScheme.secondary,
               ),
             ],
@@ -305,32 +303,32 @@ class SettingsTab extends StatelessWidget {
     BuildContext context,
     AuthController authController,
     double scaleFactor,
-    double textScaleFactor, // Receive text scale factor
+    double textScaleFactor,
   ) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor), // Match horizontal padding
+      padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor),
       child: ElevatedButton(
         onPressed: () {
           Get.dialog(
             AlertDialog(
               backgroundColor: Theme.of(context).colorScheme.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12 * scaleFactor), // Adjusted border radius
+                borderRadius: BorderRadius.circular(12 * scaleFactor),
               ),
               title: Text(
                 'logout'.tr,
-                textScaleFactor: textScaleFactor, // Use passed text scale factor
+                textScaleFactor: textScaleFactor,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               content: Text(
                 'are_you_sure_logout'.tr,
-                textScaleFactor: textScaleFactor, // Use passed text scale factor
+                textScaleFactor: textScaleFactor,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               actions: [
                 TextButton(
                   onPressed: () => Get.back(),
-                  child: Text('no'.tr, textScaleFactor: textScaleFactor), // Use passed text scale factor
+                  child: Text('no'.tr, textScaleFactor: textScaleFactor),
                 ),
                 TextButton(
                   onPressed: () {
@@ -340,7 +338,7 @@ class SettingsTab extends StatelessWidget {
                   style: TextButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.error,
                   ),
-                  child: Text('yes'.tr, textScaleFactor: textScaleFactor), // Use passed text scale factor
+                  child: Text('yes'.tr, textScaleFactor: textScaleFactor),
                 ),
               ],
             ),
@@ -349,19 +347,19 @@ class SettingsTab extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
-          padding: EdgeInsets.symmetric(vertical: 10 * scaleFactor), // Reduced vertical padding
+          padding: EdgeInsets.symmetric(vertical: 12 * scaleFactor),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10 * scaleFactor), // Adjusted border radius
+            borderRadius: BorderRadius.circular(12 * scaleFactor),
           ),
-          elevation: 2 * scaleFactor, // Adjusted elevation
+          elevation: 3 * scaleFactor,
         ),
         child: Text(
           'logout'.tr.toUpperCase(),
-          textScaleFactor: textScaleFactor, // Use passed text scale factor
+          textScaleFactor: textScaleFactor,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onPrimary,
             fontWeight: FontWeight.w600,
-            fontSize: 14 * textScaleFactor, // Adjusted font size
+            fontSize: 16 * textScaleFactor,
           ),
         ),
       ),

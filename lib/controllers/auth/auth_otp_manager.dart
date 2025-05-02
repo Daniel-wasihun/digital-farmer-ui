@@ -1,10 +1,11 @@
-import 'package:agri/controllers/auth/auth_controller_callbacks.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
-import '../../routes/app_routes.dart'; // Import AppRoutes
+import '../../routes/app_routes.dart';
+import 'auth_controller_callbacks.dart';
 
-/// Manages OTP related authentication flows.
+/// Manages OTP-related authentication flows.
 class AuthOtpManager {
   final ApiService _apiService;
   final StorageService _storageService;
@@ -19,7 +20,10 @@ class AuthOtpManager {
       print('Verifying OTP for: $email');
 
       // Call API service to verify OTP
-      final response = await _apiService.auth.verifyOTP(email, otp);
+      final response = await _apiService.auth.verifyOTP(email.toLowerCase(), otp);
+      if (response['status'] != 'success') {
+        throw Exception(response['message'] ?? 'otp_verification_failed'.tr);
+      }
 
       // Save user and token on successful verification
       await _storageService.saveUser(response['user']);
@@ -29,22 +33,27 @@ class AuthOtpManager {
       _callbacks.showSnackbar(
         'success'.tr,
         'account_created_successfully'.tr,
-        backgroundColor: Get.theme.colorScheme.secondary, // Using theme colors
+        backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
-      _callbacks.navigateOffAll(AppRoutes.getHomePage()); // Navigate and remove previous routes
-
+      await Future.delayed(const Duration(seconds: 1));
+      _callbacks.navigateOffAll(AppRoutes.getHomePage());
     } catch (e) {
-      // Handle API or other errors (e.g., invalid OTP)
       print('OTP verification failed: $e');
       _callbacks.showSnackbar(
         'error'.tr,
-        e.toString().replaceFirst('Exception: ', ''),
-        backgroundColor: Get.theme.colorScheme.error, // Using theme colors
+        e.toString().replaceFirst('Exception: ', '').tr,
+        backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
     } finally {
-      _callbacks.setIsLoading(false); // Reset loading state
+      _callbacks.setIsLoading(false);
     }
   }
 
@@ -55,7 +64,10 @@ class AuthOtpManager {
       print('Resending OTP for: $email, type: $type');
 
       // Call API service to resend OTP
-      await _apiService.auth.resendOTP(email, type);
+      final response = await _apiService.auth.resendOTP(email.toLowerCase(), type);
+      if (response['status'] != 'success') {
+        throw Exception(response['message'] ?? 'otp_resend_failed'.tr);
+      }
 
       // Show success feedback
       _callbacks.showSnackbar(
@@ -63,16 +75,20 @@ class AuthOtpManager {
         'otp_sent_to_email'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
-
     } catch (e) {
-      // Handle API or other errors
       print('Resend OTP failed: $e');
       _callbacks.showSnackbar(
         'error'.tr,
-        e.toString().replaceFirst('Exception: ', ''),
+        e.toString().replaceFirst('Exception: ', '').tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
       );
     } finally {
       _callbacks.setIsLoading(false);

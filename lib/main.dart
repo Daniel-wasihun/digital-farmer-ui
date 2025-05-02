@@ -35,7 +35,6 @@ void main() async {
     Get.put(StorageService());
     Get.put(ApiService());
     Get.put(AuthController());
-    Get.put(AuthController());
     Get.put(ThemeController());
     Get.lazyPut<ChatController>(() => ChatController());
     Get.put(AppController());

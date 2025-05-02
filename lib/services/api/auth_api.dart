@@ -48,7 +48,7 @@ class AuthApi extends BaseApi {
   Future<Map<String, dynamic>> signin(String email, String password) async {
     print('Signin request: email: $email, password: [hidden]');
     final response = await http.post(
-      Uri.parse('http://localhost:5000/api/auth/signin'),
+      Uri.parse('${BaseApi.apiBaseUrl}/auth/signin'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email.toLowerCase(),
@@ -67,7 +67,11 @@ class AuthApi extends BaseApi {
         'email': email.toLowerCase(),
       }),
     );
-    return await handleResponse(response, 'Request password reset') as Map<String, dynamic>;
+    final data = await handleResponse(response, 'Request password reset') as Map<String, dynamic>;
+    return {
+      'status': data['status'] ?? 'success',
+      'message': data['message'] ?? 'OTP sent successfully',
+    };
   }
 
   Future<Map<String, dynamic>> verifyPasswordResetOTP(String email, String otp) async {
@@ -80,10 +84,15 @@ class AuthApi extends BaseApi {
         'otp': otp,
       }),
     );
-    return await handleResponse(response, 'Verify password reset OTP') as Map<String, dynamic>;
+    final data = await handleResponse(response, 'Verify password reset OTP') as Map<String, dynamic>;
+    return {
+      'status': data['status'] ?? 'success',
+      'resetToken': data['resetToken'],
+      'message': data['message'] ?? 'OTP verified successfully',
+    };
   }
 
-  Future<void> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
+  Future<Map<String, dynamic>> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
     print('Reset password request: resetToken: [REDACTED], newPassword: [REDACTED], confirmPassword: [REDACTED]');
     final response = await http.post(
       Uri.parse('${BaseApi.apiBaseUrl}/auth/reset-password'),
@@ -94,7 +103,11 @@ class AuthApi extends BaseApi {
         'confirmPassword': confirmPassword,
       }),
     );
-    await handleResponse(response, 'Reset password');
+    final data = await handleResponse(response, 'Reset password') as Map<String, dynamic>;
+    return {
+      'status': data['status'] ?? 'success',
+      'message': data['message'] ?? 'Password reset successfully',
+    };
   }
 
   Future<Map<String, dynamic>> changePassword(String email, String currentPassword, String newPassword) async {

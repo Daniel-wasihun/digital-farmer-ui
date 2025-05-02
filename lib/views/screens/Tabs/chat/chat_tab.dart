@@ -1,4 +1,4 @@
-// chat_tab.dart
+import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,97 +15,149 @@ class ChatTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ChatController chatController = Get.put(ChatController());
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-        final screenHeight = constraints.maxHeight;
-        final scaleFactor = (screenWidth / 414 * screenHeight / 896).clamp(0.8, 1.2);
-        final avatarRadius = 24 * scaleFactor;
-        final fontSizeLarge = 16 * scaleFactor;
-        final fontSizeSmall = 14 * scaleFactor;
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
 
-        return Scaffold(
-          body: Column(
-            children: [
-              _buildSearchField(chatController, scaleFactor, fontSizeSmall, screenWidth),
-              Expanded(
-                child: Obx(() {
-                  return Stack(
-                    children: [
-                      RefreshIndicator(
-                        onRefresh: chatController.fetchUsers,
-                        color: AppConstants.primaryColor,
-                        backgroundColor: Get.theme.colorScheme.surface,
-                        child: _buildUserList(
-                          chatController,
-                          scaleFactor,
-                          avatarRadius,
-                          fontSizeLarge,
-                          fontSizeSmall,
+    // Responsive scaling factor based on screen width (same as CropTipsTab)
+    final double scaleFactor = (0.9 + (screenWidth - 320) / (1200 - 320) * (1.6 - 0.9)).clamp(0.9, 1.6);
+    final double adjustedScaleFactor = scaleFactor * 1.1;
+
+    // Dynamic responsive padding (same as CropTipsTab)
+    final double padding = (8 + (screenWidth - 320) / (1200 - 320) * (32 - 8)).clamp(8.0, 32.0);
+
+    // Font sizes (aligned with CropTipsTab)
+    const double baseHeaderFontSize = 32.0;
+    const double baseTitleFontSize = 20.0;
+    const double baseSubtitleFontSize = 16.0;
+    const double baseDetailFontSize = 14.0;
+
+    final double headerFontSize = (baseHeaderFontSize * adjustedScaleFactor).clamp(22.0, 38.0);
+    final double titleFontSize = (baseTitleFontSize * adjustedScaleFactor).clamp(16.0, 28.0);
+    final double subtitleFontSize = (baseSubtitleFontSize * adjustedScaleFactor * 0.9).clamp(12.0, 20.0);
+    final double detailFontSize = (baseDetailFontSize * adjustedScaleFactor * 0.9).clamp(10.0, 18.0);
+
+    // Font fallbacks for Amharic
+    const List<String> fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
+
+    return Scaffold(
+      body: Column(
+        children: [
+          _buildSearchField(
+            chatController,
+            adjustedScaleFactor,
+            padding,
+            detailFontSize,
+            screenWidth,
+            fontFamilyFallbacks,
+          ),
+          Expanded(
+            child: Obx(() {
+              return Stack(
+                children: [
+                  RefreshIndicator(
+                    onRefresh: chatController.fetchUsers,
+                    color: AppConstants.primaryColor,
+                    backgroundColor: Get.theme.colorScheme.surface,
+                    child: _buildUserList(
+                      chatController,
+                      adjustedScaleFactor,
+                      padding,
+                      subtitleFontSize,
+                      detailFontSize,
+                      fontFamilyFallbacks,
+                    ),
+                  ),
+                  if (chatController.isLoadingUsers.value)
+                    Container(
+                      color: Get.theme.colorScheme.surface.withOpacity(0.9),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppConstants.primaryColor),
+                          strokeWidth: 3 * adjustedScaleFactor,
                         ),
                       ),
-                      if (chatController.isLoadingUsers.value)
-                        Container(
-                          color: Get.theme.colorScheme.surface.withOpacity(0.9),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(AppConstants.primaryColor),
-                              strokeWidth: 3 * scaleFactor,
-                            ),
-                          ),
-                        ),
-                      if (chatController.errorMessage.isNotEmpty)
-                        _buildErrorIndicator(chatController.errorMessage.value, scaleFactor, chatController.fetchUsers),
-                    ],
-                  );
-                }),
-              ),
-            ],
+                    ),
+                  if (chatController.errorMessage.isNotEmpty)
+                    _buildErrorIndicator(
+                      chatController.errorMessage.value,
+                      adjustedScaleFactor,
+                      padding,
+                      subtitleFontSize,
+                      detailFontSize,
+                      chatController.fetchUsers,
+                      fontFamilyFallbacks,
+                    ),
+                ],
+              );
+            }),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildErrorIndicator(String message, double scaleFactor, VoidCallback onRetry) {
+  Widget _buildErrorIndicator(
+    String message,
+    double adjustedScaleFactor,
+    double padding,
+    double subtitleFontSize,
+    double detailFontSize,
+    VoidCallback onRetry,
+    List<String> fontFamilyFallbacks,
+  ) {
     return Center(
       child: Container(
-        padding: EdgeInsets.all(16 * scaleFactor),
-        margin: EdgeInsets.symmetric(horizontal: 20 * scaleFactor),
+        padding: EdgeInsets.all(padding),
+        margin: EdgeInsets.symmetric(horizontal: padding * 1.25),
         decoration: BoxDecoration(
           color: Get.theme.colorScheme.error.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12 * scaleFactor),
+          borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
           border: Border.all(color: Get.theme.colorScheme.error.withOpacity(0.3)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48 * scaleFactor, color: Get.theme.colorScheme.error),
-            SizedBox(height: 12 * scaleFactor),
+            Icon(
+              Icons.error_outline,
+              size: 48 * adjustedScaleFactor,
+              color: Get.theme.colorScheme.error,
+            ),
+            SizedBox(height: 8 * adjustedScaleFactor),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 16 * scaleFactor,
+              style: TextStyle(
+                fontFamily: GoogleFonts.poppins().fontFamily,
+                fontFamilyFallback: fontFamilyFallbacks,
+                fontSize: subtitleFontSize,
                 color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 16 * scaleFactor),
+            SizedBox(height: 12 * adjustedScaleFactor),
             ElevatedButton.icon(
               onPressed: onRetry,
-              icon: Icon(Icons.refresh, size: 20 * scaleFactor),
+              icon: Icon(Icons.refresh, size: 18 * adjustedScaleFactor),
               label: Text(
                 'retry'.tr,
-                style: GoogleFonts.poppins(fontSize: 14 * scaleFactor, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontFamily: GoogleFonts.poppins().fontFamily,
+                  fontFamilyFallback: fontFamilyFallbacks,
+                  fontSize: detailFontSize,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppConstants.primaryColor,
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8 * scaleFactor),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12 * adjustedScaleFactor,
+                  vertical: 6 * adjustedScaleFactor,
                 ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                ),
+                elevation: 6,
               ),
             ),
           ],
@@ -116,48 +168,65 @@ class ChatTab extends StatelessWidget {
 
   Widget _buildSearchField(
     ChatController chatController,
-    double scaleFactor,
-    double fontSizeSmall,
+    double adjustedScaleFactor,
+    double padding,
+    double detailFontSize,
     double screenWidth,
+    List<String> fontFamilyFallbacks,
   ) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
+      padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
       child: Container(
         width: screenWidth * 0.95,
+        height: 36 * adjustedScaleFactor,
         decoration: BoxDecoration(
           color: Get.theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24 * scaleFactor),
+          borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
-              blurRadius: 6 * scaleFactor,
-              offset: Offset(0, 2 * scaleFactor),
+              blurRadius: 6 * adjustedScaleFactor,
+              offset: Offset(0, 2 * adjustedScaleFactor),
             ),
           ],
         ),
         child: TextField(
           controller: chatController.searchController,
-          style: GoogleFonts.poppins(
-            fontSize: fontSizeSmall,
+          style: TextStyle(
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            fontFamilyFallback: fontFamilyFallbacks,
+            fontSize: detailFontSize,
             color: Get.theme.colorScheme.onSurface,
           ),
           decoration: InputDecoration(
             hintText: 'search_users'.tr,
-            hintStyle: GoogleFonts.poppins(
-              fontSize: fontSizeSmall,
+            hintStyle: TextStyle(
+              fontFamily: GoogleFonts.poppins().fontFamily,
+              fontFamilyFallback: fontFamilyFallbacks,
+              fontSize: detailFontSize,
               color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
             ),
             prefixIcon: Icon(
               Icons.search,
-              size: 20 * scaleFactor,
+              size: 18 * adjustedScaleFactor,
               color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
             ),
-            border: InputBorder.none,
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24 * scaleFactor),
-              borderSide: BorderSide(color: AppConstants.primaryColor, width: 1.5 * scaleFactor),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+              borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
             ),
-            contentPadding: EdgeInsets.symmetric(vertical: 12 * scaleFactor, horizontal: 16 * scaleFactor),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+              borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+              borderSide: BorderSide(color: AppConstants.primaryColor, width: 1.5 * adjustedScaleFactor),
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              vertical: 8 * adjustedScaleFactor,
+              horizontal: 10 * adjustedScaleFactor,
+            ),
           ),
           onChanged: (_) => chatController.debounceSearch(),
         ),
@@ -167,17 +236,20 @@ class ChatTab extends StatelessWidget {
 
   Widget _buildUserList(
     ChatController chatController,
-    double scaleFactor,
-    double avatarRadius,
-    double fontSizeLarge,
-    double fontSizeSmall,
+    double adjustedScaleFactor,
+    double padding,
+    double subtitleFontSize,
+    double detailFontSize,
+    List<String> fontFamilyFallbacks,
   ) {
     if (chatController.currentUserId.value == null) {
       return Center(
         child: Text(
           'no_user'.tr,
-          style: GoogleFonts.poppins(
-            fontSize: fontSizeLarge,
+          style: TextStyle(
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            fontFamilyFallback: fontFamilyFallbacks,
+            fontSize: subtitleFontSize,
             color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
             fontWeight: FontWeight.w500,
           ),
@@ -189,8 +261,10 @@ class ChatTab extends StatelessWidget {
       return Center(
         child: Text(
           'no_users'.tr,
-          style: GoogleFonts.poppins(
-            fontSize: fontSizeLarge,
+          style: TextStyle(
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            fontFamilyFallback: fontFamilyFallbacks,
+            fontSize: subtitleFontSize,
             color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
             fontWeight: FontWeight.w500,
           ),
@@ -201,8 +275,10 @@ class ChatTab extends StatelessWidget {
       return Center(
         child: Text(
           'no_results'.tr,
-          style: GoogleFonts.poppins(
-            fontSize: fontSizeLarge,
+          style: TextStyle(
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            fontFamilyFallback: fontFamilyFallbacks,
+            fontSize: subtitleFontSize,
             color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
             fontWeight: FontWeight.w500,
           ),
@@ -210,17 +286,18 @@ class ChatTab extends StatelessWidget {
       );
     }
     return ListView.builder(
-      padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
+      padding: EdgeInsets.symmetric(vertical: padding * 0.8),
       itemCount: userListItems.length,
       itemBuilder: (context, index) {
         return FadeInRight(
           duration: Duration(milliseconds: 300 + (index * 50)),
           child: UserListItem(
             userData: userListItems[index],
-            scaleFactor: scaleFactor,
-            avatarRadius: avatarRadius,
-            fontSizeLarge: fontSizeLarge,
-            fontSizeSmall: fontSizeSmall,
+            adjustedScaleFactor: adjustedScaleFactor,
+            padding: padding,
+            subtitleFontSize: subtitleFontSize,
+            detailFontSize: detailFontSize,
+            fontFamilyFallbacks: fontFamilyFallbacks,
             onTap: () {
               final user = userListItems[index]['user'];
               chatController.selectReceiver(user['email']);
@@ -241,19 +318,21 @@ class ChatTab extends StatelessWidget {
 
 class UserListItem extends StatelessWidget {
   final Map<String, dynamic> userData;
-  final double scaleFactor;
-  final double avatarRadius;
-  final double fontSizeLarge;
-  final double fontSizeSmall;
+  final double adjustedScaleFactor;
+  final double padding;
+  final double subtitleFontSize;
+  final double detailFontSize;
+  final List<String> fontFamilyFallbacks;
   final VoidCallback onTap;
 
   const UserListItem({
     super.key,
     required this.userData,
-    required this.scaleFactor,
-    required this.avatarRadius,
-    required this.fontSizeLarge,
-    required this.fontSizeSmall,
+    required this.adjustedScaleFactor,
+    required this.padding,
+    required this.subtitleFontSize,
+    required this.detailFontSize,
+    required this.fontFamilyFallbacks,
     required this.onTap,
   });
 
@@ -271,32 +350,34 @@ class UserListItem extends StatelessWidget {
 
     return Card(
       key: ValueKey(user['email']),
-      margin: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 6 * scaleFactor),
-      elevation: 3,
+      margin: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.75),
+      elevation: 6,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16 * scaleFactor),
+        borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16 * scaleFactor),
+        borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor, vertical: 8 * scaleFactor),
+          padding: EdgeInsets.all(padding * 0.8),
           child: Row(
             children: [
               Stack(
                 clipBehavior: Clip.none,
                 children: [
                   CircleAvatar(
-                    radius: avatarRadius,
+                    radius: 32 * adjustedScaleFactor / 2,
                     backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
                     backgroundImage: user['profilePicture']?.isNotEmpty == true
-                        ? CachedNetworkImageProvider('http://localhost:5000${user['profilePicture']}')
+                        ? CachedNetworkImageProvider('${BaseApi.imageBaseUrl}${user['profilePicture']}')
                         : null,
                     child: user['profilePicture']?.isEmpty != false
                         ? Text(
                             _getFirstNameInitial(user['username']?.toString() ?? '?'),
-                            style: GoogleFonts.poppins(
-                              fontSize: avatarRadius * 0.65,
+                            style: TextStyle(
+                              fontFamily: GoogleFonts.poppins().fontFamily,
+                              fontFamilyFallback: fontFamilyFallbacks,
+                              fontSize: (32 * adjustedScaleFactor / 2) * 0.65,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
@@ -307,21 +388,21 @@ class UserListItem extends StatelessWidget {
                     bottom: 0,
                     right: 0,
                     child: Container(
-                      width: 12 * scaleFactor,
-                      height: 12 * scaleFactor,
+                      width: 12 * adjustedScaleFactor,
+                      height: 12 * adjustedScaleFactor,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isOnline ? Colors.green[400] : Colors.grey[400],
                         border: Border.all(
                           color: Get.theme.colorScheme.surface,
-                          width: 2 * scaleFactor,
+                          width: 2 * adjustedScaleFactor,
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-              SizedBox(width: 12 * scaleFactor),
+              SizedBox(width: 8 * adjustedScaleFactor),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,8 +412,10 @@ class UserListItem extends StatelessWidget {
                         Expanded(
                           child: Text(
                             user['username']?.toString() ?? 'Unknown',
-                            style: GoogleFonts.poppins(
-                              fontSize: fontSizeLarge,
+                            style: TextStyle(
+                              fontFamily: GoogleFonts.poppins().fontFamily,
+                              fontFamilyFallback: fontFamilyFallbacks,
+                              fontSize: subtitleFontSize,
                               fontWeight: FontWeight.w600,
                               color: Get.theme.colorScheme.onSurface,
                             ),
@@ -341,14 +424,16 @@ class UserListItem extends StatelessWidget {
                         ),
                         Text(
                           _formatTimestamp(timestamp),
-                          style: GoogleFonts.poppins(
-                            fontSize: fontSizeSmall * 0.8,
+                          style: TextStyle(
+                            fontFamily: GoogleFonts.poppins().fontFamily,
+                            fontFamilyFallback: fontFamilyFallbacks,
+                            fontSize: detailFontSize * 0.8,
                             color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 4 * scaleFactor),
+                    SizedBox(height: 4 * adjustedScaleFactor),
                     Row(
                       children: [
                         if (isTyping) ...[
@@ -356,15 +441,17 @@ class UserListItem extends StatelessWidget {
                             children: [
                               Text(
                                 'typing'.tr,
-                                style: GoogleFonts.poppins(
-                                  fontSize: fontSizeSmall,
+                                style: TextStyle(
+                                  fontFamily: GoogleFonts.poppins().fontFamily,
+                                  fontFamilyFallback: fontFamilyFallbacks,
+                                  fontSize: detailFontSize,
                                   fontStyle: FontStyle.italic,
                                   color: AppConstants.primaryColor,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              SizedBox(width: 4 * scaleFactor),
-                              _TypingDots(scaleFactor: scaleFactor),
+                              SizedBox(width: 4 * adjustedScaleFactor),
+                              _TypingDots(adjustedScaleFactor: adjustedScaleFactor),
                             ],
                           ),
                         ] else ...[
@@ -374,18 +461,20 @@ class UserListItem extends StatelessWidget {
                                 if (isSentByUser && lastMessage.isNotEmpty) ...[
                                   Icon(
                                     isDelivered || isRead ? Icons.done_all : Icons.check,
-                                    size: 16 * scaleFactor,
+                                    size: 18 * adjustedScaleFactor,
                                     color: isRead ? Colors.blue[300] : Colors.grey[400],
                                   ),
-                                  SizedBox(width: 4 * scaleFactor),
+                                  SizedBox(width: 4 * adjustedScaleFactor),
                                 ],
                                 Expanded(
                                   child: Text(
                                     lastMessage.isNotEmpty ? lastMessage : 'no_messages'.tr,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: fontSizeSmall,
+                                    style: TextStyle(
+                                      fontFamily: GoogleFonts.poppins().fontFamily,
+                                      fontFamilyFallback: fontFamilyFallbacks,
+                                      fontSize: detailFontSize,
                                       color: unseenCount > 0
                                           ? Get.theme.colorScheme.onSurface
                                           : Get.theme.colorScheme.onSurface.withOpacity(0.6),
@@ -402,16 +491,18 @@ class UserListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: 12 * scaleFactor),
+              SizedBox(width: 8 * adjustedScaleFactor),
               if (unseenCount > 0)
                 CircleAvatar(
-                  radius: 10 * scaleFactor,
+                  radius: 10 * adjustedScaleFactor,
                   backgroundColor: AppConstants.primaryColor,
                   child: Text(
                     unseenCount > 99 ? '99+' : unseenCount.toString(),
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: GoogleFonts.poppins().fontFamily,
+                      fontFamilyFallback: fontFamilyFallbacks,
                       color: Colors.white,
-                      fontSize: fontSizeSmall * 0.75,
+                      fontSize: detailFontSize * 0.75,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -450,30 +541,30 @@ class UserListItem extends StatelessWidget {
 }
 
 class _TypingDots extends StatelessWidget {
-  final double scaleFactor;
+  final double adjustedScaleFactor;
 
-  const _TypingDots({required this.scaleFactor});
+  const _TypingDots({required this.adjustedScaleFactor});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _Dot(scaleFactor: scaleFactor, delay: 0),
-        SizedBox(width: 2 * scaleFactor),
-        _Dot(scaleFactor: scaleFactor, delay: 200),
-        SizedBox(width: 2 * scaleFactor),
-        _Dot(scaleFactor: scaleFactor, delay: 400),
+        _Dot(adjustedScaleFactor: adjustedScaleFactor, delay: 0),
+        SizedBox(width: 2 * adjustedScaleFactor),
+        _Dot(adjustedScaleFactor: adjustedScaleFactor, delay: 200),
+        SizedBox(width: 2 * adjustedScaleFactor),
+        _Dot(adjustedScaleFactor: adjustedScaleFactor, delay: 400),
       ],
     );
   }
 }
 
 class _Dot extends StatefulWidget {
-  final double scaleFactor;
+  final double adjustedScaleFactor;
   final int delay;
 
-  const _Dot({required this.scaleFactor, required this.delay});
+  const _Dot({required this.adjustedScaleFactor, required this.delay});
 
   @override
   _DotState createState() => _DotState();
@@ -511,9 +602,12 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
       builder: (context, _) => Opacity(
         opacity: _animation.value,
         child: Container(
-          width: 5 * widget.scaleFactor,
-          height: 5 * widget.scaleFactor,
-          decoration: const BoxDecoration(color: AppConstants.primaryColor, shape: BoxShape.circle),
+          width: 5 * widget.adjustedScaleFactor,
+          height: 5 * widget.adjustedScaleFactor,
+          decoration: const BoxDecoration(
+            color: AppConstants.primaryColor,
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );

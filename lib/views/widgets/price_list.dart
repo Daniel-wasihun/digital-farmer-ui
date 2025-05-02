@@ -1,57 +1,67 @@
 import 'package:agri/controllers/market_controller.dart';
 import 'package:agri/models/crop_price.dart';
+import 'package:agri/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../widgets/price_dialog.dart';
 
 class PriceList extends StatelessWidget {
-  final double scaleFactor;
-  final double padding;
-  final double detailFontSize;
-  final double subtitleFontSize;
-  final double screenWidth;
-
-  const PriceList({
-    super.key,
-    required this.scaleFactor,
-    required this.padding,
-    required this.detailFontSize,
-    required this.subtitleFontSize,
-    required this.screenWidth,
-  });
+  const PriceList({super.key});
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<MarketController>();
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+
+    // Responsive scaling factor
+    final double scaleFactor = (0.9 + (screenWidth - 320) / (1200 - 320) * (1.6 - 0.9)).clamp(0.9, 1.6);
+    final double adjustedScaleFactor = scaleFactor * 1.1;
+
+    // Dynamic responsive padding
+    final double padding = (8 + (screenWidth - 320) / (1200 - 320) * (32 - 8)).clamp(8.0, 32.0);
+
+    // Font sizes
+    const double baseHeaderFontSize = 32.0;
+    const double baseTitleFontSize = 20.0;
+    const double baseCropNameFontSize = 18.0; // New for crop name
+    const double baseSubtitleFontSize = 16.0;
+    const double baseDetailFontSize = 14.0;
+
+    final double headerFontSize = (baseHeaderFontSize * adjustedScaleFactor).clamp(22.0, 38.0);
+    final double titleFontSize = (baseTitleFontSize * adjustedScaleFactor).clamp(16.0, 28.0);
+    final double cropNameFontSize = (baseCropNameFontSize * adjustedScaleFactor).clamp(14.0, 24.0); // Adjusted for crop name
+    final double subtitleFontSize = (baseSubtitleFontSize * adjustedScaleFactor * 0.9).clamp(12.0, 20.0);
+    final double detailFontSize = (baseDetailFontSize * adjustedScaleFactor * 0.9).clamp(10.0, 18.0);
+
+    // Font fallbacks for Amharic
+    const List<String> fontFamilyFallback = ['NotoSansEthiopic', 'AbyssinicaSIL'];
+
+    // Dynamic grid columns
+    final int crossAxisCount = screenWidth < 360
+        ? 1
+        : screenWidth < 600
+            ? 2
+            : screenWidth < 900
+                ? 3
+                : 4;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isTablet = constraints.maxWidth > 600;
         final isLargeTablet = constraints.maxWidth > 900;
         final isSmallPhone = constraints.maxWidth < 360;
-        // Card width remains compact
-        final cardWidth = constraints.maxWidth * (isLargeTablet ? 0.42 : isTablet ? 0.45 : isSmallPhone ? 0.98 : 0.92);
-        // Responsive font scaling based on screen width
-        final fontScale = constraints.maxWidth < 360
-            ? 0.8
-            : constraints.maxWidth < 600
-                ? 0.95
-                : constraints.maxWidth < 900
-                    ? 1.1
-                    : 1.25;
-        // Slightly larger font sizes
-        final largeFontSize = subtitleFontSize * 1.3 * fontScale;
-        final mediumFontSize = detailFontSize * 1.1 * fontScale;
-        final smallFontSize = detailFontSize * 0.85 * fontScale;
+
+        // Refined card width calculation
+        final cardWidth = constraints.maxWidth * (isLargeTablet ? 0.45 : isTablet ? 0.48 : isSmallPhone ? 0.98 : 0.95);
 
         return Obx(() {
           if (controller.isLoading.value) {
             return Center(
               child: Container(
-                padding: EdgeInsets.all(10 * scaleFactor),
+                padding: EdgeInsets.all(padding * 0.8),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isDarkMode ? Colors.grey[900]!.withOpacity(0.6) : Colors.white.withOpacity(0.8),
@@ -67,7 +77,7 @@ class PriceList extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(
                     isDarkMode ? Colors.green[400]! : Colors.green[700]!,
                   ),
-                  strokeWidth: 3 * scaleFactor,
+                  strokeWidth: 3 * adjustedScaleFactor,
                   backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[200],
                 ),
               ),
@@ -82,8 +92,8 @@ class PriceList extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 60 * scaleFactor,
-                    height: 60 * scaleFactor,
+                    width: 60 * adjustedScaleFactor,
+                    height: 60 * adjustedScaleFactor,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
@@ -104,28 +114,28 @@ class PriceList extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.local_mall_rounded,
-                      size: 30 * scaleFactor,
+                      size: 30 * adjustedScaleFactor,
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 8 * scaleFactor),
+                  SizedBox(height: 8 * adjustedScaleFactor),
                   Text(
                     'No Prices Available'.tr,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: largeFontSize * 1.1,
-                      fontWeight: FontWeight.w900,
-                      color: isDarkMode ? Colors.white : Colors.grey[900],
-                      letterSpacing: 0.4,
+                    style: TextStyle(
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.w700,
+                      color: isDarkMode ? Colors.white : Colors.grey[900]!,
+                      fontFamilyFallback: fontFamilyFallback,
                     ),
                   ),
-                  SizedBox(height: 4 * scaleFactor),
+                  SizedBox(height: 4 * adjustedScaleFactor),
                   Text(
                     'Add prices or adjust filters'.tr,
                     style: TextStyle(
-                      fontSize: mediumFontSize,
-                      fontWeight: FontWeight.w700,
+                      fontSize: subtitleFontSize,
+                      fontWeight: FontWeight.w600,
                       color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                      letterSpacing: 0.2,
+                      fontFamilyFallback: fontFamilyFallback,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -138,12 +148,12 @@ class PriceList extends StatelessWidget {
               ? GridView.builder(
                   shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 6 * scaleFactor, vertical: 4 * scaleFactor),
+                  padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isLargeTablet ? 3 : 2,
-                    crossAxisSpacing: 8 * scaleFactor,
-                    mainAxisSpacing: 8 * scaleFactor,
-                    childAspectRatio: isLargeTablet ? 2.0 : 1.8,
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 10 * adjustedScaleFactor,
+                    mainAxisSpacing: 10 * adjustedScaleFactor,
+                    childAspectRatio: isLargeTablet ? 3 / 1.95 : 3 / 2.1,
                   ),
                   itemCount: filteredPrices.length,
                   itemBuilder: (context, index) => _buildPriceCard(
@@ -151,30 +161,34 @@ class PriceList extends StatelessWidget {
                     filteredPrices[index],
                     index,
                     cardWidth,
-                    fontScale,
                     isDarkMode,
                     theme,
-                    largeFontSize: largeFontSize,
-                    mediumFontSize: mediumFontSize,
-                    smallFontSize: smallFontSize,
+                    adjustedScaleFactor: adjustedScaleFactor,
+                    padding: padding,
+                    cropNameFontSize: cropNameFontSize,
+                    subtitleFontSize: subtitleFontSize,
+                    detailFontSize: detailFontSize,
+                    fontFamilyFallback: fontFamilyFallback,
                   ),
                 )
               : ListView.builder(
                   shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 4 * scaleFactor, vertical: 4 * scaleFactor),
+                  padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
                   itemCount: filteredPrices.length,
                   itemBuilder: (context, index) => _buildPriceCard(
                     context,
                     filteredPrices[index],
                     index,
                     cardWidth,
-                    fontScale,
                     isDarkMode,
                     theme,
-                    largeFontSize: largeFontSize,
-                    mediumFontSize: mediumFontSize,
-                    smallFontSize: smallFontSize,
+                    adjustedScaleFactor: adjustedScaleFactor,
+                    padding: padding,
+                    cropNameFontSize: cropNameFontSize,
+                    subtitleFontSize: subtitleFontSize,
+                    detailFontSize: detailFontSize,
+                    fontFamilyFallback: fontFamilyFallback,
                   ),
                 );
         });
@@ -187,24 +201,26 @@ class PriceList extends StatelessWidget {
     CropPrice price,
     int index,
     double cardWidth,
-    double fontScale,
     bool isDarkMode,
     ThemeData theme, {
-    required double largeFontSize,
-    required double mediumFontSize,
-    required double smallFontSize,
+    required double adjustedScaleFactor,
+    required double padding,
+    required double cropNameFontSize,
+    required double subtitleFontSize,
+    required double detailFontSize,
+    required List<String> fontFamilyFallback,
   }) {
-    final dayLabel = DateFormat('EEE, dd MMM').format(price.date);
+    final dayLabel = _formatDate(price.date, 'EEE, dd MMM');
     final cardColor = theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white);
     final accentColor = isDarkMode ? Colors.green[400]! : Colors.green[600]!;
     final actionIconColor = isDarkMode ? Colors.green[300]! : Colors.green[700]!;
     final errorIconColor = theme.colorScheme.error;
-    final textColorPrimary = isDarkMode ? Colors.white : Colors.black87;
+    final Color textColorPrimary = isDarkMode ? Colors.white : Colors.grey[900]!;
     final textColorSecondary = isDarkMode ? Colors.grey[400] : Colors.grey[600];
 
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0.9, end: 1.0),
-      duration: Duration(milliseconds: 200 + index * 60),
+      duration: Duration(milliseconds: 200 + index * 50),
       curve: Curves.easeOutCubic,
       builder: (context, scale, child) {
         return Transform.scale(
@@ -212,31 +228,18 @@ class PriceList extends StatelessWidget {
           child: child,
         );
       },
-      child: Container(
-        width: cardWidth,
-        margin: EdgeInsets.symmetric(vertical: 4 * scaleFactor),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12 * scaleFactor),
-          color: cardColor,
-          boxShadow: [
-            BoxShadow(
-              color: isDarkMode ? Colors.black.withOpacity(0.1) : Colors.grey[200]!.withOpacity(0.4),
-              blurRadius: 6,
-              spreadRadius: 0.5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-          border: Border.all(
-            color: isDarkMode ? Colors.green[800]!.withOpacity(0.2) : Colors.green[200]!.withOpacity(0.4),
-            width: 0.5,
-          ),
+      child: Card(
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
         ),
+        color: cardColor,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12 * scaleFactor),
+          borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
           child: Stack(
             children: [
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: padding * 1.0, vertical: padding * 0.7),
+                padding: EdgeInsets.all(padding * 0.8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -249,25 +252,24 @@ class PriceList extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${price.cropName} (${price.cropType})'.tr,
+                                '${price.cropName.tr} (${price.cropType.tr})',
                                 style: TextStyle(
-                                  fontSize: largeFontSize,
-                                  fontWeight: FontWeight.w900,
+                                  fontSize: cropNameFontSize,
+                                  fontWeight: FontWeight.w700,
                                   color: textColorPrimary,
-                                  letterSpacing: 0.3,
-                                  height: 1.0,
+                                  fontFamilyFallback: fontFamilyFallback,
                                 ),
                                 overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                                maxLines: 2,
                               ),
-                              SizedBox(height: 3 * scaleFactor),
+                              SizedBox(height: 4 * adjustedScaleFactor),
                               Text(
                                 price.marketName.tr,
                                 style: TextStyle(
-                                  fontSize: mediumFontSize,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: subtitleFontSize,
+                                  fontWeight: FontWeight.w600,
                                   color: textColorSecondary,
-                                  letterSpacing: 0.2,
+                                  fontFamilyFallback: fontFamilyFallback,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
@@ -281,19 +283,10 @@ class PriceList extends StatelessWidget {
                             _buildActionButton(
                               icon: Icons.edit,
                               color: actionIconColor,
-                              onPressed: () => Get.dialog(
-                                PriceDialog(
-                                  price: price,
-                                  scaleFactor: scaleFactor,
-                                  padding: padding,
-                                  titleFontSize: subtitleFontSize * 1.5,
-                                  subtitleFontSize: subtitleFontSize * 1.1,
-                                  detailFontSize: detailFontSize * 0.9,
-                                ),
-                              ),
-                              scaleFactor: scaleFactor,
+                              onPressed: () => Get.toNamed(AppRoutes.price, arguments: price),
+                              scaleFactor: adjustedScaleFactor,
                             ),
-                            SizedBox(width: 6 * scaleFactor),
+                            SizedBox(width: 8 * adjustedScaleFactor),
                             _buildActionButton(
                               icon: Icons.delete,
                               color: errorIconColor,
@@ -305,11 +298,7 @@ class PriceList extends StatelessWidget {
                                       width: MediaQuery.of(context).size.width * 0.75,
                                       decoration: BoxDecoration(
                                         color: cardColor,
-                                        borderRadius: BorderRadius.circular(12 * scaleFactor),
-                                        border: Border.all(
-                                          color: isDarkMode ? Colors.green[800]!.withOpacity(0.2) : Colors.green[200]!.withOpacity(0.4),
-                                          width: 0.5,
-                                        ),
+                                        borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
                                         boxShadow: [
                                           BoxShadow(
                                             color: isDarkMode ? Colors.black26 : Colors.grey[200]!,
@@ -318,32 +307,31 @@ class PriceList extends StatelessWidget {
                                           ),
                                         ],
                                       ),
-                                      padding: EdgeInsets.all(padding * 1.0),
+                                      padding: EdgeInsets.all(padding * 0.8),
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             'Confirm Delete'.tr,
                                             style: TextStyle(
-                                              fontSize: largeFontSize,
-                                              fontWeight: FontWeight.w900,
+                                              fontSize: cropNameFontSize,
+                                              fontWeight: FontWeight.w700,
                                               color: errorIconColor,
-                                              letterSpacing: 0.3,
+                                              fontFamilyFallback: fontFamilyFallback,
                                             ),
                                           ),
-                                          SizedBox(height: 8 * scaleFactor),
+                                          SizedBox(height: 8 * adjustedScaleFactor),
                                           Text(
-                                            'Delete price for ${price.cropName}?'.tr,
+                                            'Delete price for {cropName}?'.trParams({'cropName': price.cropName.tr}),
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
-                                              fontSize: mediumFontSize,
-                                              fontWeight: FontWeight.w700,
+                                              fontSize: subtitleFontSize,
+                                              fontWeight: FontWeight.w600,
                                               color: textColorSecondary,
-                                              letterSpacing: 0.2,
-                                              height: 1.2,
+                                              fontFamilyFallback: fontFamilyFallback,
                                             ),
                                           ),
-                                          SizedBox(height: 12 * scaleFactor),
+                                          SizedBox(height: 12 * adjustedScaleFactor),
                                           Row(
                                             mainAxisAlignment: MainAxisAlignment.end,
                                             children: [
@@ -352,34 +340,34 @@ class PriceList extends StatelessWidget {
                                                 child: Text(
                                                   'Cancel'.tr,
                                                   style: TextStyle(
-                                                    fontSize: mediumFontSize,
-                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: subtitleFontSize,
+                                                    fontWeight: FontWeight.w600,
                                                     color: textColorSecondary,
-                                                    letterSpacing: 0.2,
+                                                    fontFamilyFallback: fontFamilyFallback,
                                                   ),
                                                 ),
                                               ),
-                                              SizedBox(width: 8 * scaleFactor),
+                                              SizedBox(width: 8 * adjustedScaleFactor),
                                               ElevatedButton(
                                                 onPressed: () => Get.back(result: true),
                                                 style: ElevatedButton.styleFrom(
                                                   backgroundColor: errorIconColor,
                                                   foregroundColor: Colors.white,
                                                   padding: EdgeInsets.symmetric(
-                                                    horizontal: 12 * scaleFactor,
-                                                    vertical: 6 * scaleFactor,
+                                                    horizontal: 12 * adjustedScaleFactor,
+                                                    vertical: 6 * adjustedScaleFactor,
                                                   ),
                                                   shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(8 * scaleFactor),
+                                                    borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
                                                   ),
                                                   elevation: 1,
                                                 ),
                                                 child: Text(
                                                   'Delete'.tr,
                                                   style: TextStyle(
-                                                    fontSize: mediumFontSize,
-                                                    fontWeight: FontWeight.w800,
-                                                    letterSpacing: 0.2,
+                                                    fontSize: subtitleFontSize,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontFamilyFallback: fontFamilyFallback,
                                                   ),
                                                 ),
                                               ),
@@ -391,51 +379,62 @@ class PriceList extends StatelessWidget {
                                   ),
                                 );
                                 if (confirm == true) {
-                                  // await controller.deletePrice(price.id);
+                                  try {
+                                    await Get.find<MarketController>().deletePrice(price.id);
+                                  } catch (e) {
+                                    Get.find<MarketController>().showSnackbar(
+                                      title: 'Error'.tr,
+                                      message: 'failed_to_delete_price'.trParams({'error': e.toString()}),
+                                      backgroundColor: theme.colorScheme.error,
+                                      textColor: Colors.white,
+                                    );
+                                  }
                                 }
                               },
-                              scaleFactor: scaleFactor,
+                              scaleFactor: adjustedScaleFactor,
                             ),
                           ],
                         ),
                       ],
                     ),
-                    SizedBox(height: 6 * scaleFactor),
+                    SizedBox(height: 8 * adjustedScaleFactor),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6 * scaleFactor, vertical: 3 * scaleFactor),
+                      padding: EdgeInsets.symmetric(horizontal: 8 * adjustedScaleFactor, vertical: 4 * adjustedScaleFactor),
                       decoration: BoxDecoration(
                         color: accentColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6 * scaleFactor),
+                        borderRadius: BorderRadius.circular(6 * adjustedScaleFactor),
                       ),
                       child: Text(
-                        'Date: $dayLabel'.tr,
+                        '${'Date'.tr}: $dayLabel',
                         style: TextStyle(
-                          fontSize: smallFontSize,
-                          fontWeight: FontWeight.w700,
+                          fontSize: detailFontSize,
+                          fontWeight: FontWeight.w600,
                           color: textColorSecondary,
-                          letterSpacing: 0.2,
+                          fontFamilyFallback: fontFamilyFallback,
                         ),
                       ),
                     ),
-                    SizedBox(height: 6 * scaleFactor),
+                    SizedBox(height: 8 * adjustedScaleFactor),
                     _buildPriceRow(
                       'Price/kg:'.tr,
-                      '${price.pricePerKg.toStringAsFixed(2)} ETB',
+                      '${price.pricePerKg.toStringAsFixed(2)} ${Get.locale!.languageCode == 'am' ? 'ብር' : 'ETB'}',
                       theme,
-                      fontSize: smallFontSize,
+                      fontSize: detailFontSize,
                       priceColor: accentColor,
                       textColor: textColorPrimary,
-                      scaleFactor: scaleFactor,
+                      scaleFactor: adjustedScaleFactor,
+                      fontFamilyFallback: fontFamilyFallback,
                     ),
-                    SizedBox(height: 4 * scaleFactor),
+                    SizedBox(height: 6 * adjustedScaleFactor),
                     _buildPriceRow(
                       'Price/quintal:'.tr,
-                      '${price.pricePerQuintal.toStringAsFixed(2)} ETB',
+                      '${price.pricePerQuintal.toStringAsFixed(2)} ${Get.locale!.languageCode == 'am' ? 'ብር' : 'ETB'}',
                       theme,
-                      fontSize: smallFontSize,
+                      fontSize: detailFontSize,
                       priceColor: accentColor,
                       textColor: textColorPrimary,
-                      scaleFactor: scaleFactor,
+                      scaleFactor: adjustedScaleFactor,
+                      fontFamilyFallback: fontFamilyFallback,
                     ),
                   ],
                 ),
@@ -447,6 +446,25 @@ class PriceList extends StatelessWidget {
     );
   }
 
+  String _formatDate(DateTime date, String format) {
+    final monthKeys = [
+      'january', 'february', 'march', 'april', 'may', 'june',
+      'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    final monthName = monthKeys[date.month - 1].tr;
+
+    final dayKeys = [
+      'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+    ];
+    final dayIndex = date.weekday % 7;
+    final dayName = dayKeys[dayIndex].tr;
+
+    if (format == 'EEE, dd MMM') {
+      return '$dayName, ${DateFormat('dd').format(date)} $monthName';
+    }
+    return DateFormat(format).format(date);
+  }
+
   Widget _buildPriceRow(
     String label,
     String value,
@@ -455,6 +473,7 @@ class PriceList extends StatelessWidget {
     required Color priceColor,
     required Color textColor,
     required double scaleFactor,
+    required List<String> fontFamilyFallback,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -463,13 +482,13 @@ class PriceList extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: fontSize,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
             color: textColor,
-            letterSpacing: 0.2,
+            fontFamilyFallback: fontFamilyFallback,
           ),
         ),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 3 * scaleFactor),
+          padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 4 * scaleFactor),
           decoration: BoxDecoration(
             color: priceColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(6 * scaleFactor),
@@ -479,9 +498,9 @@ class PriceList extends StatelessWidget {
             value,
             style: TextStyle(
               fontSize: fontSize,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               color: priceColor,
-              letterSpacing: 0.2,
+              fontFamilyFallback: fontFamilyFallback,
             ),
           ),
         ),
@@ -498,7 +517,7 @@ class PriceList extends StatelessWidget {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        padding: EdgeInsets.all(4 * scaleFactor),
+        padding: EdgeInsets.all(6 * scaleFactor),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8 * scaleFactor),
@@ -507,7 +526,7 @@ class PriceList extends StatelessWidget {
         child: Icon(
           icon,
           color: color,
-          size: 16 * scaleFactor,
+          size: 20 * scaleFactor,
         ),
       ),
     );
