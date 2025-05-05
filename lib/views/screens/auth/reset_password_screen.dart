@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart';
 import '../../../controllers/auth/auth_controller.dart';
 import '../../widgets/custom_text_field.dart';
 
@@ -9,12 +10,10 @@ class ResetPasswordScreen extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    // Safely access Get.arguments with null check
     final args = Get.arguments as Map<String, dynamic>?;
     final String? resetToken = args != null ? args['resetToken'] as String? : null;
     final String? email = args != null ? args['email'] as String? : null;
 
-    // If arguments are missing, show error and redirect
     if (resetToken == null || email == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Get.snackbar(
@@ -41,15 +40,39 @@ class ResetPasswordScreen extends GetView<AuthController> {
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
+    newPasswordController.addListener(() {
+      print('New Password Controller: ${newPasswordController.text}');
+    });
+    confirmPasswordController.addListener(() {
+      print('Confirm Password Controller: ${confirmPasswordController.text}');
+    });
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           'reset_password'.tr,
           style: theme.textTheme.titleLarge!.copyWith(
             fontSize: 18 * scaleFactor,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: IconButton(
+          onPressed: () => Get.back(),
+          icon: Icon(
+            Icons.arrow_back,
+            color: theme.textTheme.titleLarge!.color,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDarkMode
+                  ? [theme.colorScheme.surface, theme.colorScheme.surface]
+                  : [theme.colorScheme.surface, theme.colorScheme.surface.withOpacity(0.95)],
+            ),
           ),
         ),
       ),
@@ -121,21 +144,6 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                       textAlign: TextAlign.center,
                                     ),
                                     SizedBox(height: (14 * scaleFactor).clamp(12.0, 16.0)),
-                                    Text(
-                                      'enter_new_password'.tr,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontSize: (16 * scaleFactor).clamp(14.0, 18.0),
-                                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                          ) ??
-                                          TextStyle(
-                                            fontSize: (16 * scaleFactor).clamp(14.0, 18.0),
-                                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                          ),
-                                      textAlign: TextAlign.center,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 2,
-                                    ),
-                                    SizedBox(height: (14 * scaleFactor).clamp(12.0, 16.0)),
                                     AnimatedOpacity(
                                       opacity: controller.isLoading.value ? 0.5 : 1.0,
                                       duration: const Duration(milliseconds: 300),
@@ -150,7 +158,11 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                             errorText: controller.newPasswordError.value.isEmpty
                                                 ? null
                                                 : controller.newPasswordError.value,
-                                            onChanged: (value) => controller.validateNewPassword(value),
+                                            onChanged: (value) {
+                                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                controller.validateNewPassword(value);
+                                              });
+                                            },
                                             scaleFactor: scaleFactor,
                                             fontSize: (14 * scaleFactor).clamp(12.0, 16.0),
                                             labelFontSize: (12 * scaleFactor).clamp(10.0, 14.0),
@@ -164,6 +176,9 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                             fillColor: theme.colorScheme.onSurface.withOpacity(isDarkMode ? 0.1 : 0.05),
                                             enabled: !controller.isLoading.value,
                                             textInputAction: TextInputAction.next,
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9!@#\$%^&*(),.?":{}|<>]')),
+                                            ],
                                           ),
                                         ),
                                       ),
@@ -183,10 +198,14 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                             errorText: controller.confirmPasswordError.value.isEmpty
                                                 ? null
                                                 : controller.confirmPasswordError.value,
-                                            onChanged: (value) => controller.validateConfirmPassword(
-                                              newPasswordController.text,
-                                              value,
-                                            ),
+                                            onChanged: (value) {
+                                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                controller.validateConfirmPassword(
+                                                  newPasswordController.text,
+                                                  value,
+                                                );
+                                              });
+                                            },
                                             scaleFactor: scaleFactor,
                                             fontSize: (14 * scaleFactor).clamp(12.0, 16.0),
                                             labelFontSize: (12 * scaleFactor).clamp(10.0, 14.0),
@@ -202,13 +221,33 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                             textInputAction: TextInputAction.done,
                                             onSubmitted: (_) {
                                               if (!controller.isLoading.value) {
-                                                controller.resetPassword(
-                                                  resetToken,
-                                                  newPasswordController.text,
-                                                  confirmPasswordController.text,
-                                                );
+                                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                  controller.validateNewPassword(newPasswordController.text);
+                                                  controller.validateConfirmPassword(
+                                                    newPasswordController.text,
+                                                    confirmPasswordController.text,
+                                                  );
+                                                  if (controller.newPasswordError.value.isEmpty &&
+                                                      controller.confirmPasswordError.value.isEmpty) {
+                                                    print('Submitting reset password');
+                                                    controller.resetPassword(
+                                                      resetToken,
+                                                      newPasswordController.text,
+                                                      confirmPasswordController.text,
+                                                    );
+                                                    newPasswordController.clear();
+                                                    confirmPasswordController.clear();
+                                                  } else {
+                                                    print('Validation failed');
+                                                    print('New Password Error: ${controller.newPasswordError.value}');
+                                                    print('Confirm Password Error: ${controller.confirmPasswordError.value}');
+                                                  }
+                                                });
                                               }
                                             },
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9!@#\$%^&*(),.?":{}|<>]')),
+                                            ],
                                           ),
                                         ),
                                       ),
@@ -221,11 +260,31 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                         onPressed: controller.isLoading.value
                                             ? null
                                             : () {
-                                                controller.resetPassword(
-                                                  resetToken,
-                                                  newPasswordController.text,
-                                                  confirmPasswordController.text,
-                                                );
+                                                print('Reset Password Button Clicked');
+                                                print('New Password: ${newPasswordController.text}');
+                                                print('Confirm Password: ${confirmPasswordController.text}');
+                                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                  controller.validateNewPassword(newPasswordController.text);
+                                                  controller.validateConfirmPassword(
+                                                    newPasswordController.text,
+                                                    confirmPasswordController.text,
+                                                  );
+                                                  if (controller.newPasswordError.value.isEmpty &&
+                                                      controller.confirmPasswordError.value.isEmpty) {
+                                                    print('Submitting reset password');
+                                                    controller.resetPassword(
+                                                      resetToken,
+                                                      newPasswordController.text,
+                                                      confirmPasswordController.text,
+                                                    );
+                                                    newPasswordController.clear();
+                                                    confirmPasswordController.clear();
+                                                  } else {
+                                                    print('Validation failed');
+                                                    print('New Password Error: ${controller.newPasswordError.value}');
+                                                    print('Confirm Password Error: ${controller.confirmPasswordError.value}');
+                                                  }
+                                                });
                                               },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: theme.colorScheme.primary,

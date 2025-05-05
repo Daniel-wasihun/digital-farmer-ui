@@ -49,13 +49,36 @@ class VerifyOTPScreen extends GetView<AuthController> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           'verify_otp'.tr,
           style: theme.textTheme.titleLarge!.copyWith(
             fontSize: 18 * scaleFactor,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: IconButton(
+          onPressed: () => Get.back(),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Colors.green[900], // Green back button
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDarkMode
+                  ? [
+                      theme.colorScheme.surface,
+                      theme.colorScheme.surface,
+                    ]
+                  : [
+                      theme.colorScheme.surface,
+                      theme.colorScheme.surface.withOpacity(0.95),
+                    ],
+            ),
           ),
         ),
       ),

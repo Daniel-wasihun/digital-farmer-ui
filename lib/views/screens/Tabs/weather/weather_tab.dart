@@ -310,108 +310,154 @@ class WeatherTab extends StatelessWidget {
                     ),
                   ),
                   // Question Input Card
-                  AnimatedOpacity(
-                    opacity: 1.0,
-                    duration: const Duration(milliseconds: 300),
-                    child: Card(
-                      elevation: 6,
-                      color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * adjustedScaleFactor)),
-                      margin: EdgeInsets.symmetric(vertical: 4 * adjustedScaleFactor, horizontal: 12 * adjustedScaleFactor),
-                      child: Padding(
-                        padding: EdgeInsets.all(padding * 0.8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.question_answer,
-                                  size: 18 * adjustedScaleFactor,
-                                  color: isDarkMode ? Colors.green[300] : Colors.green[500],
-                                ),
-                                SizedBox(width: 6 * adjustedScaleFactor),
-                                Text(
-                                  'Ask a Question'.tr,
+                  Obx(() {
+                    final hasAnswer = controller.askAnswer.value != null && controller.askAnswer.value!.isNotEmpty;
+                    return AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: Card(
+                        elevation: 6,
+                        color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * adjustedScaleFactor)),
+                        margin: EdgeInsets.symmetric(vertical: 4 * adjustedScaleFactor, horizontal: 12 * adjustedScaleFactor),
+                        child: Padding(
+                          padding: EdgeInsets.all(padding * 0.8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.question_answer,
+                                    size: 18 * adjustedScaleFactor,
+                                    color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                  ),
+                                  SizedBox(width: 6 * adjustedScaleFactor),
+                                  Text(
+                                    'Ask a Question'.tr,
+                                    style: TextStyle(
+                                      fontFamily: GoogleFonts.poppins().fontFamily,
+                                      fontFamilyFallback: fontFamilyFallbacks,
+                                      fontSize: titleFontSize,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDarkMode ? Colors.white : Colors.grey[900],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 6 * adjustedScaleFactor),
+                              SizedBox(
+                                height: 40 * adjustedScaleFactor,
+                                child: TextField(
+                                  controller: controller.questionController,
+                                  decoration: InputDecoration(
+                                    hintText: 'e.g., How is the weather today?'.tr,
+                                    hintStyle: TextStyle(
+                                      fontFamily: GoogleFonts.poppins().fontFamily,
+                                      fontFamilyFallback: fontFamilyFallbacks,
+                                      fontSize: detailFontSize,
+                                      color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    filled: true,
+                                    fillColor: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        Icons.send,
+                                        size: 18 * adjustedScaleFactor,
+                                        color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                      ),
+                                      onPressed: () => controller.askWeatherQuestion(),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 10 * adjustedScaleFactor,
+                                      horizontal: 12 * adjustedScaleFactor,
+                                    ),
+                                  ),
                                   style: TextStyle(
                                     fontFamily: GoogleFonts.poppins().fontFamily,
                                     fontFamilyFallback: fontFamilyFallbacks,
-                                    fontSize: titleFontSize,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: detailFontSize,
                                     color: isDarkMode ? Colors.white : Colors.grey[900],
                                   ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 6 * adjustedScaleFactor),
-                            SizedBox(
-                              height: 40 * adjustedScaleFactor,
-                              child: TextField(
-                                controller: controller.questionController,
-                                decoration: InputDecoration(
-                                  hintText: 'e.g., How is the weather today?'.tr,
-                                  hintStyle: TextStyle(
-                                    fontFamily: GoogleFonts.poppins().fontFamily,
-                                    fontFamilyFallback: fontFamilyFallbacks,
-                                    fontSize: detailFontSize,
-                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      Icons.send,
-                                      size: 18 * adjustedScaleFactor,
-                                      color: isDarkMode ? Colors.green[300] : Colors.green[500],
-                                    ),
-                                    onPressed: () => controller.askWeatherQuestion(),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    vertical: 10 * adjustedScaleFactor,
-                                    horizontal: 12 * adjustedScaleFactor,
-                                  ),
-                                ),
-                                style: TextStyle(
-                                  fontFamily: GoogleFonts.poppins().fontFamily,
-                                  fontFamilyFallback: fontFamilyFallbacks,
-                                  fontSize: detailFontSize,
-                                  color: isDarkMode ? Colors.white : Colors.grey[900],
-                                ),
-                                onSubmitted: (value) => controller.askWeatherQuestion(),
-                              ),
-                            ),
-                            SizedBox(height: 6 * adjustedScaleFactor),
-                            if (controller.isAskLoading.value)
-                              Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 3 * adjustedScaleFactor,
-                                  valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.green[300]! : Colors.green[500]!),
+                                  onSubmitted: (value) => controller.askWeatherQuestion(),
                                 ),
                               ),
-                            if (controller.askAnswer.value != null)
-                              Padding(
-                                padding: EdgeInsets.only(top: 6 * adjustedScaleFactor),
-                                child: Text(
-                                  controller.askAnswer.value!,
-                                  style: TextStyle(
-                                    fontFamily: GoogleFonts.poppins().fontFamily,
-                                    fontFamilyFallback: fontFamilyFallbacks,
-                                    fontSize: detailFontSize,
-                                    color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                              SizedBox(height: 6 * adjustedScaleFactor),
+                              if (controller.isAskLoading.value)
+                                Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3 * adjustedScaleFactor,
+                                    valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.green[300]! : Colors.green[500]!),
                                   ),
                                 ),
-                              ),
-                          ],
+                              if (hasAnswer)
+                                AnimatedOpacity(
+                                  opacity: hasAnswer ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 6 * adjustedScaleFactor),
+                                        child: Text(
+                                          controller.askAnswer.value!,
+                                          style: TextStyle(
+                                            fontFamily: GoogleFonts.poppins().fontFamily,
+                                            fontFamilyFallback: fontFamilyFallbacks,
+                                            fontSize: detailFontSize,
+                                            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: 8 * adjustedScaleFactor),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            // Fade out before clearing
+                                            Future.delayed(const Duration(milliseconds: 300), () {
+                                              controller.askAnswer.value = null;
+                                              controller.questionController.clear();
+                                            });
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 16 * adjustedScaleFactor,
+                                              vertical: 8 * adjustedScaleFactor,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                                            ),
+                                            elevation: 4,
+                                          ),
+                                          child: Text(
+                                            'OK'.tr,
+                                            style: TextStyle(
+                                              fontFamily: GoogleFonts.poppins().fontFamily,
+                                              fontFamilyFallback: fontFamilyFallbacks,
+                                              fontSize: detailFontSize,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                   // 3-Day Forecast Section
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: padding, vertical: 10 * adjustedScaleFactor),

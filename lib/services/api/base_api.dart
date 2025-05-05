@@ -5,13 +5,15 @@ import '../storage_service.dart';
 import 'package:flutter/foundation.dart';
 
 abstract class BaseApi {
-  static const String apiBaseUrl = kIsWeb ? 'http://localhost:5000/api':'http://10.175.28.71:5000/api';
-  static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://10.175.28.71:8000';  
-  static const String imageBaseUrl =kIsWeb ? 'http://localhost:5000':'http://10.175.28.71:5000';
+  static const String apiBaseUrl = kIsWeb ? 'http://localhost:5000/api':'https://digital-farmer-backend-1.onrender.com/api';
+  static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'https://digital-farmer-ethio-em9f.vercel.app';  
+  static const String imageBaseUrl =kIsWeb ? 'http://localhost:5000':'https://digital-farmer-backend-1.onrender.com';
 
-  // static const String appiBaseUrl = kIsWeb ? 'http://localhost:8000': 
-  // static const String imageBaseUrl = 'http://localhost:5000';
-  
+  // static const String apiBaseUrl = kIsWeb ? 'https://digital-farmer-backend-1.onrender.com/api':'https://digital-farmer-backend-1.onrender.com/api';
+  // static const String aiBaseUrl = kIsWeb ? 'https://digital-farmer-ethio-em9f.vercel.app': 'https://digital-farmer-ethio-em9f.vercel.app';  
+  // static const String imageBaseUrl =kIsWeb ? 'https://digital-farmer-backend-1.onrender.com':'https://digital-farmer-backend-1.onrender.com';
+
+
   // Private StorageService instance
   final StorageService _storageService = Get.find<StorageService>();
 

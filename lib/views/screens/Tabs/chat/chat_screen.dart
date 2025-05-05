@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../../../controllers/chat/chat_screen_controller.dart';
 import '../../../../routes/app_routes.dart';
-import '../../../../utils/constants.dart';
 
 class ChatScreen extends StatelessWidget {
   final String receiverId;

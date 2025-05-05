@@ -1,4 +1,3 @@
-// chat_controller.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -10,32 +9,32 @@ import '../../services/api_service.dart';
 import '../../routes/app_routes.dart';
 
 class ChatController extends GetxController {
-  // Dependencies
   final SocketClient socketClient = SocketClient();
   final StorageService storageService = Get.find<StorageService>();
   final ApiService apiService = Get.find<ApiService>();
 
-
-  // State
   final currentUserId = RxnString();
   final messages = <String, Map<String, dynamic>>{}.obs;
   final allUsers = <Map<String, dynamic>>[].obs;
   final filteredUsers = <Map<String, dynamic>>[].obs;
   final typingUsers = <String>{}.obs;
   final isConnected = false.obs;
+  final hasInternet = true.obs;
+  final serverAvailable = true.obs;
   final errorMessage = ''.obs;
   final selectedReceiverId = ''.obs;
   final isLoadingUsers = false.obs;
   final isLoadingMessages = false.obs;
   final searchController = TextEditingController();
-  final unseenNotifications = <String, List<Map<String, dynamic>>>{}.obs; // Track notifications per user
+  final unseenNotifications = <String, List<Map<String, dynamic>>>{}.obs;
 
-  // Internal
   Timer? _searchDebounceTimer;
+  Timer? _connectivityCheckTimer;
   bool _isConnecting = false;
   bool _disposed = false;
   static const _maxRetries = 3;
   static const _baseRetryDelay = Duration(seconds: 2);
+  static const _connectivityCheckInterval = Duration(seconds: 5);
 
   @override
   void onInit() {
@@ -43,6 +42,7 @@ class ChatController extends GetxController {
     ever(storageService.user, (_) => _handleUserChange());
     searchController.addListener(debounceSearch);
     _initialize();
+    _startConnectivityCheck();
   }
 
   @override
@@ -50,7 +50,9 @@ class ChatController extends GetxController {
     _disposed = true;
     socketClient.disconnect();
     _searchDebounceTimer?.cancel();
+    _connectivityCheckTimer?.cancel();
     _searchDebounceTimer = null;
+    _connectivityCheckTimer = null;
     searchController.removeListener(debounceSearch);
     searchController.dispose();
     super.onClose();
@@ -75,7 +77,51 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: Initialize error: $e');
       errorMessage.value = 'failed_to_initialize'.tr;
-      Get.snackbar('Error', 'failed_to_initialize'.tr, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'failed_to_initialize'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError);
+    }
+  }
+
+  void _startConnectivityCheck() {
+    _connectivityCheckTimer = Timer.periodic(_connectivityCheckInterval, (timer) async {
+      if (_disposed) {
+        timer.cancel();
+        return;
+      }
+      await _checkConnectivity();
+    });
+  }
+
+  Future<void> _checkConnectivity() async {
+    try {
+      await apiService.user.getUsers();
+      if (!hasInternet.value || !serverAvailable.value) {
+        hasInternet.value = true;
+        serverAvailable.value = true;
+        print('ChatController: Internet and server restored');
+        if (!isConnected.value) {
+          await connect();
+        }
+        await fetchUsers();
+      }
+    } catch (e) {
+      if (e.toString().contains('DioError') || e.toString().contains('SocketException') || e.toString().contains('TimeoutException')) {
+        if (hasInternet.value) {
+          hasInternet.value = false;
+          serverAvailable.value = false;
+          print('ChatController: Network failure: $e');
+        }
+      } else if (e.toString().contains('Invalid token')) {
+        print('ChatController: Invalid token: $e');
+        await _handleInvalidToken();
+      } else {
+        if (serverAvailable.value) {
+          serverAvailable.value = false;
+          print('ChatController: Server error: $e');
+        }
+      }
     }
   }
 
@@ -105,6 +151,8 @@ class ChatController extends GetxController {
     searchController.clear();
     errorMessage.value = '';
     isConnected.value = false;
+    hasInternet.value = true;
+    serverAvailable.value = true;
   }
 
   Future<void> loadLocalData() async {
@@ -124,6 +172,10 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: loadLocalData error: $e');
       errorMessage.value = 'failed_to_load_local_data'.tr;
+      Get.snackbar('Error', 'failed_to_load_local_data'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError);
     }
   }
 
@@ -162,6 +214,10 @@ class ChatController extends GetxController {
   Future<void> fetchUsers({int retryCount = 0}) async {
     if (isLoadingUsers.value || currentUserId.value == null) {
       print('ChatController: Skipping fetchUsers: loading=${isLoadingUsers.value}, userId=${currentUserId.value}');
+      return;
+    }
+    if (!hasInternet.value || !serverAvailable.value) {
+      print('ChatController: No internet or server unavailable, skipping fetchUsers');
       return;
     }
     isLoadingUsers.value = true;
@@ -214,9 +270,12 @@ class ChatController extends GetxController {
       Get.offAllNamed(AppRoutes.getSignInPage());
       return;
     }
+    if (!hasInternet.value || !serverAvailable.value) {
+      print('ChatController: No internet or server unavailable, skipping socket connect');
+      return;
+    }
     _isConnecting = true;
     try {
-      await apiService.user.getUsers();
       await socketClient.disconnect();
       socketClient.connect(
         currentUserId.value!,
@@ -253,24 +312,28 @@ class ChatController extends GetxController {
     }
     if (!_isValidReceiver(receiverId)) {
       print('ChatController: Invalid receiverId: $receiverId');
-      Get.snackbar('Error', 'invalid_receiver'.tr, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'invalid_receiver'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError);
       return;
     }
     final message = _createMessage(text, receiverId);
     await _addMessage(message);
     if (isConnected.value && socketClient.socket?.connected == true) {
       socketClient.sendMessage(currentUserId.value!, receiverId, text, message['messageId']);
-      Get.snackbar(
-        'Message Sent'.tr,
-        'Your message to $receiverId has been sent'.tr,
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 2),
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      Get.snackbar('Message Sent', 'Your message to $receiverId has been sent'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.secondary,
+          colorText: Get.theme.colorScheme.onSecondary,
+          duration: const Duration(seconds: 2));
     } else {
       await storeOfflineMessage(message);
-      Get.snackbar('offline'.tr, 'message_stored_locally'.tr, backgroundColor: Colors.grey, colorText: Colors.white);
+      Get.snackbar('Offline', 'Message stored locally'.tr,
+          snackPosition: SnackPosition.TOP,
+          // backgroundColor: Get.theme.colorScheme.warning,
+          // colorText: Get.theme.colorScheme.onWarning
+          );
     }
   }
 
@@ -278,7 +341,14 @@ class ChatController extends GetxController {
     if (currentUserId.value == null || receiverId.isEmpty || !_isValidReceiver(receiverId)) {
       print('ChatController: Invalid fetch params: userId=${currentUserId.value}, receiverId=$receiverId');
       errorMessage.value = 'invalid_receiver'.tr;
-      Get.snackbar('Error', 'invalid_receiver'.tr, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'invalid_receiver'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError);
+      return;
+    }
+    if (!hasInternet.value || !serverAvailable.value) {
+      print('ChatController: No internet or server unavailable, skipping fetchMessagesFromBackend');
       return;
     }
     isLoadingMessages.value = true;
@@ -370,27 +440,23 @@ class ChatController extends GetxController {
     }
   }
 
-  
-
   int getUnseenMessageCount(String receiverId) {
     return unseenNotifications[receiverId]?.length ?? 0;
   }
 
-  
-
   List<Map<String, dynamic>> get userListItems {
     return filteredUsers.map((user) {
       final email = user['email'] as String;
-      final lastMessage = _getLastMessageData(email);
+      final lastMessageData = _getLastMessageData(email);
       return {
         'user': user,
         'unseenCount': getUnseenMessageCount(email),
         'isTyping': typingUsers.contains(email),
-        'lastMessage': lastMessage['message'] ?? '',
-        'timestamp': lastMessage['timestamp'] ?? '',
-        'isSentByUser': lastMessage['senderId'] == currentUserId.value,
-        'isDelivered': lastMessage['delivered'] == true,
-        'isRead': lastMessage['read'] == true,
+        'lastMessage': lastMessageData['message'] ?? '',
+        'timestamp': lastMessageData['timestamp'] ?? '',
+        'isSentByUser': lastMessageData['senderId'] == currentUserId.value,
+        'isDelivered': lastMessageData['delivered'] == true,
+        'isRead': lastMessageData['read'] == true,
       };
     }).toList();
   }
@@ -467,6 +533,7 @@ class ChatController extends GetxController {
     await saveMessagesForUser(receiverId);
     _updateUserLastMessageTime(message);
     _updateFilteredUsers();
+    print('ChatController: Added message: ${message['messageId']} for receiver: $receiverId');
   }
 
   Future<void> _mergeMessages(List<Map<String, dynamic>> newMessages, String receiverId) async {
@@ -475,14 +542,17 @@ class ChatController extends GetxController {
         final existingMsg = messages[newMsg['messageId']];
         if (existingMsg == null) {
           messages[newMsg['messageId']] = newMsg;
+          print('ChatController: Added new message: ${newMsg['messageId']}');
         } else {
           final existingTime = DateTime.parse(existingMsg['timestamp']);
           final newTime = DateTime.parse(newMsg['timestamp']);
           if (newTime.isAfter(existingTime)) {
             messages[newMsg['messageId']] = newMsg;
+            print('ChatController: Updated message: ${newMsg['messageId']} with newer timestamp');
           } else {
             existingMsg['delivered'] = newMsg['delivered'] ?? existingMsg['delivered'];
             existingMsg['read'] = newMsg['read'] ?? existingMsg['read'];
+            print('ChatController: Updated message status: ${newMsg['messageId']}, delivered: ${existingMsg['delivered']}, read: ${existingMsg['read']}');
           }
         }
       }
@@ -494,12 +564,17 @@ class ChatController extends GetxController {
 
   void _updateFilteredUsers() {
     if (_disposed) return;
-    // Safely access searchController.text
     final query = searchController.text.trim().toLowerCase();
     filteredUsers.value = query.isEmpty
         ? allUsers
         : allUsers.where((user) => user['username'].toString().toLowerCase().contains(query)).toList();
+    filteredUsers.sort((a, b) {
+      final aTime = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
     filteredUsers.refresh();
+    print('ChatController: Updated filtered users: ${filteredUsers.length}');
   }
 
   void debounceSearch() {
@@ -522,10 +597,10 @@ class ChatController extends GetxController {
           newUser['online'] != oldUser['online'] ||
           newUser['profilePicture'] != oldUser['profilePicture']) {
         return true;
-      }
     }
-    return false;
   }
+  return false;
+}
 
   void _handleReceivedMessage(Map<String, dynamic> data) {
     if (data['receiverId'] == currentUserId.value || data['senderId'] == currentUserId.value) {
@@ -545,17 +620,14 @@ class ChatController extends GetxController {
             saveUnseenNotifications();
             print('ChatController: Added to unseen notifications for $senderId: ${data['messageId']}');
 
-            Get.snackbar(
-              'New Message'.tr,
-              'You received a message from $senderId'.tr,
-              snackPosition: SnackPosition.TOP,
-              duration: const Duration(seconds: 2),
-              backgroundColor: Colors.blue,
-              colorText: Colors.white,
-              onTap: (snack) {
-                Get.toNamed(AppRoutes.getChatPage(senderId, allUsers.firstWhere((u) => u['email'] == senderId, orElse: () => {'username': 'Unknown'})['username']));
-              },
-            );
+            Get.snackbar('New Message', 'You received a message from $senderId'.tr,
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: Get.theme.colorScheme.secondary,
+                colorText: Get.theme.colorScheme.onSecondary,
+                duration: const Duration(seconds: 2),
+                onTap: (snack) {
+                  Get.toNamed(AppRoutes.getChatPage(senderId, allUsers.firstWhere((u) => u['email'] == senderId, orElse: () => {'username': 'Unknown'})['username']));
+                });
           }
         } else {
           socketClient.markAsRead(data['messageId']);
@@ -584,14 +656,11 @@ class ChatController extends GetxController {
       saveMessagesForUser(receiverId);
       _updateFilteredUsers();
       print('ChatController: Message delivered: $messageId');
-      Get.snackbar(
-        'Message Delivered'.tr,
-        'Your message has been delivered'.tr,
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 2),
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      Get.snackbar('Message Delivered', 'Your message has been delivered'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.secondary,
+          colorText: Get.theme.colorScheme.onSecondary,
+          duration: const Duration(seconds: 2));
     }
   }
 
@@ -603,6 +672,11 @@ class ChatController extends GetxController {
       saveMessagesForUser(receiverId);
       _updateFilteredUsers();
       print('ChatController: Message read: $messageId');
+      Get.snackbar('Message Read', 'Your message has been read'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.secondary,
+          colorText: Get.theme.colorScheme.onSecondary,
+          duration: const Duration(seconds: 2));
     }
   }
 
@@ -633,13 +707,16 @@ class ChatController extends GetxController {
     errorMessage.value = error;
     isConnected.value = false;
     print('ChatController: Socket error: $error');
+    Get.snackbar('Error', error,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError);
     if (error.contains('Invalid token')) {
       await _handleInvalidToken();
     } else {
-      // Get.snackbar('Error', 'socket_error'.tr, snackPosition: SnackPosition.BOTTOM);
       await Future.delayed(Duration(seconds: 5));
-      if (!isConnected.value) {
-        print('ChatController: Retrying socket ');
+      if (!isConnected.value && hasInternet.value && serverAvailable.value) {
+        print('ChatController: Retrying socket connection');
         await connect();
       }
     }
@@ -677,35 +754,47 @@ class ChatController extends GetxController {
       await retry();
     } else {
       errorMessage.value = 'failed_to_load_data'.tr;
-      Get.snackbar('Error', 'failed_to_load_data'.tr, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'failed_to_load_data'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError);
     }
   }
 
   Future<void> _handleSocketConnectError(dynamic e) async {
     print('ChatController: Connect error: $e');
     errorMessage.value = 'socket_connect_failed'.tr;
-    Get.snackbar('Error', 'socket_connect_failed'.tr, snackPosition: SnackPosition.BOTTOM);
+    Get.snackbar('Error', 'socket_connect_failed'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError);
     await Future.delayed(Duration(seconds: 5));
-    if (!isConnected.value) {
-      print('ChatController: Retrying socket ');
+    if (!isConnected.value && hasInternet.value && serverAvailable.value) {
+      print('ChatController: Retrying socket connection');
       await connect();
     }
   }
 
   Map<String, dynamic> _getLastMessageData(String userEmail) {
-    final relatedMessages = messages.values.where(
-      (msg) =>
-          (msg['senderId'] == currentUserId.value && msg['receiverId'] == userEmail) ||
-          (msg['senderId'] == userEmail && msg['receiverId'] == currentUserId.value),
-    );
+    final relatedMessages = messages.values
+        .where(
+          (msg) =>
+              (msg['senderId'] == currentUserId.value && msg['receiverId'] == userEmail) ||
+              (msg['senderId'] == userEmail && msg['receiverId'] == currentUserId.value),
+        )
+        .toList();
+
     if (relatedMessages.isEmpty) {
       return {'message': '', 'timestamp': '', 'senderId': '', 'delivered': false, 'read': false};
     }
-    final latestMessage = relatedMessages.reduce((a, b) {
+
+    relatedMessages.sort((a, b) {
       final aTime = DateTime.parse(a['timestamp']);
       final bTime = DateTime.parse(b['timestamp']);
-      return aTime.isAfter(bTime) ? a : b;
+      return bTime.compareTo(aTime);
     });
+
+    final latestMessage = relatedMessages.first;
     return {
       'message': latestMessage['message'],
       'timestamp': latestMessage['timestamp'],
@@ -716,18 +805,23 @@ class ChatController extends GetxController {
   }
 
   String _getLatestMessageTime(String userId) {
-    final relatedMessages = messages.values.where(
-      (msg) =>
-          (msg['senderId'] == currentUserId.value && msg['receiverId'] == userId) ||
-          (msg['senderId'] == userId && msg['receiverId'] == currentUserId.value),
-    );
+    final relatedMessages = messages.values
+        .where(
+          (msg) =>
+              (msg['senderId'] == currentUserId.value && msg['receiverId'] == userId) ||
+              (msg['senderId'] == userId && msg['receiverId'] == currentUserId.value),
+        )
+        .toList();
+
     if (relatedMessages.isEmpty) return '';
-    final latestMessage = relatedMessages.reduce((a, b) {
+
+    relatedMessages.sort((a, b) {
       final aTime = DateTime.parse(a['timestamp']);
       final bTime = DateTime.parse(b['timestamp']);
-      return aTime.isAfter(bTime) ? a : b;
+      return bTime.compareTo(aTime);
     });
-    return latestMessage['timestamp'];
+
+    return relatedMessages.first['timestamp'];
   }
 
   void _updateUserLastMessageTime(Map<String, dynamic> message) {
@@ -744,6 +838,7 @@ class ChatController extends GetxController {
           return bTime.compareTo(aTime);
         });
         storageService.saveUsers(currentUserId.value!, allUsers);
+        print('ChatController: Updated last message time for $userId: ${user['lastMessageTime']}');
       }
     }
   }
@@ -760,5 +855,6 @@ class ChatController extends GetxController {
     if (currentUserId.value != null) {
       storageService.saveUsers(currentUserId.value!, allUsers);
     }
+    print('ChatController: Updated all users last message times');
   }
 }

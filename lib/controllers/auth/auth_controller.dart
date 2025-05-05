@@ -62,10 +62,12 @@ class AuthController extends GetxController with AuthValidationMixin {
           message,
           backgroundColor: backgroundColor ?? Get.theme.colorScheme.surfaceContainerHighest,
           colorText: colorText ?? Get.theme.colorScheme.onSurfaceVariant,
-          snackPosition: snackPosition ?? SnackPosition.BOTTOM,
+          snackPosition: snackPosition ?? SnackPosition.TOP, // Changed to TOP
           borderRadius: borderRadius ?? 8,
           margin: margin ?? const EdgeInsets.all(16),
           duration: const Duration(milliseconds: 1500),
+          isDismissible: true, // User-friendly: allows dismissal
+          animationDuration: const Duration(milliseconds: 300), // Smooth animation
         );
       },
       navigateTo: (pageName, {arguments, id, preventDuplicates = true, parameters}) =>
@@ -253,7 +255,7 @@ class AuthController extends GetxController with AuthValidationMixin {
     if (newPasswordError.value.isNotEmpty || confirmPasswordError.value.isNotEmpty) {
       return;
     }
-    await _passwordManager.resetPassword(resetToken, newPassword, confirmPassword);
+    await _passwordManager.resetPassword(resetToken, newPassword , confirmPassword);
   }
 
   Future<void> changePassword() async {

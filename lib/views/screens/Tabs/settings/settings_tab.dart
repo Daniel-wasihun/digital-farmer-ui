@@ -50,14 +50,6 @@ class SettingsTab extends StatelessWidget {
         'title': 'language_preference'.tr,
         'action': () {
           appController.toggleLanguage();
-          Get.snackbar(
-            'success'.tr,
-            'language_changed'.tr,
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            colorText: Theme.of(context).colorScheme.onSecondary,
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(12 * scaleFactor),
-          );
         },
         'trailing': Obx(() => Text(
               appController.currentLanguage.value,

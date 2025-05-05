@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Import for TextInputFormatter
 
 class CustomTextField extends StatelessWidget {
   final String? label;
@@ -20,9 +21,9 @@ class CustomTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final Function(String)? onSubmitted;
   final Color? cursorColor;
-  // New parameters for multiline support
   final int? minLines;
   final int? maxLines;
+  final List<TextInputFormatter>? inputFormatters; // Optional inputFormatters
 
   const CustomTextField({
     super.key,
@@ -45,13 +46,13 @@ class CustomTextField extends StatelessWidget {
     this.textInputAction,
     this.onSubmitted,
     this.cursorColor,
-    this.minLines, // Add minLines
-    this.maxLines, // Add maxLines
+    this.minLines,
+    this.maxLines,
+    this.inputFormatters, // Include in constructor
   });
 
   @override
   Widget build(BuildContext context) {
-    // Use provided values or default to scaled values if null
     final double effectiveFontSize = fontSize ?? (14 * scaleFactor);
     final double effectiveLabelFontSize = labelFontSize ?? (14 * scaleFactor);
     final double effectiveIconSize = iconSize ?? (20 * scaleFactor);
@@ -63,7 +64,6 @@ class CustomTextField extends StatelessWidget {
           horizontal: 14 * scaleFactor,
         );
 
-    // Define standard border styles
     final OutlineInputBorder standardBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(effectiveBorderRadius),
       borderSide: effectiveFilled
@@ -80,7 +80,6 @@ class CustomTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          // Adjust height dynamically based on minLines/maxLines
           height: _calculateHeight(
             context,
             effectiveContentPadding,
@@ -98,8 +97,9 @@ class CustomTextField extends StatelessWidget {
             enabled: enabled,
             textInputAction: textInputAction,
             onSubmitted: onSubmitted,
-            minLines: minLines, // Pass minLines to TextField
-            maxLines: maxLines ?? 1, // Pass maxLines, default to 1 for single-line
+            minLines: minLines,
+            maxLines: maxLines ?? 1,
+            inputFormatters: inputFormatters, // Pass to TextField
             style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                   fontSize: effectiveFontSize,
                 ),
@@ -137,7 +137,6 @@ class CustomTextField extends StatelessWidget {
     );
   }
 
-  // Helper to calculate dynamic height for the TextField
   double _calculateHeight(
     BuildContext context,
     EdgeInsetsGeometry contentPadding,
@@ -147,17 +146,12 @@ class CustomTextField extends StatelessWidget {
     String? errorText,
     double scaleFactor,
   ) {
-    // Base height per line (fontSize + line spacing)
-    final double lineHeight = fontSize * 1.5; // Approximate line height
-    // Minimum height based on minLines or 1 line
+    final double lineHeight = fontSize * 1.5;
     final int effectiveMinLines = minLines ?? 1;
-    // Calculate base height from content padding and lines
     double baseHeight = contentPadding.vertical + (lineHeight * effectiveMinLines);
-    // Add space for error text if present
     if (errorText != null && errorText.isNotEmpty) {
       baseHeight += (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12 * scaleFactor) + 4;
     }
-    // Clamp height to reasonable bounds
-    return baseHeight.clamp(48.0, 300.0); // Minimum 48px, maximum 300px
+    return baseHeight.clamp(48.0, 300.0);
   }
 }

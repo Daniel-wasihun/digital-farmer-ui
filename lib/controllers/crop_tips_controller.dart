@@ -74,8 +74,10 @@ class CropTipsController extends GetxController {
     isCropInfoLoading.value = true;
     cropInfo.value = null;
     try {
-      var response = await http.post(
-        Uri.parse('$aiBaseUrl/ask/agriculture/$cropType'),
+      final url = '$aiBaseUrl/ask/agriculture/$cropType';
+      print('Request URL: $url');
+      final response = await http.post(
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json; charset=utf-8'},
         body: jsonEncode({
           'latitude': 11.7833,
@@ -85,18 +87,31 @@ class CropTipsController extends GetxController {
         }),
       );
 
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);
         final data = jsonDecode(decodedBody);
         String answer = data['answer'];
-        print('Initial Response: $answer');
+        print('Parsed answer: $answer');
+        if (answer.isEmpty) {
+          throw Exception('Empty response from server');
+        }
         containsAmharic(answer);
         cropInfo.value = answer;
       } else {
-        Get.snackbar('Error'.tr, 'Error Fetching Crop Info: ${response.statusCode}'.tr);
+        throw Exception('Error Fetching Crop Info: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      Get.snackbar('Error'.tr, 'Error Fetching Crop Info: $e'.tr);
+      print('Error in fetchCropInfo: $e');
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } finally {
       isCropInfoLoading.value = false;
     }

@@ -39,126 +39,163 @@ class ChatTab extends StatelessWidget {
     // Font fallbacks for Amharic
     const List<String> fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
-    return Scaffold(
-      body: Column(
-        children: [
-          _buildSearchField(
-            chatController,
-            adjustedScaleFactor,
-            padding,
-            detailFontSize,
-            screenWidth,
-            fontFamilyFallbacks,
-          ),
-          Expanded(
-            child: Obx(() {
-              return Stack(
-                children: [
-                  RefreshIndicator(
-                    onRefresh: chatController.fetchUsers,
-                    color: AppConstants.primaryColor,
-                    backgroundColor: Get.theme.colorScheme.surface,
-                    child: _buildUserList(
-                      chatController,
-                      adjustedScaleFactor,
-                      padding,
-                      subtitleFontSize,
-                      detailFontSize,
-                      fontFamilyFallbacks,
-                    ),
-                  ),
-                  if (chatController.isLoadingUsers.value)
-                    Container(
-                      color: Get.theme.colorScheme.surface.withOpacity(0.9),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(AppConstants.primaryColor),
-                          strokeWidth: 3 * adjustedScaleFactor,
+    // Search focus node
+    final searchFocusNode = FocusNode();
+
+    // Clear search and unfocus
+    void clearSearch() {
+      chatController.searchController.clear();
+      chatController.debounceSearch();
+      searchFocusNode.unfocus();
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // Unfocus the TextField when tapping outside
+        searchFocusNode.unfocus();
+      },
+      child: Scaffold(
+        body: Column(
+          children: [
+            // Header message for connection status
+            Obx(() {
+              // Show appropriate message based on connectivity and server status
+              if (!chatController.hasInternet.value) {
+                return Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: padding * 0.5),
+                  color: Get.theme.colorScheme.surface, // Match page background
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'no_internet'.tr,
+                        style: TextStyle(
+                          fontFamily: GoogleFonts.poppins().fontFamily,
+                          fontFamilyFallback: fontFamilyFallbacks,
+                          fontSize: detailFontSize,
+                          color: Get.theme.colorScheme.onSurface, // Match user name text color
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
-                  if (chatController.errorMessage.isNotEmpty)
-                    _buildErrorIndicator(
-                      chatController.errorMessage.value,
-                      adjustedScaleFactor,
-                      padding,
-                      subtitleFontSize,
-                      detailFontSize,
-                      chatController.fetchUsers,
-                      fontFamilyFallbacks,
-                    ),
-                ],
-              );
+                      SizedBox(width: 8 * adjustedScaleFactor),
+                      SizedBox(
+                        width: 16 * adjustedScaleFactor,
+                        height: 16 * adjustedScaleFactor,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2 * adjustedScaleFactor,
+                          valueColor: AlwaysStoppedAnimation<Color>(Get.theme.colorScheme.onSurface.withOpacity(0.5)), // Subtle progress indicator
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else if (!chatController.serverAvailable.value) {
+                return Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: padding * 0.5),
+                  color: Get.theme.colorScheme.surface, // Match page background
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'server_unavailable'.tr,
+                        style: TextStyle(
+                          fontFamily: GoogleFonts.poppins().fontFamily,
+                          fontFamilyFallback: fontFamilyFallbacks,
+                          fontSize: detailFontSize,
+                          color: Get.theme.colorScheme.onSurface, // Match user name text color
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 8 * adjustedScaleFactor),
+                      SizedBox(
+                        width: 16 * adjustedScaleFactor,
+                        height: 16 * adjustedScaleFactor,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2 * adjustedScaleFactor,
+                          valueColor: AlwaysStoppedAnimation<Color>(Get.theme.colorScheme.onSurface.withOpacity(0.5)), // Subtle progress indicator
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else if (chatController.isLoadingUsers.value && chatController.hasInternet.value) {
+                return Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: padding * 0.5),
+                  color: Get.theme.colorScheme.surface, // Match page background
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${'updating'.tr}...',
+                        style: TextStyle(
+                          fontFamily: GoogleFonts.poppins().fontFamily,
+                          fontFamilyFallback: fontFamilyFallbacks,
+                          fontSize: detailFontSize,
+                          color: Get.theme.colorScheme.onSurface.withOpacity(0.7), // Slightly muted for consistency
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 8 * adjustedScaleFactor),
+                      SizedBox(
+                        width: 16 * adjustedScaleFactor,
+                        height: 16 * adjustedScaleFactor,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2 * adjustedScaleFactor,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppConstants.primaryColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
             }),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorIndicator(
-    String message,
-    double adjustedScaleFactor,
-    double padding,
-    double subtitleFontSize,
-    double detailFontSize,
-    VoidCallback onRetry,
-    List<String> fontFamilyFallbacks,
-  ) {
-    return Center(
-      child: Container(
-        padding: EdgeInsets.all(padding),
-        margin: EdgeInsets.symmetric(horizontal: padding * 1.25),
-        decoration: BoxDecoration(
-          color: Get.theme.colorScheme.error.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
-          border: Border.all(color: Get.theme.colorScheme.error.withOpacity(0.3)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48 * adjustedScaleFactor,
-              color: Get.theme.colorScheme.error,
+            _buildSearchField(
+              chatController,
+              adjustedScaleFactor,
+              padding,
+              detailFontSize,
+              screenWidth,
+              fontFamilyFallbacks,
+              searchFocusNode,
+              clearSearch,
             ),
-            SizedBox(height: 8 * adjustedScaleFactor),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: GoogleFonts.poppins().fontFamily,
-                fontFamilyFallback: fontFamilyFallbacks,
-                fontSize: subtitleFontSize,
-                color: Get.theme.colorScheme.onSurface.withOpacity(0.8),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            SizedBox(height: 12 * adjustedScaleFactor),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: Icon(Icons.refresh, size: 18 * adjustedScaleFactor),
-              label: Text(
-                'retry'.tr,
-                style: TextStyle(
-                  fontFamily: GoogleFonts.poppins().fontFamily,
-                  fontFamilyFallback: fontFamilyFallbacks,
-                  fontSize: detailFontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppConstants.primaryColor,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  horizontal: 12 * adjustedScaleFactor,
-                  vertical: 6 * adjustedScaleFactor,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
-                ),
-                elevation: 6,
-              ),
+            Expanded(
+              child: Obx(() {
+                final userListItems = chatController.userListItems;
+                print('ChatTab: Building user list with ${userListItems.length} items');
+                return Stack(
+                  children: [
+                    RefreshIndicator(
+                      onRefresh: chatController.fetchUsers,
+                      color: AppConstants.primaryColor,
+                      backgroundColor: Get.theme.colorScheme.surface,
+                      child: _buildUserList(
+                        chatController,
+                        userListItems,
+                        adjustedScaleFactor,
+                        padding,
+                        subtitleFontSize,
+                        detailFontSize,
+                        fontFamilyFallbacks,
+                      ),
+                    ),
+                    if (chatController.isLoadingUsers.value && chatController.hasInternet.value && chatController.serverAvailable.value)
+                      Container(
+                        color: Get.theme.colorScheme.surface.withOpacity(0.9),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(AppConstants.primaryColor),
+                            strokeWidth: 3 * adjustedScaleFactor,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              }),
             ),
           ],
         ),
@@ -173,6 +210,8 @@ class ChatTab extends StatelessWidget {
     double detailFontSize,
     double screenWidth,
     List<String> fontFamilyFallbacks,
+    FocusNode searchFocusNode,
+    VoidCallback clearSearch,
   ) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.8),
@@ -190,45 +229,61 @@ class ChatTab extends StatelessWidget {
             ),
           ],
         ),
-        child: TextField(
-          controller: chatController.searchController,
-          style: TextStyle(
-            fontFamily: GoogleFonts.poppins().fontFamily,
-            fontFamilyFallback: fontFamilyFallbacks,
-            fontSize: detailFontSize,
-            color: Get.theme.colorScheme.onSurface,
-          ),
-          decoration: InputDecoration(
-            hintText: 'search_users'.tr,
-            hintStyle: TextStyle(
-              fontFamily: GoogleFonts.poppins().fontFamily,
-              fontFamilyFallback: fontFamilyFallbacks,
-              fontSize: detailFontSize,
-              color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
-            ),
-            prefixIcon: Icon(
-              Icons.search,
-              size: 18 * adjustedScaleFactor,
-              color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
-              borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
-              borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
-              borderSide: BorderSide(color: AppConstants.primaryColor, width: 1.5 * adjustedScaleFactor),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              vertical: 8 * adjustedScaleFactor,
-              horizontal: 10 * adjustedScaleFactor,
-            ),
-          ),
-          onChanged: (_) => chatController.debounceSearch(),
+        child: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: chatController.searchController,
+          builder: (context, textValue, child) {
+            return TextField(
+              controller: chatController.searchController,
+              focusNode: searchFocusNode,
+              style: TextStyle(
+                fontFamily: GoogleFonts.poppins().fontFamily,
+                fontFamilyFallback: fontFamilyFallbacks,
+                fontSize: detailFontSize,
+                color: Get.theme.colorScheme.onSurface,
+              ),
+              decoration: InputDecoration(
+                hintText: 'search_users'.tr,
+                hintStyle: TextStyle(
+                  fontFamily: GoogleFonts.poppins().fontFamily,
+                  fontFamilyFallback: fontFamilyFallbacks,
+                  fontSize: detailFontSize,
+                  color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: 18 * adjustedScaleFactor,
+                  color: Get.theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+                suffixIcon: (textValue.text.isNotEmpty || searchFocusNode.hasFocus)
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          size: 18 * adjustedScaleFactor,
+                          color: Get.theme.colorScheme.onSurface,
+                        ),
+                        onPressed: clearSearch,
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                  borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                  borderSide: BorderSide(color: Colors.grey, width: 1 * adjustedScaleFactor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                  borderSide: BorderSide(color: AppConstants.primaryColor, width: 1.5 * adjustedScaleFactor),
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 8 * adjustedScaleFactor,
+                  horizontal: 10 * adjustedScaleFactor,
+                ),
+              ),
+              onChanged: (_) => chatController.debounceSearch(),
+            );
+          },
         ),
       ),
     );
@@ -236,6 +291,7 @@ class ChatTab extends StatelessWidget {
 
   Widget _buildUserList(
     ChatController chatController,
+    List<Map<String, dynamic>> userListItems,
     double adjustedScaleFactor,
     double padding,
     double subtitleFontSize,
@@ -256,7 +312,6 @@ class ChatTab extends StatelessWidget {
         ),
       );
     }
-    final List<Map<String, dynamic>> userListItems = chatController.userListItems;
     if (userListItems.isEmpty && chatController.searchController.text.isEmpty) {
       return Center(
         child: Text(
@@ -289,17 +344,19 @@ class ChatTab extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: padding * 0.8),
       itemCount: userListItems.length,
       itemBuilder: (context, index) {
+        final userData = userListItems[index];
+        print('ChatTab: Rendering user ${userData['user']['email']}, last message: ${userData['lastMessage']}');
         return FadeInRight(
           duration: Duration(milliseconds: 300 + (index * 50)),
           child: UserListItem(
-            userData: userListItems[index],
+            userData: userData,
             adjustedScaleFactor: adjustedScaleFactor,
             padding: padding,
             subtitleFontSize: subtitleFontSize,
             detailFontSize: detailFontSize,
             fontFamilyFallbacks: fontFamilyFallbacks,
             onTap: () {
-              final user = userListItems[index]['user'];
+              final user = userData['user'];
               chatController.selectReceiver(user['email']);
               Get.toNamed(
                 AppRoutes.getChatPage(user['email'], user['username'] ?? 'Unknown'),

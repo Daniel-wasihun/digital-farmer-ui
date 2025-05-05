@@ -119,6 +119,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
     final double spacingExtraLarge = math.max(16.0, 20 * scaleFactor);
 
     final double consistentVerticalPadding = math.max(12.0, 14 * scaleFactor);
+    final double consistentInputHeight = 56.0; // Standard height for inputs
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -193,7 +194,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                             ),
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: math.max(8.0, 10 * scaleFactor),
-                              vertical: consistentVerticalPadding,
+                              vertical: (consistentInputHeight - fieldValueFontSize - 8) / 2,
                             ),
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(
@@ -250,6 +251,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                             if (value != null) {
                               selectedQuestionKey.value = value;
                               controller.validateSecurityQuestion(value);
+                              // Do not reset answerController to retain answer
                             }
                           },
                           icon: Icon(
@@ -272,7 +274,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                           iconSize: iconSize,
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: math.max(8.0, 10 * scaleFactor),
-                            vertical: consistentVerticalPadding,
+                            vertical: (consistentInputHeight - fieldValueFontSize - 8) / 2,
                           ),
                           borderRadius: math.max(5.0, 7 * scaleFactor),
                           filled: true,

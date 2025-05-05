@@ -1,4 +1,3 @@
-// socket_client.dart
 import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -7,8 +6,8 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 class SocketClient {
   IO.Socket? socket;
   bool _isConnecting = false;
-  static const String _deviceBaseUrl = BaseApi.imageBaseUrl ;
-  static const String _emulatorBaseUrl = BaseApi.imageBaseUrl ;
+  static const String _deviceBaseUrl = BaseApi.imageBaseUrl;
+  static const String _emulatorBaseUrl = BaseApi.imageBaseUrl;
   String get _baseUrl => defaultTargetPlatform == TargetPlatform.android && !kIsWeb ? _emulatorBaseUrl : _deviceBaseUrl;
 
   Future<void> connect(
@@ -34,13 +33,13 @@ class SocketClient {
     try {
       print('SocketClient: Connecting to $_baseUrl with token: $token');
       socket = IO.io(_baseUrl, <String, dynamic>{
-        'transports': ['websocket'],
+        'transports': ['websocket', 'polling'],
         'autoConnect': false,
         'auth': {'token': token},
         'reconnection': true,
-        'reconnectionAttempts': 5,
-        'reconnectionDelay': 2000,
-        'reconnectionDelayMax': 10000,
+        'reconnectionAttempts': 10,
+        'reconnectionDelay': 1000,
+        'reconnectionDelayMax': 5000,
       });
 
       socket!.onConnect((_) {
@@ -48,6 +47,10 @@ class SocketClient {
         socket!.emit('register', userId);
         onConnect();
         _isConnecting = false;
+        Get.snackbar('Success', 'Connected to chat'.tr,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Get.theme.colorScheme.secondary,
+            colorText: Get.theme.colorScheme.onSecondary);
       });
 
       socket!.on('registered', (data) {
@@ -60,6 +63,7 @@ class SocketClient {
           onMessage(data);
         } else {
           print('SocketClient: Invalid message data: $data');
+          onError('Invalid message received');
         }
       });
 
@@ -69,6 +73,7 @@ class SocketClient {
           onMessageSent(data);
         } else {
           print('SocketClient: Invalid messageSent data: $data');
+          onError('Invalid message sent data');
         }
       });
 
@@ -78,6 +83,7 @@ class SocketClient {
           onMessageDelivered(data['messageId']);
         } else {
           print('SocketClient: Invalid messageDelivered data: $data');
+          onError('Invalid message delivered data');
         }
       });
 
@@ -87,6 +93,7 @@ class SocketClient {
           onMessageRead(data['messageId']);
         } else {
           print('SocketClient: Invalid messageRead data: $data');
+          onError('Invalid message read data');
         }
       });
 
@@ -96,6 +103,7 @@ class SocketClient {
           onTyping(data['senderId']);
         } else {
           print('SocketClient: Invalid typing data: $data');
+          onError('Invalid typing data');
         }
       });
 
@@ -105,6 +113,7 @@ class SocketClient {
           onStopTyping(data['senderId']);
         } else {
           print('SocketClient: Invalid stopTyping data: $data');
+          onError('Invalid stop typing data');
         }
       });
 
@@ -114,6 +123,7 @@ class SocketClient {
           onNewUser(data);
         } else {
           print('SocketClient: Invalid newUser data: $data');
+          onError('Invalid new user data');
         }
       });
 
@@ -123,6 +133,7 @@ class SocketClient {
           onUserOnline(data['email']);
         } else {
           print('SocketClient: Invalid userOnline data: $data');
+          onError('Invalid user online data');
         }
       });
 
@@ -132,29 +143,31 @@ class SocketClient {
           onUserOffline(data['email']);
         } else {
           print('SocketClient: Invalid userOffline data: $data');
+          onError('Invalid user offline data');
         }
       });
 
       socket!.onConnectError((err) {
         print('SocketClient: Connect error: $err');
-        onError('Connection error: $err');
+        onError('Failed to connect to server');
         _isConnecting = false;
       });
 
       socket!.onError((err) {
         print('SocketClient: Error: $err');
-        onError('Socket error: $err');
+        onError(err is Map && err['message'] is String ? err['message'] : 'Socket error occurred');
       });
 
       socket!.onDisconnect((reason) {
         print('SocketClient: Disconnected for $userId, reason: $reason');
-        onError('Disconnected from server: $reason');
+        onError('Disconnected from server');
         _isConnecting = false;
       });
 
       socket!.on('forceDisconnect', (data) {
         print('SocketClient: Force disconnected for $userId: $data');
         _disconnect();
+        onError('Session replaced by new login');
       });
 
       socket!.connect();
@@ -169,7 +182,10 @@ class SocketClient {
   void sendMessage(String senderId, String receiverId, String message, String messageId) {
     if (socket == null || !socket!.connected) {
       print('SocketClient: Cannot send message, socket not connected');
-      Get.snackbar('Error', 'socket_not_connected'.tr, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'Not connected to server'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError);
       return;
     }
     socket!.emit('sendMessage', {

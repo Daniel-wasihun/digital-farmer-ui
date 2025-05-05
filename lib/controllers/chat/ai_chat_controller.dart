@@ -60,7 +60,13 @@ class AIChatController extends GetxController {
       }
     } catch (e) {
       print('Error loading chat history: $e');
-      Get.snackbar('Error', 'Failed to load chat history: $e');
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       messages.clear();
     }
   }
@@ -81,7 +87,13 @@ class AIChatController extends GetxController {
       await _storage.write(_chatHistoryKey, encoded);
     } catch (e) {
       print('Error saving chat history: $e');
-      Get.snackbar('Error', 'Failed to save chat history: $e');
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -138,7 +150,13 @@ class AIChatController extends GetxController {
 
   Future<void> sendMessage(String query, {bool isRetry = false}) async {
     if (query.trim().isEmpty) {
-      Get.snackbar('Error', 'Query cannot be empty');
+      Get.snackbar(
+        'Error'.tr,
+        'Please enter a question'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       return;
     }
 
@@ -203,9 +221,15 @@ class AIChatController extends GetxController {
           'timestamp': DateTime.now(),
         };
         messages.add(errorMessage);
-        Get.snackbar('Error', errorDetail);
+        Get.snackbar(
+          'Error'.tr,
+          'An error occurred. Please try again.'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
       }
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       final errorMessage = {
         'sender': 'bot',
         'text': 'Connection Timeout: Please check your internet connection.',
@@ -215,7 +239,13 @@ class AIChatController extends GetxController {
         'timestamp': DateTime.now(),
       };
       messages.add(errorMessage);
-      Get.snackbar('Timeout', e.message ?? 'Request timed out');
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } catch (e) {
       final errorMessage = {
         'sender': 'bot',
@@ -226,7 +256,13 @@ class AIChatController extends GetxController {
         'timestamp': DateTime.now(),
       };
       messages.add(errorMessage);
-      Get.snackbar('Error', 'An error occurred: $e');
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } finally {
       isLoading.value = false;
       client?.close();
@@ -280,8 +316,8 @@ class AIChatController extends GetxController {
         .join('\n');
     Clipboard.setData(ClipboardData(text: selectedMessages));
     Get.snackbar(
-      'Copied',
-      validIndices.length == 1 ? 'Message copied' : 'Messages copied',
+      'Copied'.tr,
+      validIndices.length == 1 ? 'Message copied'.tr : 'Messages copied'.tr,
       snackPosition: SnackPosition.BOTTOM,
       duration: const Duration(seconds: 2),
     );
@@ -295,27 +331,26 @@ class AIChatController extends GetxController {
       clearSelection();
       return;
     }
-    // Show confirmation dialog
     Get.dialog(
       AlertDialog(
         title: Text(
-          'Confirm Delete',
+          'Confirm Delete'.tr,
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
-          'Are you sure you want to delete ${validIndices.length} message${validIndices.length > 1 ? 's' : ''}?\nThis action cannot be undone.',
+          'Are you sure you want to delete ${validIndices.length} message${validIndices.length > 1 ? 's' : ''}?\nThis action cannot be undone.'.tr,
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Get.back(), // Dismiss dialog
+            onPressed: () => Get.back(),
             child: Text(
-              'Cancel',
+              'Cancel'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 color: Get.theme.colorScheme.secondary,
@@ -324,7 +359,7 @@ class AIChatController extends GetxController {
           ),
           TextButton(
             onPressed: () {
-              Get.back(); // Close dialog
+              Get.back();
               validIndices.sort((a, b) => b.compareTo(a));
               for (var index in validIndices) {
                 messages.removeAt(index);
@@ -332,14 +367,14 @@ class AIChatController extends GetxController {
               _saveChatHistory();
               clearSelection();
               Get.snackbar(
-                'Deleted',
-                validIndices.length == 1 ? 'Message deleted' : 'Messages deleted',
+                'Deleted'.tr,
+                validIndices.length == 1 ? 'Message deleted'.tr : 'Messages deleted'.tr,
                 snackPosition: SnackPosition.BOTTOM,
                 duration: const Duration(seconds: 2),
               );
             },
             child: Text(
-              'Delete',
+              'Delete'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 color: Get.theme.colorScheme.error,

@@ -1,28 +1,68 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:logger/logger.dart';
 
 class StorageService {
   static const String _container = 'AppContainer';
   final GetStorage box;
   final user = Rx<Map<String, dynamic>?>(null);
+  final logger = Logger();
 
   StorageService() : box = GetStorage(_container) {
     user.value = getUser();
   }
 
-  // Helper to safely read from storage
-  T? _read<T>(String key) => box.read(key);
+  T? _read<T>(String key) {
+    try {
+      return box.read<T>(key);
+    } catch (e) {
+      logger.e('Error reading from storage for key $key: $e');
+      return null;
+    }
+  }
 
-  // Helper to safely write to storage
-  Future<void> _write<T>(String key, T value) async => await box.write(key, value);
+  Future<void> _write<T>(String key, T value) async {
+    try {
+      await box.write(key, value);
+    } catch (e) {
+      logger.e('Error writing to storage for key $key: $e');
+    }
+  }
 
   Future<void> saveUser(Map<String, dynamic> userData) async {
-    await _write('user', userData);
+    // Check if user data is stored in the old format (Map) or new format (JSON string)
+    final existingData = box.read('user');
+    if (existingData is String) {
+      // Migrate from JSON string to Map
+      try {
+        final decoded = jsonDecode(existingData) as Map<String, dynamic>;
+        await _write('user', decoded);
+      } catch (e) {
+        logger.e('Error migrating user data: $e');
+        await _write('user', userData);
+      }
+    } else {
+      await _write('user', userData);
+    }
     user.value = Map<String, dynamic>.from(userData);
   }
 
-  Map<String, dynamic>? getUser() => _read<Map<String, dynamic>>('user');
+  Map<String, dynamic>? getUser() {
+    final stored = box.read('user');
+    if (stored is String) {
+      // Migrate JSON string back to Map
+      try {
+        final decoded = jsonDecode(stored) as Map<String, dynamic>;
+        _write('user', decoded); // Save back as Map for future consistency
+        return decoded;
+      } catch (e) {
+        logger.e('Error decoding user data: $e');
+        return null;
+      }
+    }
+    return stored is Map<String, dynamic> ? stored : null;
+  }
 
   Future<void> saveToken(String token) async => await _write('token', token);
 
@@ -46,7 +86,7 @@ class StorageService {
 
   Future<void> saveUsers(String currentUserId, List<Map<String, dynamic>> users) async {
     final key = 'users_$currentUserId';
-    final encodedUsers = users.map(jsonEncode).toList();
+    final encodedUsers = users.map((user) => jsonEncode(user)).toList();
     await _write(key, encodedUsers);
   }
 
@@ -56,9 +96,9 @@ class StorageService {
     return stored
         .map((item) {
           try {
-            final decoded = jsonDecode(item as String);
-            return decoded is Map<String, dynamic> ? decoded : null;
-          } catch (_) {
+            return jsonDecode(item as String) as Map<String, dynamic>;
+          } catch (e) {
+            logger.e('Error decoding user data: $e');
             return null;
           }
         })
@@ -85,16 +125,17 @@ class StorageService {
     return stored
         .map((item) {
           try {
-            final decoded = jsonDecode(item as String);
-            return decoded is Map<String, dynamic> &&
-                    decoded['messageId'] != null &&
-                    decoded['senderId'] != null &&
-                    decoded['receiverId'] != null &&
-                    decoded['message'] != null &&
-                    decoded['timestamp'] != null
-                ? decoded
-                : null;
-          } catch (_) {
+            final decoded = jsonDecode(item as String) as Map<String, dynamic>;
+            if (decoded['messageId'] != null &&
+                decoded['senderId'] != null &&
+                decoded['receiverId'] != null &&
+                decoded['message'] != null &&
+                decoded['timestamp'] != null) {
+              return decoded;
+            }
+            return null;
+          } catch (e) {
+            logger.e('Error decoding message: $e');
             return null;
           }
         })

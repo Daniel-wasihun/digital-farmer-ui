@@ -16,10 +16,7 @@ class WeatherController extends GetxController {
   var askAnswer = Rxn<String>();
   var isAskLoading = false.obs;
 
-  // Determine the base URL based on the environment
-  static const String aiBaseUrl = BaseApi.aiBaseUrl; // For Android emulator
-  // For physical device, use host machine's IP, e.g., 'http://192.168.1.x:8000'
-  // For browser/local testing, use 'http://127.0.0.1:8000'
+  static const String aiBaseUrl = BaseApi.aiBaseUrl;
 
   @override
   void onInit() {
@@ -46,11 +43,21 @@ class WeatherController extends GetxController {
           isOffline.value = true;
         } else {
           storage.remove('weatherData');
-          errorMessage.value = 'Invalid cached data cleared'.tr;
+          Get.snackbar(
+            'Error'.tr,
+            'An error occurred. Please try again.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
         }
       } catch (e) {
         storage.remove('weatherData');
-        errorMessage.value = 'Error loading cached data: $e'.tr;
+        Get.snackbar(
+          'Error'.tr,
+          'An error occurred. Please try again.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
       }
     }
   }
@@ -87,7 +94,7 @@ class WeatherController extends GetxController {
     try {
       print('Fetching weather data for $city ($latitude, $longitude)');
       final response = await http.get(
-        Uri.parse('$aiBaseUrl/api/weather?latitude=$latitude&longitude=$longitude&city=$city'),
+        Uri.parse('$aiBaseUrl/weather?latitude=$latitude&longitude=$longitude&city=$city'),
         headers: {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
@@ -97,16 +104,31 @@ class WeatherController extends GetxController {
           storage.write('weatherData', jsonEncode(data));
           print('Weather data fetched successfully');
         } else {
-          errorMessage.value = 'Invalid weather data received'.tr;
+          Get.snackbar(
+            'Error'.tr,
+            'An error occurred. Please try again.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
           loadCachedData();
         }
       } else {
-        errorMessage.value = 'Error Fetching Weather Data: ${response.statusCode}'.tr;
+        Get.snackbar(
+          'Error'.tr,
+          'An error occurred. Please try again.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
         loadCachedData();
         print('Weather fetch error: ${response.statusCode}');
       }
     } catch (e) {
-      errorMessage.value = 'Error Fetching Weather Data: $e'.tr;
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       loadCachedData();
       print('Weather fetch exception: $e');
     } finally {
@@ -116,7 +138,12 @@ class WeatherController extends GetxController {
 
   Future<void> askWeatherQuestion() async {
     if (questionController.text.isEmpty) {
-      Get.snackbar('Error'.tr, 'Please enter a question'.tr);
+      Get.snackbar(
+        'Error'.tr,
+        'Please enter a question'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       return;
     }
 
@@ -130,30 +157,36 @@ class WeatherController extends GetxController {
         'city': 'weldiya',
         'language': Get.locale?.languageCode ?? 'en',
       };
-      print('Sending request to $aiBaseUrl/api/ask/weather: $payload');
+      print('Sending request to $aiBaseUrl/ask/weather: $payload');
       final response = await http.post(
-        Uri.parse('$aiBaseUrl/api/ask/weather'),
+        Uri.parse('$aiBaseUrl/ask/weather'),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Accept': 'application/json',
         },
         body: jsonEncode(payload),
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(const Duration(seconds: 30)); // Increased timeout
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         askAnswer.value = data['answer']?.toString() ?? 'No answer provided';
         print('Received answer: ${askAnswer.value}');
       } else {
-        final errorBody = utf8.decode(response.bodyBytes);
-        final errorDetail = response.statusCode == 400 || response.statusCode == 500
-            ? (jsonDecode(errorBody)['detail'] ?? 'Server error: ${response.statusCode}')
-            : 'Server error: ${response.statusCode}';
-        Get.snackbar('Error'.tr, 'Error Fetching Answer: $errorDetail'.tr);
-        print('Error response: status=${response.statusCode}, body=$errorBody');
+        Get.snackbar(
+          'Error'.tr,
+          'An error occurred. Please try again.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        print('Error response: status=${response.statusCode}, body=${utf8.decode(response.bodyBytes)}');
       }
     } catch (e) {
-      Get.snackbar('Error'.tr, 'Error Fetching Answer: $e'.tr);
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       print('Request error: $e');
     } finally {
       isAskLoading.value = false;

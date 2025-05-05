@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:agri/utils/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -75,6 +74,21 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     });
   }
 
+  @override
+  void onClose() {
+    _disposed = true;
+    _typingTimer?.cancel();
+    _typingTimer = null;
+    scrollController.dispose();
+    animationController.dispose();
+    messageController.clear();
+    messageController.dispose();
+    messageText.value = '';
+    chatController.clearReceiver();
+    super.onClose();
+    print('ChatScreenController: Closed');
+  }
+
   Future<void> _loadTextScale() async {
     try {
       await GetStorage.init();
@@ -83,7 +97,12 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
         textScaleFactor.value = savedScale.clamp(0.7, 1.8);
       }
     } catch (e) {
-      print('Error loading text scale: $e');
+      print('ChatScreenController: Error loading text scale: $e');
+      Get.snackbar('Error', 'Failed to load text settings'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          duration: const Duration(seconds: 2));
     }
   }
 
@@ -92,7 +111,12 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       await GetStorage.init();
       await _storage.write(_textScaleKey, textScaleFactor.value);
     } catch (e) {
-      print('Error saving text scale: $e');
+      print('ChatScreenController: Error saving text scale: $e');
+      Get.snackbar('Error', 'Failed to save text settings'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          duration: const Duration(seconds: 2));
     }
   }
 
@@ -138,7 +162,6 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
         if (_disposed || !scrollController.hasClients) return;
         scrollToBottom(immediate: true);
         _needsInitialScroll = false;
-        // Retry after another 200ms if not at bottom
         Future.delayed(const Duration(milliseconds: 200), () {
           if (_disposed || !scrollController.hasClients) return;
           if (scrollController.offset < scrollController.position.maxScrollExtent) {
@@ -151,7 +174,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
 
   void scrollToBottom({bool immediate = false}) {
     if (!scrollController.hasClients) return;
-    final maxExtent = scrollController.position.maxScrollExtent + 20; // Account for bottom padding
+    final maxExtent = scrollController.position.maxScrollExtent + 20;
     if (immediate) {
       scrollController.jumpTo(maxExtent);
     } else {
@@ -170,7 +193,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     scrollController.addListener(() {
       final offset = scrollController.offset;
       final maxExtent = scrollController.position.maxScrollExtent;
-      final newIsAtBottom = offset >= maxExtent - 20; // Adjusted tolerance for padding
+      final newIsAtBottom = offset >= maxExtent - 20;
       if (isAtBottom.value != newIsAtBottom) {
         isAtBottom.value = newIsAtBottom;
         showScrollArrow.value = !newIsAtBottom && offset > 200;
@@ -300,6 +323,11 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   void sendMessage(String text) {
     if (text.trim().isEmpty || chatController.currentUserId.value == null) {
       print('ChatScreenController: Empty text or no userId');
+      Get.snackbar('Error', 'Cannot send empty message'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          duration: const Duration(seconds: 2));
       return;
     }
     chatController.send(text.trim(), receiverId);
@@ -311,9 +339,9 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       Future.delayed(const Duration(milliseconds: 100), () {
         if (scrollController.hasClients && !_disposed) {
           scrollToBottom(immediate: false);
-          // Ensure absolute bottom after animation
           Future.delayed(const Duration(milliseconds: 300), () {
-            if (scrollController.hasClients && !_disposed) {
+            if (_disposed || !scrollController.hasClients) return;
+            if (scrollController.offset < scrollController.position.maxScrollExtent) {
               scrollToBottom(immediate: true);
             }
           });
@@ -366,11 +394,11 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     final selectedMessages = validIndices.map((index) => messageItems[index]['message']['message'] as String).join('\n');
     Clipboard.setData(ClipboardData(text: selectedMessages));
     Get.snackbar(
-      'copied'.tr,
-      validIndices.length == 1 ? 'message_copied'.tr : 'messages_copied'.tr,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
-      colorText: Colors.white,
+      'Copied',
+      validIndices.length == 1 ? 'Message copied to clipboard'.tr : 'Messages copied to clipboard'.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Get.theme.colorScheme.secondary,
+      colorText: Get.theme.colorScheme.onSecondary,
       margin: const EdgeInsets.all(8),
       icon: const Icon(Icons.copy, color: Colors.white),
       duration: const Duration(seconds: 2),
@@ -388,7 +416,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     Get.dialog(
       AlertDialog(
         title: Text(
-          'confirm_delete'.tr,
+          'Confirm Deletion',
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
             fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
@@ -396,9 +424,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
           ),
         ),
         content: Text(
-          'delete_messages_confirm'.trParams({
-            'count': validIndices.length.toString(),
-          }),
+          'Are you sure you want to delete ${validIndices.length} message${validIndices.length == 1 ? '' : 's'}?'.tr,
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
             fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
@@ -408,7 +434,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
-              'cancel'.tr,
+              'Cancel'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
@@ -426,11 +452,11 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
               chatController.saveMessagesForUser(receiverId);
               _updateMessageItems();
               Get.snackbar(
-                'deleted'.tr,
-                validIndices.length == 1 ? 'message_deleted'.tr : 'messages_deleted'.tr,
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
-                colorText: Colors.white,
+                'Deleted',
+                validIndices.length == 1 ? 'Message deleted'.tr : 'Messages deleted'.tr,
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: Get.theme.colorScheme.secondary,
+                colorText: Get.theme.colorScheme.onSecondary,
                 margin: const EdgeInsets.all(8),
                 icon: const Icon(Icons.delete, color: Colors.white),
                 duration: const Duration(seconds: 2),
@@ -438,7 +464,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
               clearSelection();
             },
             child: Text(
-              'delete'.tr,
+              'Delete'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
@@ -457,26 +483,4 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     selectedIndices.refresh();
     messageItems.refresh();
   }
-
-  @override
-  void onClose() {
-    _disposed = true;
-    _typingTimer?.cancel();
-    _typingTimer = null;
-    scrollController.dispose();
-    animationController.dispose();
-    messageController.clear();
-    messageController.dispose();
-    messageText.value = '';
-    chatController.clearReceiver();
-    super.onClose();
-    print('ChatScreenController: Closed');
-  }
-}
-
-// Placeholder for vsync (replace with actual implementation if needed)
-class PlaceholderVsync implements TickerProvider {
-  const PlaceholderVsync();
-  @override
-  Ticker createTicker(TickerCallback onTick) => Ticker(onTick);
 }

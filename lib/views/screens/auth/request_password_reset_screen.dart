@@ -52,6 +52,13 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => Get.back(),
+            icon: Icon(
+              Icons.arrow_back,
+              color: Colors.green[900], // Set green color for back button
+            ),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
@@ -61,41 +68,6 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          actions: [
-            Row(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(right: 8 * scaleFactor),
-                  child: Text(
-                    Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      fontSize: 16 * scaleFactor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.language,
-                    size: 20 * scaleFactor,
-                    color: theme.iconTheme.color,
-                  ),
-                  onPressed: () => appController.toggleLanguage(),
-                  tooltip: 'toggle_language'.tr,
-                ),
-                IconButton(
-                  icon: Icon(
-                    themeController.isDarkMode.value ? Icons.light_mode : Icons.dark_mode,
-                    size: 20 * scaleFactor,
-                    color: theme.iconTheme.color,
-                  ),
-                  onPressed: () => themeController.toggleTheme(),
-                  tooltip: themeController.isDarkMode.value ? 'switch_to_light_mode'.tr : 'switch_to_dark_mode'.tr,
-                ),
-                SizedBox(width: 8 * scaleFactor),
-              ],
-            ),
-          ],
         ),
         body: Container(
           decoration: BoxDecoration(

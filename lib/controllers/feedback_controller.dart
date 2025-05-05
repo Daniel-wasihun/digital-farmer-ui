@@ -22,8 +22,6 @@ class FeedbackController extends GetxController {
     resetState();
   }
 
-
-
   @override
   void onClose() {
     feedbackTextController.dispose();
@@ -75,12 +73,7 @@ class FeedbackController extends GetxController {
       // Delay navigation to ensure snackbar is visible
       Get.offAllNamed(AppRoutes.getHomePage());
     } catch (e) {
-      // Extract error message, avoiding translation issues
-      String errorMessage = e.toString().replaceFirst('Exception: ', '');
-      if (errorMessage.isEmpty) {
-        errorMessage = 'An unexpected error occurred';
-      }
-      _showError(errorMessage);
+      _showError('Failed to submit feedback. Please try again.');
     } finally {
       isLoading.value = false;
     }
@@ -88,11 +81,12 @@ class FeedbackController extends GetxController {
 
   // Helper to show error snackbar
   void _showError(String message) {
-    Get.rawSnackbar(
-      title: 'Error',
-      message: message,
+    Get.snackbar(
+      'Error',
+      message,
       backgroundColor: Colors.redAccent,
-      snackPosition: SnackPosition.BOTTOM,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 4),
       margin: const EdgeInsets.all(16),
       borderRadius: 8,
