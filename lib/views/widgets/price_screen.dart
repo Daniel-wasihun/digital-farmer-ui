@@ -13,20 +13,17 @@ class PriceScreen extends GetView<PriceController> {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(PriceController());
+    // Initialize controller only if not already registered
+    if (!Get.isRegistered<PriceController>()) {
+      Get.put(PriceController(), permanent: true);
+    }
     final ThemeController themeController = Get.find<ThemeController>();
     final AppController appController = Get.find<AppController>();
 
-    // Clear fields and errors after build
+    // Initialize fields only for editing an existing price
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.reset();
-      if (controller.price != null) {
-        controller.cropName.value = controller.price!.cropName;
-        controller.cropType.value = controller.price!.cropType;
-        controller.marketName.value = controller.price!.marketName;
-        controller.pricePerKgController.text = controller.price!.pricePerKg.toStringAsFixed(2);
-        controller.pricePerQuintalController.text = controller.price!.pricePerQuintal.toStringAsFixed(2);
-        controller.date.value = controller.price!.date;
+      if (controller.price != null && controller.cropName.value.isEmpty) {
+        controller.initializeFields();
       }
     });
 
@@ -52,30 +49,30 @@ class PriceScreen extends GetView<PriceController> {
       ),
       vsync: const _VSyncProvider(),
       child: Scaffold(
-        extendBodyBehindAppBar: false, // Prevent body transparency
+        extendBodyBehindAppBar: false,
         appBar: AppBar(
-          backgroundColor: isDarkMode ? Colors.green[600] : Colors.green[700], // Darker green
-          elevation: 4.0, // Shadow for depth
+          backgroundColor: isDarkMode ? Colors.green[600] : Colors.green[700],
+          elevation: 4.0,
           leading: IconButton(
             icon: Icon(
               Icons.arrow_back,
-              color: Colors.white, // White for visibility
+              color: Colors.white,
               size: (24 * scaleFactor).clamp(20.0, 28.0),
             ),
-            onPressed: () => Get.back(), // Navigate back
+            onPressed: () => Get.back(),
           ),
           title: Text(
             'market'.tr,
             style: theme.textTheme.titleLarge!.copyWith(
               fontSize: (18 * scaleFactor).clamp(16.0, 20.0),
               fontWeight: FontWeight.w600,
-              color: Colors.white, // White for contrast
-              fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'], // For Amharic
+              color: Colors.white,
+              fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
             ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey[100], // Solid backdrop
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey[100],
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -127,7 +124,7 @@ class PriceScreen extends GetView<PriceController> {
                                       Icon(
                                         controller.price == null ? Icons.add_circle : Icons.edit,
                                         size: 20 * scaleFactor,
-                                        color: isDarkMode ? Colors.green[600] : Colors.green[800], // Match header
+                                        color: isDarkMode ? Colors.green[600] : Colors.green[800],
                                       ),
                                       SizedBox(width: 8 * scaleFactor),
                                       Expanded(
@@ -136,7 +133,7 @@ class PriceScreen extends GetView<PriceController> {
                                           style: theme.textTheme.headlineSmall?.copyWith(
                                             fontSize: (22 * scaleFactor).clamp(18.0, 24.0),
                                             fontWeight: FontWeight.bold,
-                                            color: isDarkMode ? Colors.green[600] : Colors.green[800], // Darker green
+                                            color: isDarkMode ? Colors.green[600] : Colors.green[800],
                                             shadows: isDarkMode
                                                 ? null
                                                 : [
@@ -207,7 +204,7 @@ class PriceScreen extends GetView<PriceController> {
                                       items: controller.marketController.marketNames,
                                       onSelected: (value) {
                                         controller.marketName.value = value;
-                                        controller.cropNameError.value = null;
+                                        controller.marketNameError.value = null;
                                       },
                                       errorText: controller.marketNameError.value,
                                       enabled: !controller.isLoading.value,
@@ -222,7 +219,9 @@ class PriceScreen extends GetView<PriceController> {
                                       prefixIcon: Icons.monetization_on,
                                       errorText: controller.pricePerKgError.value,
                                       onChanged: (value) {
-                                        controller.pricePerKgError.value = controller.validatePricePerKg(value);
+                                        controller.debounceValidation(() {
+                                          controller.pricePerKgError.value = controller.validatePricePerKg(value);
+                                        });
                                       },
                                       scaleFactor: scaleFactor,
                                       fontSize: (14 * scaleFactor).clamp(12.0, 16.0),
@@ -247,7 +246,9 @@ class PriceScreen extends GetView<PriceController> {
                                       prefixIcon: Icons.monetization_on,
                                       errorText: controller.pricePerQuintalError.value,
                                       onChanged: (value) {
-                                        controller.pricePerQuintalError.value = controller.validatePricePerQuintal(value, controller.pricePerKgController.text);
+                                        controller.debounceValidation(() {
+                                          controller.pricePerQuintalError.value = controller.validatePricePerQuintal(value, controller.pricePerKgController.text);
+                                        });
                                       },
                                       scaleFactor: scaleFactor,
                                       fontSize: (14 * scaleFactor).clamp(12.0, 16.0),
@@ -288,8 +289,8 @@ class PriceScreen extends GetView<PriceController> {
                                     child: ElevatedButton(
                                       onPressed: controller.isLoading.value ? null : controller.savePrice,
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: isDarkMode ? Colors.green[600] : Colors.green[700], // Darker green
-                                        foregroundColor: Colors.white, // White for contrast
+                                        backgroundColor: isDarkMode ? Colors.green[600] : Colors.green[700],
+                                        foregroundColor: Colors.white,
                                         padding: EdgeInsets.symmetric(
                                           vertical: (14 * scaleFactor).clamp(12.0, 18.0),
                                           horizontal: (24 * scaleFactor).clamp(20.0, 32.0),
@@ -386,7 +387,7 @@ class PriceScreen extends GetView<PriceController> {
     required bool enabled,
   }) {
     final fillColor = theme.colorScheme.onSurface.withOpacity(isDarkMode ? 0.1 : 0.05);
-    final selectedFillColor = (isDarkMode ? Colors.green[600] : Colors.green[700])!.withOpacity(isDarkMode ? 0.2 : 0.15); // Darker green
+    final selectedFillColor = (isDarkMode ? Colors.green[600] : Colors.green[700])!.withOpacity(isDarkMode ? 0.2 : 0.15);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,7 +401,7 @@ class PriceScreen extends GetView<PriceController> {
               color: errorText != null
                   ? theme.colorScheme.error
                   : (value != 'Crop Name'.tr && value != 'Crop Type'.tr && value != 'Market'.tr)
-                      ? (isDarkMode ? Colors.green[600] : Colors.green[700])! // Darker green
+                      ? (isDarkMode ? Colors.green[600] : Colors.green[700])!
                       : (isDarkMode ? Colors.grey[600]! : Colors.grey[400]!),
               width: 1 * scaleFactor,
             ),
@@ -423,7 +424,10 @@ class PriceScreen extends GetView<PriceController> {
                     ))
                 .toList(),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: (8 * scaleFactor).clamp(8.0, 12.0), vertical: (12 * scaleFactor).clamp(10.0, 16.0)),
+              padding: EdgeInsets.symmetric(
+                horizontal: (8 * scaleFactor).clamp(8.0, 12.0),
+                vertical: (12 * scaleFactor).clamp(10.0, 16.0),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -433,7 +437,7 @@ class PriceScreen extends GetView<PriceController> {
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: fontSize,
                         fontWeight: FontWeight.w600,
-                        color: value == 'Crop Name'.tr || value == 'Crop Type'.tr || value != 'Market'.tr
+                        color: value == 'Crop Name'.tr || value == 'Crop Type'.tr || value == 'Market'.tr
                             ? (isDarkMode ? Colors.grey[500] : Colors.grey[400])
                             : (isDarkMode ? Colors.white : Colors.grey[900]),
                         fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
@@ -482,7 +486,7 @@ class PriceScreen extends GetView<PriceController> {
     return CustomTextField(
       label: 'Date'.tr,
       controller: TextEditingController(text: dayLabel),
-      enabled: false, // Make read-only
+      enabled: false,
       prefixIcon: Icons.today,
       scaleFactor: scaleFactor,
       fontSize: fontSize,

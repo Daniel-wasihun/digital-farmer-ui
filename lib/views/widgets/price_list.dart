@@ -26,13 +26,13 @@ class PriceList extends StatelessWidget {
     // Font sizes
     const double baseHeaderFontSize = 32.0;
     const double baseTitleFontSize = 20.0;
-    const double baseCropNameFontSize = 18.0; // New for crop name
+    const double baseCropNameFontSize = 18.0;
     const double baseSubtitleFontSize = 16.0;
     const double baseDetailFontSize = 14.0;
 
     final double headerFontSize = (baseHeaderFontSize * adjustedScaleFactor).clamp(22.0, 38.0);
     final double titleFontSize = (baseTitleFontSize * adjustedScaleFactor).clamp(16.0, 28.0);
-    final double cropNameFontSize = (baseCropNameFontSize * adjustedScaleFactor).clamp(14.0, 24.0); // Adjusted for crop name
+    final double cropNameFontSize = (baseCropNameFontSize * adjustedScaleFactor).clamp(14.0, 24.0);
     final double subtitleFontSize = (baseSubtitleFontSize * adjustedScaleFactor * 0.9).clamp(12.0, 20.0);
     final double detailFontSize = (baseDetailFontSize * adjustedScaleFactor * 0.9).clamp(10.0, 18.0);
 
@@ -130,7 +130,7 @@ class PriceList extends StatelessWidget {
                   ),
                   SizedBox(height: 4 * adjustedScaleFactor),
                   Text(
-                    'Add prices or adjust filters'.tr,
+                    'Add prices or try different filters'.tr,
                     style: TextStyle(
                       fontSize: subtitleFontSize,
                       fontWeight: FontWeight.w600,
@@ -138,6 +138,29 @@ class PriceList extends StatelessWidget {
                       fontFamilyFallback: fontFamilyFallback,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8 * adjustedScaleFactor),
+                  ElevatedButton(
+                    onPressed: () => Get.toNamed(AppRoutes.price),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16 * adjustedScaleFactor,
+                        vertical: 8 * adjustedScaleFactor,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8 * adjustedScaleFactor),
+                      ),
+                    ),
+                    child: Text(
+                      'Add Price'.tr,
+                      style: TextStyle(
+                        fontSize: subtitleFontSize,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontFamilyFallback: fontFamilyFallback,
+                      ),
+                    ),
                   ),
                 ],
               ),

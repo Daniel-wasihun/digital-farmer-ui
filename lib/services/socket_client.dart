@@ -29,17 +29,22 @@ class SocketClient {
       print('SocketClient: Already connecting or connected for $userId');
       return;
     }
+    if (userId.isEmpty || token.isEmpty) {
+      print('SocketClient: Invalid userId or token: userId=$userId, token=${token.isEmpty ? '[empty]' : '[provided]'}');
+      onError('Invalid user ID or token');
+      return;
+    }
     _isConnecting = true;
     try {
-      print('SocketClient: Connecting to $_baseUrl with token: $token');
+      print('SocketClient: Connecting to $_baseUrl with userId: $userId');
       socket = IO.io(_baseUrl, <String, dynamic>{
         'transports': ['websocket', 'polling'],
         'autoConnect': false,
         'auth': {'token': token},
         'reconnection': true,
         'reconnectionAttempts': 10,
-        'reconnectionDelay': 1000,
-        'reconnectionDelayMax': 5000,
+        'reconnectionDelay': 2000,
+        'reconnectionDelayMax': 10000,
       });
 
       socket!.onConnect((_) {
@@ -55,6 +60,10 @@ class SocketClient {
 
       socket!.on('registered', (data) {
         print('SocketClient: Registered: $data');
+        if (data is Map<String, dynamic> && data['userId'] != userId) {
+          print('SocketClient: User ID mismatch in registration: expected $userId, got ${data['userId']}');
+          onError('User ID mismatch');
+        }
       });
 
       socket!.on('receiveMessage', (data) {
@@ -156,6 +165,7 @@ class SocketClient {
       socket!.onError((err) {
         print('SocketClient: Error: $err');
         onError(err is Map && err['message'] is String ? err['message'] : 'Socket error occurred');
+        _isConnecting = false;
       });
 
       socket!.onDisconnect((reason) {
@@ -188,6 +198,10 @@ class SocketClient {
           colorText: Get.theme.colorScheme.onError);
       return;
     }
+    if (senderId.isEmpty || receiverId.isEmpty || message.isEmpty || messageId.isEmpty) {
+      print('SocketClient: Invalid message data: senderId=$senderId, receiverId=$receiverId, message=$message, messageId=$messageId');
+      return;
+    }
     socket!.emit('sendMessage', {
       'senderId': senderId,
       'receiverId': receiverId,
@@ -202,6 +216,10 @@ class SocketClient {
       print('SocketClient: Cannot send typing, socket not connected');
       return;
     }
+    if (senderId.isEmpty || receiverId.isEmpty) {
+      print('SocketClient: Invalid typing data: senderId=$senderId, receiverId=$receiverId');
+      return;
+    }
     socket!.emit('typing', {'senderId': senderId, 'receiverId': receiverId});
     print('SocketClient: Sent typing: $senderId to $receiverId');
   }
@@ -211,6 +229,10 @@ class SocketClient {
       print('SocketClient: Cannot send stop typing, socket not connected');
       return;
     }
+    if (senderId.isEmpty || receiverId.isEmpty) {
+      print('SocketClient: Invalid stop typing data: senderId=$senderId, receiverId=$receiverId');
+      return;
+    }
     socket!.emit('stopTyping', {'senderId': senderId, 'receiverId': receiverId});
     print('SocketClient: Sent stop typing: $senderId to $receiverId');
   }
@@ -218,6 +240,10 @@ class SocketClient {
   void markAsRead(String messageId) {
     if (socket == null || !socket!.connected) {
       print('SocketClient: Cannot mark as read, socket not connected');
+      return;
+    }
+    if (messageId.isEmpty) {
+      print('SocketClient: Invalid messageId for mark as read: $messageId');
       return;
     }
     socket!.emit('markAsRead', {'messageId': messageId});

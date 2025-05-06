@@ -14,7 +14,7 @@ class ChatTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ChatController chatController = Get.put(ChatController());
+    final ChatController chatController = Get.find<ChatController>(); // Changed from Get.put to Get.find
     final size = MediaQuery.of(context).size;
     final screenWidth = size.width;
 
@@ -64,7 +64,7 @@ class ChatTab extends StatelessWidget {
                 return Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(vertical: padding * 0.5),
-                  color: Get.theme.colorScheme.surface, // Match page background
+                  color: Get.theme.colorScheme.surface,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -74,7 +74,7 @@ class ChatTab extends StatelessWidget {
                           fontFamily: GoogleFonts.poppins().fontFamily,
                           fontFamilyFallback: fontFamilyFallbacks,
                           fontSize: detailFontSize,
-                          color: Get.theme.colorScheme.onSurface, // Match user name text color
+                          color: Get.theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -84,7 +84,7 @@ class ChatTab extends StatelessWidget {
                         height: 16 * adjustedScaleFactor,
                         child: CircularProgressIndicator(
                           strokeWidth: 2 * adjustedScaleFactor,
-                          valueColor: AlwaysStoppedAnimation<Color>(Get.theme.colorScheme.onSurface.withOpacity(0.5)), // Subtle progress indicator
+                          valueColor: AlwaysStoppedAnimation<Color>(Get.theme.colorScheme.onSurface.withOpacity(0.5)),
                         ),
                       ),
                     ],
@@ -94,7 +94,7 @@ class ChatTab extends StatelessWidget {
                 return Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(vertical: padding * 0.5),
-                  color: Get.theme.colorScheme.surface, // Match page background
+                  color: Get.theme.colorScheme.surface,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -104,7 +104,7 @@ class ChatTab extends StatelessWidget {
                           fontFamily: GoogleFonts.poppins().fontFamily,
                           fontFamilyFallback: fontFamilyFallbacks,
                           fontSize: detailFontSize,
-                          color: Get.theme.colorScheme.onSurface, // Match user name text color
+                          color: Get.theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -114,7 +114,7 @@ class ChatTab extends StatelessWidget {
                         height: 16 * adjustedScaleFactor,
                         child: CircularProgressIndicator(
                           strokeWidth: 2 * adjustedScaleFactor,
-                          valueColor: AlwaysStoppedAnimation<Color>(Get.theme.colorScheme.onSurface.withOpacity(0.5)), // Subtle progress indicator
+                          valueColor: AlwaysStoppedAnimation<Color>(Get.theme.colorScheme.onSurface.withOpacity(0.5)),
                         ),
                       ),
                     ],
@@ -124,7 +124,7 @@ class ChatTab extends StatelessWidget {
                 return Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(vertical: padding * 0.5),
-                  color: Get.theme.colorScheme.surface, // Match page background
+                  color: Get.theme.colorScheme.surface,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -134,7 +134,7 @@ class ChatTab extends StatelessWidget {
                           fontFamily: GoogleFonts.poppins().fontFamily,
                           fontFamilyFallback: fontFamilyFallbacks,
                           fontSize: detailFontSize,
-                          color: Get.theme.colorScheme.onSurface.withOpacity(0.7), // Slightly muted for consistency
+                          color: Get.theme.colorScheme.onSurface.withOpacity(0.7),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -165,7 +165,9 @@ class ChatTab extends StatelessWidget {
             ),
             Expanded(
               child: Obx(() {
+                // Observe both userListItems and unseenNotifications to ensure rebuild on notification changes
                 final userListItems = chatController.userListItems;
+                final _ = chatController.unseenNotifications; // Trigger rebuild on notification changes
                 print('ChatTab: Building user list with ${userListItems.length} items');
                 return Stack(
                   children: [
@@ -345,7 +347,7 @@ class ChatTab extends StatelessWidget {
       itemCount: userListItems.length,
       itemBuilder: (context, index) {
         final userData = userListItems[index];
-        print('ChatTab: Rendering user ${userData['user']['email']}, last message: ${userData['lastMessage']}');
+        print('ChatTab: Rendering user ${userData['user']['email']}, last message: ${userData['lastMessage']}, unseenCount: ${userData['unseenCount']}');
         return FadeInRight(
           duration: Duration(milliseconds: 300 + (index * 50)),
           child: UserListItem(
@@ -405,6 +407,8 @@ class UserListItem extends StatelessWidget {
     final isRead = userData['isRead'] as bool;
     final isOnline = user['online'] == true;
 
+    print('UserListItem: Rendering ${user['email']}, unseenCount: $unseenCount'); // Debug log
+
     return Card(
       key: ValueKey(user['email']),
       margin: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.75),
@@ -457,6 +461,25 @@ class UserListItem extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (unseenCount > 0)
+                    Positioned(
+                      top: -4 * adjustedScaleFactor,
+                      right: -4 * adjustedScaleFactor,
+                      child: CircleAvatar(
+                        radius: 10 * adjustedScaleFactor,
+                        backgroundColor: AppConstants.primaryColor,
+                        child: Text(
+                          unseenCount > 99 ? '99+' : unseenCount.toString(),
+                          style: TextStyle(
+                            fontFamily: GoogleFonts.poppins().fontFamily,
+                            fontFamilyFallback: fontFamilyFallbacks,
+                            color: Colors.white,
+                            fontSize: detailFontSize * 0.75,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
               SizedBox(width: 8 * adjustedScaleFactor),
@@ -548,22 +571,6 @@ class UserListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: 8 * adjustedScaleFactor),
-              if (unseenCount > 0)
-                CircleAvatar(
-                  radius: 10 * adjustedScaleFactor,
-                  backgroundColor: AppConstants.primaryColor,
-                  child: Text(
-                    unseenCount > 99 ? '99+' : unseenCount.toString(),
-                    style: TextStyle(
-                      fontFamily: GoogleFonts.poppins().fontFamily,
-                      fontFamilyFallback: fontFamilyFallbacks,
-                      color: Colors.white,
-                      fontSize: detailFontSize * 0.75,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/app_controller.dart';
+import '../../controllers/chat/chat_controller.dart'; // Added for ChatController
+import '../../utils/constants.dart'; // Added for AppConstants.primaryColor
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +47,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final scaleFactor = isTablet ? 1.2 : 1.0;
 
     final appBarHeight = (height * 0.07 * scaleFactor).clamp(48.0, 64.0);
+
+    // Access ChatController for badge count
+    final ChatController chatController = Get.find<ChatController>();
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -259,8 +264,62 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   label: 'market'.tr,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.chat, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(Icons.chat, size: height * 0.028 * scaleFactor, color: Theme.of(context).colorScheme.primary),
+                  icon: Obx(() => Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Icon(Icons.chat, size: height * 0.028 * scaleFactor),
+                          if (chatController.totalUnseenMessageCount > 0)
+                            Positioned(
+                              right: -5 * scaleFactor,
+                              top: -5 * scaleFactor,
+                              child: Container(
+                                padding: EdgeInsets.all(3 * scaleFactor),
+                                decoration: BoxDecoration(
+                                  color: AppConstants.primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  chatController.totalUnseenMessageCount > 99
+                                      ? '99+'
+                                      : chatController.totalUnseenMessageCount.toString(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: height * 0.012 * scaleFactor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      )),
+                  activeIcon: Obx(() => Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Icon(Icons.chat, size: height * 0.028 * scaleFactor, color: Theme.of(context).colorScheme.primary),
+                          if (chatController.totalUnseenMessageCount > 0)
+                            Positioned(
+                              right: -5 * scaleFactor,
+                              top: -5 * scaleFactor,
+                              child: Container(
+                                padding: EdgeInsets.all(3 * scaleFactor),
+                                decoration: BoxDecoration(
+                                  color: AppConstants.primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  chatController.totalUnseenMessageCount > 99
+                                      ? '99+'
+                                      : chatController.totalUnseenMessageCount.toString(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: height * 0.012 * scaleFactor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      )),
                   label: 'chat'.tr,
                 ),
                 BottomNavigationBarItem(

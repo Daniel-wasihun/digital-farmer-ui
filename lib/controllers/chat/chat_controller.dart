@@ -35,6 +35,7 @@ class ChatController extends GetxController {
   static const _maxRetries = 3;
   static const _baseRetryDelay = Duration(seconds: 2);
   static const _connectivityCheckInterval = Duration(seconds: 5);
+  static const _reconnectDelay = Duration(seconds: 10);
 
   @override
   void onInit() {
@@ -57,6 +58,11 @@ class ChatController extends GetxController {
     searchController.dispose();
     super.onClose();
     print('ChatController: Closed');
+  }
+
+  // Compute total unseen message count for chat tab badge
+  int get totalUnseenMessageCount {
+    return unseenNotifications.entries.fold(0, (sum, entry) => sum + entry.value.length);
   }
 
   Future<void> _initialize() async {
@@ -84,7 +90,7 @@ class ChatController extends GetxController {
     }
   }
 
-  void _startConnectivityCheck() {
+  Future<void> _startConnectivityCheck() async {
     _connectivityCheckTimer = Timer.periodic(_connectivityCheckInterval, (timer) async {
       if (_disposed) {
         timer.cancel();
@@ -169,6 +175,7 @@ class ChatController extends GetxController {
       }
       await _loadLocalMessages();
       _loadUnseenNotifications();
+      _refreshUserList();
     } catch (e) {
       print('ChatController: loadLocalData error: $e');
       errorMessage.value = 'failed_to_load_local_data'.tr;
@@ -203,12 +210,14 @@ class ChatController extends GetxController {
       unseenNotifications[receiverId] = (messages as List).cast<Map<String, dynamic>>().map(_normalizeMessage).toList();
     });
     print('ChatController: Loaded unseen notifications for ${unseenNotifications.length} users');
+    _refreshUserList();
   }
 
   Future<void> saveUnseenNotifications() async {
     final notificationsKey = 'unseen_notifications_${currentUserId.value}';
     await storageService.box.write(notificationsKey, unseenNotifications);
     print('ChatController: Saved unseen notifications for ${unseenNotifications.length} users');
+    _refreshUserList();
   }
 
   Future<void> fetchUsers({int retryCount = 0}) async {
@@ -264,7 +273,7 @@ class ChatController extends GetxController {
       return;
     }
     final token = storageService.getToken();
-    if (token == null) {
+    if (token == null || token.isEmpty) {
       print('ChatController: No token, redirecting to login');
       errorMessage.value = 'not_logged_in'.tr;
       Get.offAllNamed(AppRoutes.getSignInPage());
@@ -329,11 +338,10 @@ class ChatController extends GetxController {
           duration: const Duration(seconds: 2));
     } else {
       await storeOfflineMessage(message);
-      Get.snackbar('Offline', 'Message stored locally'.tr,
+      Get.snackbar('Offline', 'Message stored locally, will send when online'.tr,
           snackPosition: SnackPosition.TOP,
-          // backgroundColor: Get.theme.colorScheme.warning,
-          // colorText: Get.theme.colorScheme.onWarning
-          );
+          backgroundColor: Get.theme.colorScheme.secondary,
+          colorText: Get.theme.colorScheme.onSecondary);
     }
   }
 
@@ -419,6 +427,19 @@ class ChatController extends GetxController {
     }
     selectedReceiverId.value = receiverId;
     await fetchMessagesFromBackend(receiverId);
+    // Mark unseen messages as read when viewing the chat
+    if (unseenNotifications.containsKey(receiverId)) {
+      for (var msg in unseenNotifications[receiverId]!) {
+        if (msg['receiverId'] == currentUserId.value && !msg['read']) {
+          socketClient.markAsRead(msg['messageId']);
+          messages[msg['messageId']]!['read'] = true;
+        }
+      }
+      unseenNotifications.remove(receiverId);
+      await saveUnseenNotifications();
+      await saveMessagesForUser(receiverId);
+      _refreshUserList();
+    }
     print('ChatController: Selected receiver: $receiverId, messages: ${messages.length}');
   }
 
@@ -577,6 +598,13 @@ class ChatController extends GetxController {
     print('ChatController: Updated filtered users: ${filteredUsers.length}');
   }
 
+  void _refreshUserList() {
+    _updateFilteredUsers();
+    filteredUsers.refresh();
+    unseenNotifications.refresh(); // Force UI update for badges
+    print('ChatController: Refreshed user list with ${filteredUsers.length} users, notifications: ${unseenNotifications.length}');
+  }
+
   void debounceSearch() {
     if (_disposed) return;
     _searchDebounceTimer?.cancel();
@@ -597,43 +625,54 @@ class ChatController extends GetxController {
           newUser['online'] != oldUser['online'] ||
           newUser['profilePicture'] != oldUser['profilePicture']) {
         return true;
+      }
     }
+    return false;
   }
-  return false;
-}
 
   void _handleReceivedMessage(Map<String, dynamic> data) {
     if (data['receiverId'] == currentUserId.value || data['senderId'] == currentUserId.value) {
       if (_isValidMessage(data) && !messages.containsKey(data['messageId'])) {
-        final normalizedMessage = _normalizeMessage(data);
+        // Force read: false for received messages
+        final normalizedMessage = _normalizeMessage({...data, 'read': false});
+        print('ChatController: Received message: ${data['messageId']}, read: ${normalizedMessage['read']}, sender: ${data['senderId']}');
         _addMessage(normalizedMessage);
-        print('ChatController: Received message: ${data['messageId']}');
 
         final senderId = data['senderId'];
         final isViewingChat = senderId != currentUserId.value &&
-            (selectedReceiverId.value == senderId && Get.currentRoute == AppRoutes.getChatPage(senderId, ''));
+            selectedReceiverId.value == senderId &&
+            Get.currentRoute.contains(AppRoutes.getChatPage(senderId, ''));
 
         if (!isViewingChat) {
           unseenNotifications[senderId] ??= [];
           if (!unseenNotifications[senderId]!.any((msg) => msg['messageId'] == data['messageId'])) {
             unseenNotifications[senderId]!.add(normalizedMessage);
             saveUnseenNotifications();
-            print('ChatController: Added to unseen notifications for $senderId: ${data['messageId']}');
+            print('ChatController: Added to unseen notifications for $senderId: ${data['messageId']}, total: ${unseenNotifications[senderId]!.length}');
+            _refreshUserList();
 
             Get.snackbar('New Message', 'You received a message from $senderId'.tr,
                 snackPosition: SnackPosition.TOP,
                 backgroundColor: Get.theme.colorScheme.secondary,
                 colorText: Get.theme.colorScheme.onSecondary,
-                duration: const Duration(seconds: 2),
+                duration: const Duration(seconds: 3),
                 onTap: (snack) {
                   Get.toNamed(AppRoutes.getChatPage(senderId, allUsers.firstWhere((u) => u['email'] == senderId, orElse: () => {'username': 'Unknown'})['username']));
                 });
+          } else {
+            print('ChatController: Skipped duplicate notification for message: ${data['messageId']}');
           }
         } else {
           socketClient.markAsRead(data['messageId']);
           messages[data['messageId']]!['read'] = true;
           saveMessagesForUser(senderId);
+          unseenNotifications.remove(senderId);
+          saveUnseenNotifications();
+          _refreshUserList();
+          print('ChatController: Marked message as read: ${data['messageId']}');
         }
+      } else {
+        print('ChatController: Skipped message: ${data['messageId']}, exists: ${messages.containsKey(data['messageId'])}');
       }
     }
   }
@@ -707,16 +746,16 @@ class ChatController extends GetxController {
     errorMessage.value = error;
     isConnected.value = false;
     print('ChatController: Socket error: $error');
-    Get.snackbar('Error', error,
+    Get.snackbar('Error', error.tr,
         snackPosition: SnackPosition.TOP,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError);
-    if (error.contains('Invalid token')) {
+    if (error.contains('Invalid token') || error.contains('User ID mismatch')) {
       await _handleInvalidToken();
     } else {
-      await Future.delayed(Duration(seconds: 5));
+      await Future.delayed(_reconnectDelay);
       if (!isConnected.value && hasInternet.value && serverAvailable.value) {
-        print('ChatController: Retrying socket connection');
+        print('ChatController: Retrying socket connection after delay');
         await connect();
       }
     }
@@ -768,9 +807,9 @@ class ChatController extends GetxController {
         snackPosition: SnackPosition.TOP,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError);
-    await Future.delayed(Duration(seconds: 5));
+    await Future.delayed(_reconnectDelay);
     if (!isConnected.value && hasInternet.value && serverAvailable.value) {
-      print('ChatController: Retrying socket connection');
+      print('ChatController: Retrying socket connection after delay');
       await connect();
     }
   }

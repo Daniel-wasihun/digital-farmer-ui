@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/crop_price.dart';
@@ -6,7 +7,7 @@ import '../controllers/market_controller.dart';
 class PriceController extends GetxController {
   final MarketController marketController = Get.find<MarketController>();
   final CropPrice? price = Get.arguments as CropPrice?;
-  final formKey = GlobalKey<FormState>(); // Kept for potential future use
+  final formKey = GlobalKey<FormState>();
   final cropName = ''.obs;
   final cropType = ''.obs;
   final marketName = ''.obs;
@@ -15,14 +16,21 @@ class PriceController extends GetxController {
   final marketNameError = Rxn<String>();
   final pricePerKgController = TextEditingController();
   final pricePerQuintalController = TextEditingController();
-  final pricePerKgError = Rxn<String>(); // Added for errorText
-  final pricePerQuintalError = Rxn<String>(); // Added for errorText
+  final pricePerKgError = Rxn<String>();
+  final pricePerQuintalError = Rxn<String>();
   final date = DateTime.now().obs;
   final isLoading = false.obs;
+
+  Timer? _debounceTimer;
+  static const _debounceDuration = Duration(milliseconds: 300);
 
   @override
   void onInit() {
     super.onInit();
+    initializeFields();
+  }
+
+  void initializeFields() {
     if (price != null) {
       cropName.value = price!.cropName;
       cropType.value = price!.cropType;
@@ -30,19 +38,14 @@ class PriceController extends GetxController {
       pricePerKgController.text = price!.pricePerKg.toStringAsFixed(2);
       pricePerQuintalController.text = price!.pricePerQuintal.toStringAsFixed(2);
       date.value = price!.date;
+    } else {
+      reset();
     }
-
-    // Sync TextEditingControllers with error updates
-    pricePerKgController.addListener(() {
-      pricePerKgError.value = validatePricePerKg(pricePerKgController.text);
-    });
-    pricePerQuintalController.addListener(() {
-      pricePerQuintalError.value = validatePricePerQuintal(pricePerQuintalController.text, pricePerKgController.text);
-    });
   }
 
   @override
   void onClose() {
+    _debounceTimer?.cancel();
     pricePerKgController.dispose();
     pricePerQuintalController.dispose();
     super.onClose();
@@ -63,6 +66,11 @@ class PriceController extends GetxController {
     isLoading.value = false;
   }
 
+  void debounceValidation(void Function() callback) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(_debounceDuration, callback);
+  }
+
   String? validatePricePerKg(String? value) {
     if (value == null || value.isEmpty) {
       return 'Price/kg required'.tr;
@@ -77,10 +85,12 @@ class PriceController extends GetxController {
     if (priceValue > 10000) {
       return 'Price/kg too high (max 10,000 ETB)'.tr;
     }
+    // Trigger quintal validation when kg price is valid
+    pricePerQuintalError.value = validatePricePerQuintal(pricePerQuintalController.text, value);
     return null;
   }
 
-  String? validatePricePerQuintal(String? value, String kgValue) {
+  String? validatePricePerQuintal(String? value, String? kgValue) {
     if (value == null || value.isEmpty) {
       return 'Price/quintal required'.tr;
     }
@@ -94,7 +104,7 @@ class PriceController extends GetxController {
     if (priceQuintal > 1000000) {
       return 'Price/quintal too high (max 1,000,000 ETB)'.tr;
     }
-    final priceKg = double.tryParse(kgValue) ?? 0;
+    final priceKg = double.tryParse(kgValue ?? '') ?? 0;
     if (priceKg > 0 && priceQuintal < priceKg * 50) {
       return 'Price/quintal must be at least 50x price/kg'.tr;
     }
@@ -152,10 +162,28 @@ class PriceController extends GetxController {
       try {
         if (price == null) {
           await marketController.addPrice(newPrice);
+          Get.snackbar(
+            'Success'.tr,
+            'Price added successfully'.tr,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Get.theme.colorScheme.secondary,
+            colorText: Get.theme.colorScheme.onSecondary,
+            duration: const Duration(seconds: 2),
+          );
         } else {
           await marketController.updatePrice(price!.id, newPrice);
+          Get.snackbar(
+            'Success'.tr,
+            'Price updated successfully'.tr,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Get.theme.colorScheme.secondary,
+            colorText: Get.theme.colorScheme.onSecondary,
+            duration: const Duration(seconds: 2),
+          );
         }
-        Get.back();
+        reset(); // Clear the form
+        await Future.delayed(const Duration(seconds: 2)); // Wait for snackbar to be visible
+        Get.back(); // Navigate back to market page
       } catch (e) {
         marketController.showSnackbar(
           title: 'Error'.tr,
@@ -168,13 +196,6 @@ class PriceController extends GetxController {
       } finally {
         isLoading.value = false;
       }
-    } else {
-      // marketController.showSnackbar(
-      //   title: 'Validation Error'.tr,
-      //   message: 'Please fill all fields correctly'.tr,
-      //   backgroundColor: Get.theme.colorScheme.error,
-      //   textColor: Colors.white,
-      // );
     }
   }
 }
