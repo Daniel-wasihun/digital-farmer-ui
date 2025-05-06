@@ -14,7 +14,6 @@ class SignUpController extends GetxController {
   void onInit() {
     super.onInit();
     reset();
-    print('SignUpController initialized, errors reset');
   }
 
   void reset() {
@@ -22,6 +21,10 @@ class SignUpController extends GetxController {
     email.value = '';
     password.value = '';
     confirmPassword.value = '';
+    authController.usernameController.clear();
+    authController.emailController.clear();
+    authController.passwordController.clear();
+    authController.confirmPasswordController.clear();
     authController.resetErrors();
   }
 

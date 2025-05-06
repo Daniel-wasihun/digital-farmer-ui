@@ -4,7 +4,6 @@ import 'auth_controller.dart';
 class SignInController extends GetxController {
   final AuthController authController = Get.find<AuthController>();
 
-  // Reactive inputs
   var email = ''.obs;
   var password = ''.obs;
 
@@ -12,7 +11,6 @@ class SignInController extends GetxController {
   void onInit() {
     super.onInit();
     reset();
-    print('SignInController initialized, errors reset');
   }
 
   void reset() {

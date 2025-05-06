@@ -13,12 +13,11 @@ class SignInScreen extends GetView<SignInController> {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(SignInController());
     final ThemeController themeController = Get.find<ThemeController>();
     final AppController appController = Get.find<AppController>();
 
-    // Clear fields and errors after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      Get.put(SignInController());
       controller.reset();
       controller.authController.emailController.clear();
       controller.authController.passwordController.clear();
@@ -26,7 +25,6 @@ class SignInScreen extends GetView<SignInController> {
       controller.authController.passwordError.value = '';
     });
 
-    // Sync TextEditingControllers with SignInController's reactive variables
     controller.authController.emailController.addListener(() {
       controller.email.value = controller.authController.emailController.text;
       controller.authController.validateEmail(controller.email.value);

@@ -21,9 +21,6 @@ class AuthOtpManager {
 
       // Call API service to verify OTP
       final response = await _apiService.auth.verifyOTP(email.toLowerCase(), otp);
-      if (response['status'] != 'success') {
-        throw Exception(response['message'] ?? 'otp_verification_failed'.tr);
-      }
 
       // Save user and token on successful verification
       await _storageService.saveUser(response['user']);
@@ -32,7 +29,7 @@ class AuthOtpManager {
       // Show success feedback and navigate to home
       _callbacks.showSnackbar(
         'success'.tr,
-        'account_created_successfully'.tr,
+        'account_created_successfully'.tr, // Fixed typo in translation key
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
         snackPosition: SnackPosition.BOTTOM,

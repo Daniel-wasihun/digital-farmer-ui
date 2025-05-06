@@ -13,12 +13,9 @@ class SignUpScreen extends GetView<SignUpController> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure controllers are initialized
-    Get.put(SignUpController());
     final ThemeController themeController = Get.find<ThemeController>();
     final AppController appController = Get.find<AppController>();
 
-    // Clear fields and errors after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.reset();
       controller.authController.usernameController.clear();
@@ -31,7 +28,6 @@ class SignUpScreen extends GetView<SignUpController> {
       controller.authController.confirmPasswordError.value = '';
     });
 
-    // Sync TextEditingControllers with SignUpController's reactive variables
     controller.authController.usernameController.addListener(() {
       controller.username.value = controller.authController.usernameController.text;
       controller.authController.validateUsername(controller.username.value);

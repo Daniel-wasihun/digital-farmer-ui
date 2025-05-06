@@ -5,9 +5,19 @@ import '../storage_service.dart';
 import 'package:flutter/foundation.dart';
 
 abstract class BaseApi {
-  static const String apiBaseUrl = kIsWeb ? 'http://localhost:5000/api':'https://digital-farmer-backend-1.onrender.com/api';
+  // static const String apiBaseUrl = kIsWeb ? 'http://localhost:5000/api':'http://10.175.28.81:5000/api';
+  // static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://10.175.28.81:8000';  
+  // static const String imageBaseUrl =kIsWeb ? 'http://localhost:5000':'http://10.175.28.81:5000';
+
+
+  static const String apiBaseUrl = kIsWeb ? 'http://localhost:5000/api':'https://evolutionary-cornelle-daniel-wasihun-5f2c775b.koyeb.app/api';
   static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'https://digital-farmer-ethio-em9f.vercel.app';  
-  static const String imageBaseUrl =kIsWeb ? 'http://localhost:5000':'https://digital-farmer-backend-1.onrender.com';
+  static const String imageBaseUrl =kIsWeb ? 'http://localhost:5000':'https://evolutionary-cornelle-daniel-wasihun-5f2c775b.koyeb.app';
+
+
+  // static const String apiBaseUrl = kIsWeb ? 'http://localhost:5000/api':'https://digital-farmer-backend-1.onrender.com/api';
+  // static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'https://digital-farmer-ethio-em9f.vercel.app';  
+  // static const String imageBaseUrl =kIsWeb ? 'http://localhost:5000':'https://digital-farmer-backend-1.onrender.com';
 
   // static const String apiBaseUrl = kIsWeb ? 'https://digital-farmer-backend-1.onrender.com/api':'https://digital-farmer-backend-1.onrender.com/api';
   // static const String aiBaseUrl = kIsWeb ? 'https://digital-farmer-ethio-em9f.vercel.app': 'https://digital-farmer-ethio-em9f.vercel.app';  
