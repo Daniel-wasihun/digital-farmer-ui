@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final appBarHeight = (height * 0.07 * scaleFactor).clamp(48.0, 64.0);
 
     // Access ChatController for badge count
-    final ChatController chatController = Get.find<ChatController>();
+    final ChatController chatController = Get.put(ChatController());
 
     return FadeTransition(
       opacity: _fadeAnimation,

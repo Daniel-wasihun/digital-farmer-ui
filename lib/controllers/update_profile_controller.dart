@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart' show MediaType;
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 
@@ -95,7 +96,7 @@ class UpdateProfileController extends GetxController {
           selectedImageBytes.value = await pickedFile.readAsBytes();
           selectedImageName.value = pickedFile.name;
           selectedImageFile.value = null;
-          print('Web image picked: ${pickedFile.name}, size: ${selectedImageBytes.value?.length}');
+          print('Web image picked: ${pickedFile.name}, size: ${selectedImageBytes.value?.length} bytes');
         } else {
           final file = File(pickedFile.path);
           final fileSize = await file.length();
@@ -107,7 +108,7 @@ class UpdateProfileController extends GetxController {
           selectedImageFile.value = file;
           selectedImageBytes.value = null;
           selectedImageName.value = pickedFile.name;
-          print('Mobile image picked: ${pickedFile.path}, size: $fileSize');
+          print('Mobile image picked: ${pickedFile.path}, size: $fileSize bytes');
         }
       } else {
         print('No image selected');
@@ -140,19 +141,26 @@ class UpdateProfileController extends GetxController {
 
       dynamic imageToUpload;
       String? imageNameToSend;
+      MediaType? contentType;
 
       if (kIsWeb && selectedImageBytes.value != null) {
         imageToUpload = selectedImageBytes.value;
-        imageNameToSend = selectedImageName.value;
-        print('Preparing web image for upload: $imageNameToSend, size: ${imageToUpload.length}');
+        imageNameToSend = selectedImageName.value ?? 'profile_${DateTime.now().millisecondsSinceEpoch}.png';
+        contentType = _getContentType(imageNameToSend);
+        print('Preparing web image for upload: $imageNameToSend, size: ${imageToUpload.length} bytes, type: ${contentType?.mimeType}');
       } else if (selectedImageFile.value != null) {
         imageToUpload = selectedImageFile.value;
-        imageNameToSend = selectedImageFile.value?.path.split('/').last;
-        print('Preparing mobile image for upload: ${imageToUpload.path}, name: $imageNameToSend');
+        imageNameToSend = selectedImageFile.value!.path.split('/').last;
+        contentType = _getContentType(imageNameToSend);
+        print('Preparing mobile image for upload: ${imageToUpload.path}, name: $imageNameToSend, type: ${contentType?.mimeType}');
       } else {
         imageToUpload = null;
         imageNameToSend = null;
         print('No image selected for upload.');
+      }
+
+      if (imageToUpload != null && contentType == null) {
+        throw Exception('Unsupported image format');
       }
 
       print('Updating profile for: ${user['email']}, username=${username.value}, bio=${bio.value}, image=${imageToUpload.runtimeType}, name=$imageNameToSend');
@@ -163,6 +171,7 @@ class UpdateProfileController extends GetxController {
         bio.value.isEmpty ? null : bio.value,
         imageToUpload,
         imageNameToSend,
+        contentType,
       );
       print('Backend response: $updatedUser');
 
@@ -192,11 +201,25 @@ class UpdateProfileController extends GetxController {
       Get.offAllNamed(AppRoutes.getHomePage());
     } catch (e) {
       print('Update profile error: $e');
-      Get.snackbar('Error', 'Failed to update profile. Please try again.',
+      Get.snackbar('Error', 'Failed to update profile: ${e.toString().split(':').last.trim()}',
           backgroundColor: Colors.redAccent, colorText: Colors.white);
     } finally {
       isLoading.value = false;
       print('isLoading reset to false');
     }
+  }
+
+  MediaType? _getContentType(String filename) {
+    final extension = filename.split('.').last.toLowerCase();
+    const mimeTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'bmp': 'image/bmp',
+      'webp': 'image/webp',
+    };
+    final mimeType = mimeTypes[extension];
+    return mimeType != null ? MediaType.parse(mimeType) : null;
   }
 }
