@@ -10,6 +10,7 @@ typedef ShowSnackbarCallback = void Function(
   SnackPosition? snackPosition,
   double? borderRadius,
   EdgeInsets? margin,
+  Duration? duration,
 });
 typedef NavigateToCallback = Future<dynamic>? Function(
   String pageName, {

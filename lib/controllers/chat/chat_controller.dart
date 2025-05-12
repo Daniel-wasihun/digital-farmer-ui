@@ -83,10 +83,16 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: Initialize error: $e');
       errorMessage.value = 'failed_to_initialize'.tr;
-      Get.snackbar('Error', 'failed_to_initialize'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError);
+      Get.snackbar(
+        'error'.tr,
+        'failed_to_initialize'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
+      );
     }
   }
 
@@ -179,10 +185,16 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: loadLocalData error: $e');
       errorMessage.value = 'failed_to_load_local_data'.tr;
-      Get.snackbar('Error', 'failed_to_load_local_data'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError);
+      Get.snackbar(
+        'error'.tr,
+        'failed_to_load_local_data'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
+      );
     }
   }
 
@@ -325,10 +337,16 @@ class ChatController extends GetxController {
     }
     if (!_isValidReceiver(receiverId)) {
       print('ChatController: Invalid receiverId: $receiverId');
-      Get.snackbar('Error', 'invalid_receiver'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError);
+      Get.snackbar(
+        'error'.tr,
+        'invalid_receiver'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
+      );
       return;
     }
     final message = _createMessage(text, receiverId);
@@ -344,10 +362,16 @@ class ChatController extends GetxController {
     if (currentUserId.value == null || receiverId.isEmpty || !_isValidReceiver(receiverId)) {
       print('ChatController: Invalid fetch params: userId=${currentUserId.value}, receiverId=$receiverId');
       errorMessage.value = 'invalid_receiver'.tr;
-      Get.snackbar('Error', 'invalid_receiver'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError);
+      Get.snackbar(
+        'error'.tr,
+        'invalid_receiver'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
+      );
       return;
     }
     if (!hasInternet.value || !serverAvailable.value) {
@@ -624,7 +648,6 @@ class ChatController extends GetxController {
     }
     return false;
   }
-
   void _handleReceivedMessage(Map<String, dynamic> data) {
     if (data['receiverId'] == currentUserId.value || data['senderId'] == currentUserId.value) {
       if (_isValidMessage(data) && !messages.containsKey(data['messageId'])) {
@@ -646,14 +669,26 @@ class ChatController extends GetxController {
             print('ChatController: Added to unseen notifications for $senderId: ${data['messageId']}, total: ${unseenNotifications[senderId]!.length}');
             _refreshUserList();
 
-            Get.snackbar('New Message', 'You received a message from $senderId'.tr,
-                snackPosition: SnackPosition.TOP,
-                backgroundColor: Get.theme.colorScheme.secondary,
-                colorText: Get.theme.colorScheme.onSecondary,
-                duration: const Duration(seconds: 3),
-                onTap: (snack) {
-                  Get.toNamed(AppRoutes.getChatPage(senderId, allUsers.firstWhere((u) => u['email'] == senderId, orElse: () => {'username': 'Unknown'})['username']));
-                });
+            // Get sender's username or fallback to email
+            final senderUser = allUsers.firstWhere(
+              (u) => u['email'] == senderId,
+              orElse: () => {'username': senderId, 'email': senderId},
+            );
+            final senderName = senderUser['username']?.toString() ?? senderId;
+
+            Get.snackbar(
+              'New message: $senderName',
+              data['message'],
+              snackPosition: SnackPosition.TOP,
+              backgroundColor: Get.theme.colorScheme.secondary,
+              colorText: Get.theme.colorScheme.onSecondary,
+              margin: const EdgeInsets.all(16),
+              borderRadius: 8,
+              duration: const Duration(seconds: 3),
+              onTap: (snack) {
+                Get.toNamed(AppRoutes.getChatPage(senderId, allUsers.firstWhere((u) => u['email'] == senderId, orElse: () => {'username': 'Unknown'})['username']));
+              },
+            );
           } else {
             print('ChatController: Skipped duplicate notification for message: ${data['messageId']}');
           }
@@ -672,6 +707,7 @@ class ChatController extends GetxController {
     }
   }
 
+  
   void _handleSentMessage(Map<String, dynamic> data) {
     if (data['senderId'] == currentUserId.value && _isValidMessage(data)) {
       messages[data['messageId']] = _normalizeMessage(data);
@@ -731,10 +767,6 @@ class ChatController extends GetxController {
     errorMessage.value = error;
     isConnected.value = false;
     print('ChatController: Socket error: $error');
-    Get.snackbar('Error', error.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Get.theme.colorScheme.error,
-        colorText: Get.theme.colorScheme.onError);
     if (error.contains('Invalid token') || error.contains('User ID mismatch')) {
       await _handleInvalidToken();
     } else {
@@ -778,20 +810,22 @@ class ChatController extends GetxController {
       await retry();
     } else {
       errorMessage.value = 'failed_to_load_data'.tr;
-      Get.snackbar('Error', 'failed_to_load_data'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError);
+      Get.snackbar(
+        'error'.tr,
+        'failed_to_load_data'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
+      );
     }
   }
 
   Future<void> _handleSocketConnectError(dynamic e) async {
     print('ChatController: Connect error: $e');
     errorMessage.value = 'socket_connect_failed'.tr;
-    Get.snackbar('Error', 'socket_connect_failed'.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Get.theme.colorScheme.error,
-        colorText: Get.theme.colorScheme.onError);
     await Future.delayed(_reconnectDelay);
     if (!isConnected.value && hasInternet.value && serverAvailable.value) {
       print('ChatController: Retrying socket connection after delay');

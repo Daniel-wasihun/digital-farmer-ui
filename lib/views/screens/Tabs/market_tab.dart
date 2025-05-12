@@ -11,13 +11,7 @@ class MarketPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(MarketController());
-    controller
-      ..setSelectedDay(null)
-      ..setNameOrder('Default')
-      ..setPriceOrder('Default')
-      ..setMarketFilter('All');
-
+    final controller = Get.find<MarketController>(); // Use Get.find since initialized elsewhere
     final size = MediaQuery.of(context).size;
     final screenWidth = size.width;
     final scaleFactor =
@@ -64,8 +58,10 @@ class MarketPage extends StatelessWidget {
 
     final weeks = [
       AppUtils.getMondayOfWeek(DateTime.now()),
-      ...List.generate(6,
-          (index) => AppUtils.getMondayOfWeek(DateTime.now().subtract(Duration(days: (index + 1) * 7)))),
+      ...List.generate(
+          6,
+          (index) => AppUtils.getMondayOfWeek(
+              DateTime.now().subtract(Duration(days: (index + 1) * 7)))),
     ];
 
     final weekLabels = [

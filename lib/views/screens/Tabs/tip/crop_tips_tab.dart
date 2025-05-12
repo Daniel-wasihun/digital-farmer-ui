@@ -246,42 +246,53 @@ class CropTipsView extends StatelessWidget {
                       ),
                       child: Padding(
                         padding: EdgeInsets.all(padding * 0.6),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(Icons.eco, color: Colors.green[700], size: 20 * scaleFactor),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    entry.key.tr,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.eco, color: Colors.green[700], size: 20 * scaleFactor),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          entry.key.tr,
+                                          style: TextStyle(
+                                            fontSize: subtitleFontSize,
+                                            fontWeight: FontWeight.w900,
+                                            fontFamilyFallback: fontFamilyFallbacks,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Temp: ${entry.value['temp_range'][0]}${'degree_celsius'.tr} - ${entry.value['temp_range'][1]}${'degree_celsius'.tr}',
                                     style: TextStyle(
-                                      fontSize: subtitleFontSize,
-                                      fontWeight: FontWeight.w900,
+                                      fontSize: detailFontSize,
+                                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                       fontFamilyFallback: fontFamilyFallbacks,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'Temp: ${entry.value['temp_range'][0]}${'degree_celsius'.tr} - ${entry.value['temp_range'][1]}${'degree_celsius'.tr}',
-                              style: TextStyle(
-                                fontSize: detailFontSize,
-                                color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                                fontFamilyFallback: fontFamilyFallbacks,
+                                  Text(
+                                    'Category: ${(entry.value['category'] as String).tr}',
+                                    style: TextStyle(
+                                      fontSize: detailFontSize,
+                                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                      fontFamilyFallback: fontFamilyFallbacks,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              'Category: ${(entry.value['category'] as String).tr}',
-                              style: TextStyle(
-                                fontSize: detailFontSize,
-                                color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                                fontFamilyFallback: fontFamilyFallbacks,
-                              ),
+                            Icon(
+                              Icons.chevron_right,
+                              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                              size: 24 * scaleFactor,
                             ),
                           ],
                         ),

@@ -39,13 +39,9 @@ class ChatScreen extends StatelessWidget {
                         : _buildAppBar(context, scaleFactor, controller, fontFamilyFallbacks),
                     Expanded(
                       child: Obx(() {
-                        controller.textScaleFactor.value; // Trigger rebuild on text scale change
+                        controller.textScaleFactor.value;
                         if (controller.chatController.isLoadingMessages.value) {
-                          return Center(
-                            child: CircularProgressIndicator(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          );
+                          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                         }
                         if (controller.messageItems.isEmpty) {
                           return Center(
@@ -74,10 +70,8 @@ class ChatScreen extends StatelessWidget {
                               ListView.builder(
                                 key: const ValueKey('chat_list'),
                                 controller: controller.scrollController,
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 8 * scaleFactor,
-                                  horizontal: 8 * scaleFactor,
-                                ).copyWith(bottom: 20 * scaleFactor),
+                                padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor, horizontal: 8 * scaleFactor)
+                                    .copyWith(bottom: 20 * scaleFactor),
                                 itemCount: controller.messageItems.length,
                                 itemBuilder: (context, index) {
                                   final item = controller.messageItems[index];
@@ -97,11 +91,7 @@ class ChatScreen extends StatelessWidget {
                                   final isSelected = controller.selectedIndices.contains(index);
                                   return GestureDetector(
                                     behavior: HitTestBehavior.opaque,
-                                    onTap: () {
-                                      if (controller.isSelectionMode.value) {
-                                        controller.toggleMessageSelection(index);
-                                      }
-                                    },
+                                    onTap: () => controller.isSelectionMode.value ? controller.toggleMessageSelection(index) : null,
                                     onLongPress: () {
                                       if (!controller.isSelectionMode.value) {
                                         controller.toggleSelectionMode();
@@ -113,9 +103,7 @@ class ChatScreen extends StatelessWidget {
                                       curve: Curves.easeInOut,
                                       padding: EdgeInsets.symmetric(vertical: 3.5 * scaleFactor),
                                       decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? Theme.of(context).colorScheme.primary.withOpacity(0.25)
-                                            : Colors.transparent,
+                                        color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.25) : Colors.transparent,
                                         borderRadius: BorderRadius.circular(12 * scaleFactor),
                                       ),
                                       child: isNew
@@ -158,15 +146,10 @@ class ChatScreen extends StatelessWidget {
                                     mini: true,
                                     backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.85),
                                     elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12 * scaleFactor),
-                                    ),
-                                    onPressed: () => controller.scrollToBottom(),
-                                    child: Icon(
-                                      Icons.arrow_drop_down_rounded,
-                                      color: Theme.of(context).colorScheme.onPrimary,
-                                      size: 24 * scaleFactor,
-                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * scaleFactor)),
+                                    onPressed: controller.scrollToBottom,
+                                    child: Icon(Icons.arrow_drop_down_rounded,
+                                        color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
                                   ),
                                 ),
                             ],
@@ -180,42 +163,40 @@ class ChatScreen extends StatelessWidget {
                 Positioned(
                   bottom: 80 * scaleFactor,
                   right: 16 * scaleFactor,
-                  child: Obx(
-                    () => AnimatedOpacity(
-                      opacity: controller.unseenCount.value > 0 && !controller.isSelectionMode.value ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Visibility(
-                        visible: controller.unseenCount.value > 0 && !controller.isSelectionMode.value,
-                        child: GestureDetector(
-                          onTap: () => controller.scrollToBottom(),
-                          child: Container(
-                            padding: EdgeInsets.all(10 * scaleFactor),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.secondary.withOpacity(0.9),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 8 * scaleFactor,
-                                  offset: Offset(0, 4 * scaleFactor),
+                  child: Obx(() => AnimatedOpacity(
+                        opacity: controller.unseenCount.value > 0 && !controller.isSelectionMode.value ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Visibility(
+                          visible: controller.unseenCount.value > 0 && !controller.isSelectionMode.value,
+                          child: GestureDetector(
+                            onTap: controller.scrollToBottom,
+                            child: Container(
+                              padding: EdgeInsets.all(10 * scaleFactor),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.secondary.withOpacity(0.9),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8 * scaleFactor,
+                                    offset: Offset(0, 4 * scaleFactor),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                controller.unseenCount.value.toString(),
+                                style: TextStyle(
+                                  fontFamily: GoogleFonts.poppins().fontFamily,
+                                  fontFamilyFallback: fontFamilyFallbacks,
+                                  color: Theme.of(context).colorScheme.onSecondary,
+                                  fontSize: 16 * scaleFactor,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
-                            child: Text(
-                              controller.unseenCount.value.toString(),
-                              style: TextStyle(
-                                fontFamily: GoogleFonts.poppins().fontFamily,
-                                fontFamilyFallback: fontFamilyFallbacks,
-                                color: Theme.of(context).colorScheme.onSecondary,
-                                fontSize: 16 * scaleFactor,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
+                      )),
                 ),
               ],
             ),
@@ -254,7 +235,7 @@ class ChatScreen extends StatelessWidget {
           ),
           IconButton(
             icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
-            onPressed: () => controller.deleteSelectedMessages(),
+            onPressed: controller.deleteSelectedMessages,
             tooltip: 'delete'.tr,
           ),
         ],
@@ -284,8 +265,7 @@ class ChatScreen extends StatelessWidget {
         shadowColor: Colors.black26,
         titleSpacing: 0,
         title: Obx(() {
-          final user = controller.chatController.allUsers
-              .firstWhereOrNull((u) => u['email'] == receiverId);
+          final user = controller.chatController.allUsers.firstWhereOrNull((u) => u['email'] == receiverId);
           final isTyping = controller.chatController.typingUsers.contains(receiverId);
           final isOnline = user != null && user['online'] == true;
           return GestureDetector(
@@ -301,7 +281,7 @@ class ChatScreen extends StatelessWidget {
                 Stack(
                   children: [
                     CircleAvatar(
-                      radius: 30 * scaleFactor,
+                      radius: 24 * scaleFactor, // Reduced size for better fit
                       backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
                       backgroundImage: user != null && user['profilePicture']?.isNotEmpty == true
                           ? CachedNetworkImageProvider('${BaseApi.imageBaseUrl}${user['profilePicture']}')
@@ -313,7 +293,7 @@ class ChatScreen extends StatelessWidget {
                                 fontFamily: GoogleFonts.poppins().fontFamily,
                                 fontFamilyFallback: fontFamilyFallbacks,
                                 color: Colors.white,
-                                fontSize: 20 * scaleFactor,
+                                fontSize: 18 * scaleFactor,
                                 fontWeight: FontWeight.w600,
                               ),
                             )
@@ -324,21 +304,22 @@ class ChatScreen extends StatelessWidget {
                         bottom: 0,
                         right: 0,
                         child: Container(
-                          width: 12 * scaleFactor,
-                          height: 12 * scaleFactor,
+                          width: 10 * scaleFactor,
+                          height: 10 * scaleFactor,
                           decoration: BoxDecoration(
                             color: Colors.green,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Theme.of(context).colorScheme.onPrimary, width: 1.5 * scaleFactor),
+                            border: Border.all(color: Theme.of(context).colorScheme.onPrimary, width: 1.2 * scaleFactor),
                           ),
                         ),
                       ),
                   ],
                 ),
-                SizedBox(width: 8 * scaleFactor),
+                SizedBox(width: 10 * scaleFactor),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         receiverUsername,
@@ -346,7 +327,7 @@ class ChatScreen extends StatelessWidget {
                           fontFamily: GoogleFonts.poppins().fontFamily,
                           fontFamilyFallback: fontFamilyFallbacks,
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: 20 * scaleFactor,
+                          fontSize: 18 * scaleFactor,
                           fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -359,7 +340,7 @@ class ChatScreen extends StatelessWidget {
                               fontFamily: GoogleFonts.poppins().fontFamily,
                               fontFamilyFallback: fontFamilyFallbacks,
                               color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-                              fontSize: 14 * scaleFactor,
+                              fontSize: 13 * scaleFactor,
                             ),
                           ),
                           if (isTyping) ...[
@@ -402,9 +383,7 @@ class ChatScreen extends StatelessWidget {
               : const SizedBox.shrink()),
           IconButton(
             icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
-            onPressed: () {
-              // TODO: Implement chat options/info
-            },
+            onPressed: () {},
             tooltip: 'more_options'.tr,
           ),
         ],
@@ -488,37 +467,17 @@ class ChatScreen extends StatelessWidget {
               controller: controller.messageController,
               decoration: InputDecoration(
                 hintText: 'type_message'.tr,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12 * scaleFactor),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12 * scaleFactor),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12 * scaleFactor), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12 * scaleFactor), borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12 * scaleFactor),
-                  borderSide: BorderSide(
-                    color: Theme.of(context).colorScheme.secondary.withOpacity(0.6),
-                    width: 0.8 * scaleFactor,
-                  ),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.secondary.withOpacity(0.6), width: 0.8 * scaleFactor),
                 ),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12 * scaleFactor,
-                  vertical: 10 * scaleFactor,
-                ),
-                prefixIcon: Icon(
-                  Icons.message_rounded,
-                  color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-                  size: 18 * scaleFactor,
-                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor, vertical: 10 * scaleFactor),
+                prefixIcon: Icon(Icons.message_rounded, color: Theme.of(context).colorScheme.secondary.withOpacity(0.5), size: 18 * scaleFactor),
                 suffixIcon: controller.messageController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(
-                          Icons.clear_rounded,
-                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.35),
-                          size: 18 * scaleFactor,
-                        ),
+                        icon: Icon(Icons.clear_rounded, color: Theme.of(context).colorScheme.secondary.withOpacity(0.35), size: 18 * scaleFactor),
                         onPressed: () => controller.messageController.clear(),
                       )
                     : null,
@@ -541,9 +500,7 @@ class ChatScreen extends StatelessWidget {
               minLines: 1,
               maxLines: 3,
               onChanged: controller.onMessageChanged,
-              onSubmitted: (value) {
-                controller.sendMessage(value);
-              },
+              onSubmitted: controller.sendMessage,
             ),
           ),
           SizedBox(width: 8 * scaleFactor),
@@ -551,22 +508,14 @@ class ChatScreen extends StatelessWidget {
             width: 44 * scaleFactor,
             height: 44 * scaleFactor,
             child: ElevatedButton(
-              onPressed: () {
-                controller.sendMessage(controller.messageController.text);
-              },
+              onPressed: () => controller.sendMessage(controller.messageController.text),
               style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12 * scaleFactor),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * scaleFactor)),
                 padding: EdgeInsets.zero,
                 backgroundColor: Theme.of(context).colorScheme.secondary,
                 elevation: 1,
               ),
-              child: Icon(
-                Icons.send_rounded,
-                color: Theme.of(context).colorScheme.onSecondary,
-                size: 20 * scaleFactor,
-              ),
+              child: Icon(Icons.send_rounded, color: Theme.of(context).colorScheme.onSecondary, size: 20 * scaleFactor),
             ),
           ),
         ],
@@ -622,11 +571,7 @@ class _MessageBubble extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.check,
-                      size: 12 * scaleFactor,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
+                    child: Icon(Icons.check, size: 12 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
                   ),
                 ),
               ConstrainedBox(
@@ -669,21 +614,13 @@ class _MessageBubble extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.check,
-                      size: 12 * scaleFactor,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
+                    child: Icon(Icons.check, size: 12 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
                   ),
                 ),
             ],
           ),
           Padding(
-            padding: EdgeInsets.only(
-              left: isSent ? 0 : edgePadding,
-              right: isSent ? edgePadding : 0,
-              top: 4 * scaleFactor,
-            ),
+            padding: EdgeInsets.only(left: isSent ? 0 : edgePadding, right: isSent ? edgePadding : 0, top: 4 * scaleFactor),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -715,14 +652,8 @@ class _MessageBubble extends StatelessWidget {
                       ),
                       SizedBox(width: 3 * scaleFactor),
                       Icon(
-                        message['delivered'] == true || message['read'] == true
-                            ? Icons.done_all
-                            : Icons.check,
-                        color: message['read'] == true
-                            ? Colors.blue[300]
-                            : isDarkMode
-                                ? Colors.white70
-                                : Colors.black54,
+                        message['delivered'] == true || message['read'] == true ? Icons.done_all : Icons.check,
+                        color: message['read'] == true ? Colors.blue[300] : isDarkMode ? Colors.white70 : Colors.black54,
                         size: 13 * scaleFactor,
                       ),
                     ],

@@ -10,6 +10,7 @@ class MarketController extends GetxController {
   final MarketService _marketService = Get.put(MarketService());
   final GetStorage box = GetStorage();
   final logger = Logger();
+  bool _isInitialized = false; // Safeguard for initialization
 
   // Observables
   final prices = <CropPrice>[].obs;
@@ -44,7 +45,7 @@ class MarketController extends GetxController {
     fetchCropData();
     fetchPrices();
 
-    // React to filter changes
+    // React to filter changes with a slight delay
     everAll([
       selectedWeek,
       selectedDay,
@@ -52,7 +53,18 @@ class MarketController extends GetxController {
       marketFilter,
       nameOrder,
       searchQuery,
-    ], (_) => _applyFiltersAndSorting());
+    ], (_) {
+      if (_isInitialized) {
+        Future.microtask(() => _applyFiltersAndSorting());
+      }
+    });
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    _isInitialized = true;
+    _applyFiltersAndSorting(); // Apply filters after widget tree is built
   }
 
   // Fetch crop data
@@ -63,7 +75,6 @@ class MarketController extends GetxController {
       logger.i('MarketController: Fetched crop data');
     } catch (e) {
       logger.e('MarketController: Error fetching crop data: $e');
-      // Avoid showing snackbar on initial fetch
     } finally {
       isLoading.value = false;
     }
@@ -77,13 +88,14 @@ class MarketController extends GetxController {
         selectedDay: selectedDay.value,
         selectedWeek: selectedWeek.value,
       );
-      _applyFiltersAndSorting();
+      if (_isInitialized) {
+        _applyFiltersAndSorting();
+      }
       logger.i('MarketController: Fetched ${prices.length} prices');
     } catch (e) {
       logger.e('MarketController: Error fetching prices: $e');
       prices.clear();
       filteredPrices.clear();
-      // Avoid showing snackbar on initial fetch
     } finally {
       isLoading.value = false;
     }
@@ -103,6 +115,7 @@ class MarketController extends GetxController {
         message: 'Failed to check price existence'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
         mainButton: TextButton(
           onPressed: () => checkPriceExists(price),
           child: Text('Retry'.tr, style: const TextStyle(color: Colors.white)),
@@ -123,6 +136,7 @@ class MarketController extends GetxController {
         message: 'Price added successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       logger.i('MarketController: Price added successfully');
     } catch (e) {
@@ -132,6 +146,7 @@ class MarketController extends GetxController {
         message: e.toString().tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       rethrow;
     } finally {
@@ -150,6 +165,7 @@ class MarketController extends GetxController {
         message: 'Price updated successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       logger.i('MarketController: Price updated successfully for ID: $id');
     } catch (e) {
@@ -159,6 +175,7 @@ class MarketController extends GetxController {
         message: e.toString().tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       rethrow;
     } finally {
@@ -177,6 +194,7 @@ class MarketController extends GetxController {
         message: 'Price deleted successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       logger.i('MarketController: Price deleted successfully for ID: $id');
     } catch (e) {
@@ -186,6 +204,7 @@ class MarketController extends GetxController {
         message: 'Failed to delete price'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       rethrow;
     } finally {
@@ -199,6 +218,13 @@ class MarketController extends GetxController {
     try {
       final result = await _marketService.clonePrices(sourceDays, targetDate);
       await fetchPrices();
+      AppUtils.showSnackbar(
+        title: 'Success'.tr,
+        message: 'Prices cloned successfully'.tr,
+        backgroundColor: Get.theme.colorScheme.primary,
+        textColor: Colors.white,
+        position: SnackPosition.TOP,
+      );
       logger.i('MarketController: Cloned prices successfully');
       return result;
     } catch (e) {
@@ -208,6 +234,7 @@ class MarketController extends GetxController {
         message: 'Failed to clone prices'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       rethrow;
     } finally {
@@ -226,6 +253,7 @@ class MarketController extends GetxController {
         message: 'Clone undone successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       logger.i('MarketController: Clone undone successfully');
     } catch (e) {
@@ -235,6 +263,7 @@ class MarketController extends GetxController {
         message: 'Failed to undo clone'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       rethrow;
     } finally {
@@ -253,6 +282,7 @@ class MarketController extends GetxController {
         message: 'Prices batch inserted successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       logger.i('MarketController: Batch inserted ${pricesToInsert.length} prices');
     } catch (e) {
@@ -262,6 +292,7 @@ class MarketController extends GetxController {
         message: 'Failed to batch insert prices'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       rethrow;
     } finally {

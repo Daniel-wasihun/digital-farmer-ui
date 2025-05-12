@@ -75,6 +75,7 @@ class PriceController extends GetxController {
           message: 'Some price data is invalid and may not display correctly'.tr,
           backgroundColor: Get.theme.colorScheme.error,
           textColor: Colors.white,
+          position: SnackPosition.TOP,
         );
       }
       logger.i(
@@ -212,6 +213,7 @@ class PriceController extends GetxController {
                 'Price already exists for this crop, type, market, and date'.tr,
             backgroundColor: Get.theme.colorScheme.error,
             textColor: Colors.white,
+            position: SnackPosition.TOP,
           );
           isLoading.value = false;
           return;
@@ -235,6 +237,7 @@ class PriceController extends GetxController {
             : 'Price added successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
       logger.i('PriceController: Price saved successfully');
     } catch (e) {
@@ -246,6 +249,7 @@ class PriceController extends GetxController {
             : 'failed_to_add_price'.trParams({'error': e.toString()}),
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
+        position: SnackPosition.TOP,
       );
     } finally {
       isLoading.value = false;

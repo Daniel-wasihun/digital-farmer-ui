@@ -31,9 +31,10 @@ class AuthPasswordManager {
         'otp_sent_to_email'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 1500),
       );
       _callbacks.navigateTo(AppRoutes.getVerifyOTPPage(), arguments: {
         'email': email.toLowerCase(),
@@ -43,12 +44,13 @@ class AuthPasswordManager {
       print('Password reset request failed: $e');
       _callbacks.showSnackbar(
         'error'.tr,
-        e.toString().replaceFirst('Exception: ', '').tr,
+        'password_reset_request_failed'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 1500),
       );
     } finally {
       _callbacks.setIsLoading(false);
@@ -73,22 +75,23 @@ class AuthPasswordManager {
         'otp_verified'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 1500),
       );
       return resetToken;
     } catch (e) {
       print('Password reset OTP verification failed: $e');
-      String errorMessage = e.toString().replaceFirst('Exception: ', '').tr;
       _callbacks.showSnackbar(
         'error'.tr,
-        errorMessage,
+        'otp_verification_failed'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 1500),
       );
       return null;
     } finally {
@@ -114,9 +117,10 @@ class AuthPasswordManager {
         'password_reset_success'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 1500),
       );
       await Future.delayed(const Duration(seconds: 1));
       _callbacks.navigateOffAll(AppRoutes.getSignInPage());
@@ -124,12 +128,13 @@ class AuthPasswordManager {
       print('Password reset failed: $e');
       _callbacks.showSnackbar(
         'error'.tr,
-        e.toString().replaceFirst('Exception: ', '').tr,
+        'password_reset_failed'.tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 1500),
       );
     } finally {
       _callbacks.setIsLoading(false);
@@ -160,26 +165,24 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 1500),
       );
       await Future.delayed(const Duration(seconds: 1));
       _callbacks.navigateOffAll(AppRoutes.getHomePage());
     } catch (e) {
       print('Change password error: $e');
-      String rawError = e.toString().replaceFirst('Exception: ', '');
-      String errorMessage = 'generic_error'.tr;
+      String errorMessage = 'password_change_failed'.tr;
 
-      if (rawError.contains('Current password is incorrect') || rawError.contains('401')) {
+      if (e.toString().contains('Current password is incorrect') || e.toString().contains('401')) {
         _callbacks.updateCurrentPasswordError('current_password_incorrect'.tr);
-      } else if (rawError.contains('User not found') || rawError.contains('user_email_not_found') || rawError.contains('404')) {
+      } else if (e.toString().contains('User not found') || e.toString().contains('user_email_not_found') || e.toString().contains('404')) {
         errorMessage = 'user_not_found'.tr;
-      } else if (rawError.contains('Server error') || rawError.contains('500')) {
+      } else if (e.toString().contains('Server error') || e.toString().contains('500')) {
         errorMessage = 'server_error'.tr;
-      } else if (rawError.contains('Invalid request') || rawError.contains('400')) {
+      } else if (e.toString().contains('Invalid request') || e.toString().contains('400')) {
         errorMessage = 'invalid_request'.tr;
-      } else if (rawError.contains('Network error')) {
+      } else if (e.toString().contains('Network error')) {
         errorMessage = 'network_error'.tr;
-      } else {
-        errorMessage = rawError.tr.isNotEmpty ? rawError.tr : 'generic_error'.tr;
       }
 
       if (!_callbacks.setCurrentPasswordErrorCalled) {
@@ -188,9 +191,10 @@ class AuthPasswordManager {
           errorMessage,
           backgroundColor: Get.theme.colorScheme.error,
           colorText: Get.theme.colorScheme.onError,
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
           margin: const EdgeInsets.all(16),
           borderRadius: 8,
+          duration: const Duration(milliseconds: 1500),
         );
       }
       rethrow;

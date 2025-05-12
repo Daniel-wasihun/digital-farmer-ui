@@ -21,6 +21,9 @@ class AIChatController extends GetxController {
   final GetStorage _storage = GetStorage();
   static const String _chatHistoryKey = 'ai_chat_history';
   static const String _apiUrl = '${BaseApi.aiBaseUrl}/ask/agriculture';
+  static const int _maxQueryLength = 1000;
+  static const int _maxRetries = 2;
+  static const Duration _baseRetryDelay = Duration(milliseconds: 500);
 
   @override
   void onInit() {
@@ -52,6 +55,7 @@ class AIChatController extends GetxController {
             'timestamp': DateTime.parse(item['timestamp']),
             'isError': item['isError'] ?? false,
             'query': item['query'],
+            'canRetry': item['canRetry'] ?? false,
           };
         }).toList().cast<Map<String, dynamic>>();
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -59,13 +63,17 @@ class AIChatController extends GetxController {
         });
       }
     } catch (e) {
-      print('Error loading chat history: $e');
+      print('AIChatController: Error loading chat history: $e');
+      Get.closeAllSnackbars();
       Get.snackbar(
-        'Error'.tr,
-        'An error occurred. Please try again.'.tr,
+        'error'.tr,
+        'couldnt_load_chat_history'.tr,
         snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
       );
       messages.clear();
     }
@@ -82,17 +90,22 @@ class AIChatController extends GetxController {
           'timestamp': message['timestamp'].toIso8601String(),
           'isError': message['isError'],
           'query': message['query'],
+          'canRetry': message['canRetry'] ?? false,
         };
       }).toList());
       await _storage.write(_chatHistoryKey, encoded);
     } catch (e) {
-      print('Error saving chat history: $e');
+      print('AIChatController: Error saving chat history: $e');
+      Get.closeAllSnackbars();
       Get.snackbar(
-        'Error'.tr,
-        'An error occurred. Please try again.'.tr,
+        'error'.tr,
+        'couldnt_save_chat_history'.tr,
         snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
       );
     }
   }
@@ -112,50 +125,82 @@ class AIChatController extends GetxController {
   }
 
   void scrollListener() {
-    _showScrollToBottom.value = scrollController.position.pixels > 200;
+    final offset = scrollController.position.pixels;
+    final maxExtent = scrollController.position.maxScrollExtent;
+    // Show arrow if user is more than 100 pixels from the bottom and scrolled down a bit
+    _showScrollToBottom.value = offset < maxExtent - 100 && offset > 200;
   }
 
-  String _reformatResponse(String rawResponse) {
+  String _reformatResponse(String? rawResponse) {
+    if (rawResponse == null || rawResponse.isEmpty) {
+      return 'Sorry, I didn’t receive a response. Please try again.';
+    }
+
+    // Handle specific known responses
     if (rawResponse.contains('I am only aware of agricultural') ||
         rawResponse.contains('እኔ የማውቀው ስለ እርሻ')) {
       return rawResponse;
     }
 
-    final lines = rawResponse.split('\n');
-    final formattedLines = <String>[];
-    bool inBulletSection = false;
+    try {
+      final lines = rawResponse.split('\n');
+      final formattedLines = <String>[];
+      bool inBulletSection = false;
 
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) {
-        formattedLines.add('');
-        continue;
-      }
+      for (var line in lines) {
+        line = line.trim();
+        if (line.isEmpty) {
+          formattedLines.add('');
+          continue;
+        }
 
-      if (line.startsWith('* **') && line.endsWith('**')) {
-        formattedLines.add('**${line.replaceFirst('* **', '').replaceAll('**', '')}**');
-        inBulletSection = false;
-      } else if (line.startsWith('* ')) {
-        formattedLines.add('• ${line.replaceFirst('* ', '')}');
-        inBulletSection = true;
-      } else if (inBulletSection && !line.startsWith('* ')) {
-        formattedLines.add(line);
-        inBulletSection = false;
-      } else {
-        formattedLines.add(line);
+        if (line.startsWith('* **') && line.endsWith('**')) {
+          formattedLines.add('**${line.replaceFirst('* **', '').replaceAll('**', '')}**');
+          inBulletSection = false;
+        } else if (line.startsWith('* ')) {
+          formattedLines.add('• ${line.replaceFirst('* ', '')}');
+          inBulletSection = true;
+        } else if (inBulletSection && !line.startsWith('* ')) {
+          formattedLines.add(line);
+          inBulletSection = false;
+        } else {
+          formattedLines.add(line);
+        }
       }
+      return formattedLines.join('\n');
+    } catch (e) {
+      print('AIChatController: Error reformatting response: $e');
+      return rawResponse; // Fallback to raw response if reformatting fails
     }
-    return formattedLines.join('\n');
   }
 
-  Future<void> sendMessage(String query, {bool isRetry = false}) async {
+  Future<void> sendMessage(String query, {bool isRetry = false, int retryCount = 0}) async {
     if (query.trim().isEmpty) {
+      Get.closeAllSnackbars();
       Get.snackbar(
-        'Error'.tr,
-        'Please enter a question'.tr,
+        'error'.tr,
+        'please_type_question'.tr,
         snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+
+    if (query.length > _maxQueryLength) {
+      Get.closeAllSnackbars();
+      Get.snackbar(
+        'error'.tr,
+        'question_too_long'.trParams({'max': _maxQueryLength.toString()}),
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
       );
       return;
     }
@@ -167,6 +212,7 @@ class AIChatController extends GetxController {
       'timestamp': DateTime.now(),
       'isError': false,
       'query': query,
+      'canRetry': false,
     };
 
     if (!isRetry) {
@@ -196,73 +242,82 @@ class AIChatController extends GetxController {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        final rawResponse = data['response'];
+        final rawResponse = data['response']?.toString();
         final formattedResponse = _reformatResponse(rawResponse);
         final botMessage = {
           'sender': 'bot',
           'text': formattedResponse,
-          'isRich': !rawResponse.contains('I am only aware of agricultural') &&
+          'isRich': rawResponse != null &&
+              !rawResponse.contains('I am only aware of agricultural') &&
               !rawResponse.contains('እኔ የማውቀው ስለ እርሻ'),
           'timestamp': DateTime.now(),
           'isError': false,
           'query': query,
+          'canRetry': false,
         };
         messages.add(botMessage);
       } else {
         final errorDetail = response.statusCode == 400 || response.statusCode == 500
-            ? jsonDecode(utf8.decode(response.bodyBytes))['detail']
-            : 'Server error: ${response.statusCode}';
+            ? (jsonDecode(utf8.decode(response.bodyBytes))['detail']?.toString() ?? 'unknown_error')
+            : 'server_error';
+        print('AIChatController: Server error: $errorDetail, status: ${response.statusCode}');
+        final canRetry = response.statusCode == 500 && retryCount < _maxRetries;
         final errorMessage = {
           'sender': 'bot',
-          'text': errorDetail,
+          'text': canRetry ? 'couldnt_process_try_again'.tr : 'couldnt_process'.tr,
           'isRich': false,
           'isError': true,
           'query': query,
           'timestamp': DateTime.now(),
+          'canRetry': canRetry,
         };
         messages.add(errorMessage);
-        Get.snackbar(
-          'Error'.tr,
-          'An error occurred. Please try again.'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        if (canRetry) {
+          await Future.delayed(_baseRetryDelay * (retryCount + 1));
+          await sendMessage(query, isRetry: true, retryCount: retryCount + 1);
+        }
       }
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      print('AIChatController: Timeout error: $e');
+      final canRetry = retryCount < _maxRetries;
       final errorMessage = {
         'sender': 'bot',
-        'text': 'Connection Timeout: Please check your internet connection.',
+        'text': canRetry ? 'couldnt_connect_try_again'.tr : 'couldnt_connect'.tr,
         'isRich': false,
         'isError': true,
         'query': query,
         'timestamp': DateTime.now(),
+        'canRetry': canRetry,
       };
       messages.add(errorMessage);
-      Get.snackbar(
-        'Error'.tr,
-        'An error occurred. Please try again.'.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      if (canRetry) {
+        await Future.delayed(_baseRetryDelay * (retryCount + 1));
+        await sendMessage(query, isRetry: true, retryCount: retryCount + 1);
+      }
+    } on FormatException catch (e) {
+      print('AIChatController: Response format error: $e');
+      final errorMessage = {
+        'sender': 'bot',
+        'text': 'couldnt_process'.tr,
+        'isRich': false,
+        'isError': true,
+        'query': query,
+        'timestamp': DateTime.now(),
+        'canRetry': false,
+      };
+      messages.add(errorMessage);
     } catch (e) {
+      print('AIChatController: Generic error: $e');
       final errorMessage = {
         'sender': 'bot',
-        'text': 'Error: $e',
+        'text': 'something_went_wrong'.tr,
         'isRich': false,
         'isError': true,
         'query': query,
         'timestamp': DateTime.now(),
+        'canRetry': false,
       };
       messages.add(errorMessage);
-      Get.snackbar(
-        'Error'.tr,
-        'An error occurred. Please try again.'.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
     } finally {
       isLoading.value = false;
       client?.close();
@@ -315,11 +370,16 @@ class AIChatController extends GetxController {
         .toList()
         .join('\n');
     Clipboard.setData(ClipboardData(text: selectedMessages));
+    Get.closeAllSnackbars();
     Get.snackbar(
-      'Copied'.tr,
-      validIndices.length == 1 ? 'Message copied'.tr : 'Messages copied'.tr,
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
+      'success'.tr,
+      'copied_to_clipboard'.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Get.theme.colorScheme.secondary,
+      colorText: Get.theme.colorScheme.onSecondary,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 8,
+      duration: const Duration(seconds: 3),
     );
     clearSelection();
   }
@@ -334,14 +394,17 @@ class AIChatController extends GetxController {
     Get.dialog(
       AlertDialog(
         title: Text(
-          'Confirm Delete'.tr,
+          'confirm_delete'.tr,
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
-          'Are you sure you want to delete ${validIndices.length} message${validIndices.length > 1 ? 's' : ''}?\nThis action cannot be undone.'.tr,
+          'delete_messages_confirmation'.trParams({
+            'count': validIndices.length.toString(),
+            'plural': validIndices.length > 1 ? 's' : '',
+          }),
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
           ),
@@ -350,7 +413,7 @@ class AIChatController extends GetxController {
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
-              'Cancel'.tr,
+              'cancel'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 color: Get.theme.colorScheme.secondary,
@@ -366,15 +429,20 @@ class AIChatController extends GetxController {
               }
               _saveChatHistory();
               clearSelection();
+              Get.closeAllSnackbars();
               Get.snackbar(
-                'Deleted'.tr,
-                validIndices.length == 1 ? 'Message deleted'.tr : 'Messages deleted'.tr,
-                snackPosition: SnackPosition.BOTTOM,
-                duration: const Duration(seconds: 2),
+                'success'.tr,
+                'messages_deleted'.tr,
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: Get.theme.colorScheme.secondary,
+                colorText: Get.theme.colorScheme.onSecondary,
+                margin: const EdgeInsets.all(16),
+                borderRadius: 8,
+                duration: const Duration(seconds: 3),
               );
             },
             child: Text(
-              'Delete'.tr,
+              'delete'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 color: Get.theme.colorScheme.error,

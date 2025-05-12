@@ -1,43 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/app_controller.dart';
-import '../../controllers/chat/chat_controller.dart'; // Added for ChatController
-import '../../utils/constants.dart'; // Added for AppConstants.primaryColor
+import '../../controllers/chat/chat_controller.dart';
+import '../../controllers/market_controller.dart';
+import '../../utils/constants.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    // Initialize MarketController to ensure it's available for MarketPage
+    Get.put(MarketController());
+    // Initialize controllers
+    final AppController appController = Get.put(AppController());
+    final ChatController chatController = Get.put(ChatController());
+
+    // Use TweenAnimationBuilder for stateless fade animation
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      builder: (context, opacity, child) {
+        return Opacity(
+          opacity: opacity,
+          child: child,
+        );
+      },
+      child: _HomeScreenContent(
+        appController: appController,
+        chatController: chatController,
+      ),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenContent extends StatelessWidget {
+  final AppController appController;
+  final ChatController chatController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final AppController controller = Get.put(AppController());
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _animationController.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
+  _HomeScreenContent({
+    required this.appController,
+    required this.chatController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -45,197 +51,190 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final height = size.height;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet ? 1.2 : 1.0;
-
     final appBarHeight = (height * 0.07 * scaleFactor).clamp(48.0, 64.0);
 
-    // Access ChatController for badge count
-    final ChatController chatController = Get.put(ChatController());
-
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Scaffold(
-        key: _scaffoldKey,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(appBarHeight),
-          child: AppBar(
-            elevation: 2,
-            title: Obx(() => Text(
-                  controller.pageTitles[controller.selectedIndex.value].tr,
-                  style: TextStyle(
-                    fontSize: height * 0.024 * scaleFactor,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                )),
-            leading: IconButton(
-              icon: Icon(
-                Icons.menu,
-                size: height * 0.028 * scaleFactor,
-                color: Colors.white,
-              ),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            ),
-            actions: [
-              Obx(() => Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(right: 6 * scaleFactor),
-                        child: Text(
-                          Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
-                          style: TextStyle(
-                            fontSize: height * 0.018 * scaleFactor,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.language,
-                          size: height * 0.028 * scaleFactor,
-                          color: Colors.white,
-                        ),
-                        onPressed: () => controller.toggleLanguage(),
-                        tooltip: 'toggle_language'.tr,
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          controller.themeController.isDarkMode.value
-                              ? Icons.light_mode
-                              : Icons.dark_mode,
-                          size: height * 0.028 * scaleFactor,
-                          color: Colors.white,
-                        ),
-                        onPressed: () => controller.toggleTheme(),
-                        tooltip: controller.themeController.isDarkMode.value
-                            ? 'switch_to_light_mode'.tr
-                            : 'switch_to_dark_mode'.tr,
-                      ),
-                      SizedBox(width: 6 * scaleFactor),
-                    ],
-                  )),
-            ],
-            flexibleSpace: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(appBarHeight),
+        child: AppBar(
+          elevation: 2,
+          title: Obx(() => Text(
+                appController.pageTitles[appController.selectedIndex.value].tr,
+                style: TextStyle(
+                  fontSize: height * 0.024 * scaleFactor,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        drawer: Drawer(
-          width: 160,
-          child: Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                DrawerHeader(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Menu'.tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: height * 0.032 * scaleFactor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'App Name'.tr,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: height * 0.018 * scaleFactor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.home,
-                  title: 'Home'.tr,
-                  onTap: () {
-                    controller.changePage(0);
-                    Get.back();
-                  },
-                  height: height,
-                  scaleFactor: scaleFactor,
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.brightness_4,
-                  title: controller.themeController.isDarkMode.value
-                      ? 'Light Mode'.tr
-                      : 'Dark Mode'.tr,
-                  onTap: () {
-                    controller.toggleTheme();
-                    Get.back();
-                  },
-                  height: height,
-                  scaleFactor: scaleFactor,
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.logout,
-                  title: 'logout'.tr,
-                  onTap: () {
-                    controller.logout();
-                    Get.back();
-                  },
-                  height: height,
-                  scaleFactor: scaleFactor,
-                ),
-              ],
-            ),
-          ),
-        ),
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).scaffoldBackgroundColor,
-                Theme.of(context).colorScheme.surface.withOpacity(0.9),
-              ],
-            ),
-          ),
-          child: Obx(() => IndexedStack(
-                index: controller.selectedIndex.value,
-                children: controller.pageFactories.map((factory) => factory()).toList(),
               )),
+          leading: IconButton(
+            icon: Icon(
+              Icons.menu,
+              size: height * 0.028 * scaleFactor,
+              color: Colors.white,
+            ),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+          actions: [
+            Obx(() => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(right: 6 * scaleFactor),
+                      child: Text(
+                        Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
+                        style: TextStyle(
+                          fontSize: height * 0.018 * scaleFactor,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.language,
+                        size: height * 0.028 * scaleFactor,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => appController.toggleLanguage(),
+                      tooltip: 'toggle_language'.tr,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        appController.themeController.isDarkMode.value
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        size: height * 0.028 * scaleFactor,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => appController.toggleTheme(),
+                      tooltip: appController.themeController.isDarkMode.value
+                          ? 'switch_to_light_mode'.tr
+                          : 'switch_to_dark_mode'.tr,
+                    ),
+                    SizedBox(width: 6 * scaleFactor),
+                  ],
+                )),
+          ],
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
         ),
-        bottomNavigationBar: Obx(
-          () => Container(
+      ),
+      drawer: Drawer(
+        width: 160,
+        child: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Menu'.tr,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: height * 0.032 * scaleFactor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'App Name'.tr,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: height * 0.018 * scaleFactor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildDrawerItem(
+                context: context,
+                icon: Icons.home,
+                title: 'Home'.tr,
+                onTap: () {
+                  appController.changePage(0);
+                  Get.back();
+                },
+                height: height,
+                scaleFactor: scaleFactor,
+              ),
+              _buildDrawerItem(
+                context: context,
+                icon: Icons.brightness_4,
+                title: appController.themeController.isDarkMode.value
+                    ? 'Light Mode'.tr
+                    : 'Dark Mode'.tr,
+                onTap: () {
+                  appController.toggleTheme();
+                  Get.back();
+                },
+                height: height,
+                scaleFactor: scaleFactor,
+              ),
+              _buildDrawerItem(
+                context: context,
+                icon: Icons.logout,
+                title: 'logout'.tr,
+                onTap: () {
+                  appController.logout();
+                  Get.back();
+                },
+                height: height,
+                scaleFactor: scaleFactor,
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).scaffoldBackgroundColor,
+              Theme.of(context).colorScheme.surface.withOpacity(0.9),
+            ],
+          ),
+        ),
+        child: Obx(() => IndexedStack(
+              index: appController.selectedIndex.value,
+              children: appController.pageFactories.map((factory) => factory()).toList(),
+            )),
+      ),
+      bottomNavigationBar: Obx(() => Container(
             decoration: BoxDecoration(
               color: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
               boxShadow: [
@@ -250,17 +249,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               items: [
                 BottomNavigationBarItem(
                   icon: Icon(Icons.agriculture, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(Icons.agriculture, size: height * 0.028 * scaleFactor, color: Theme.of(context).colorScheme.primary),
+                  activeIcon: Icon(
+                    Icons.agriculture,
+                    size: height * 0.028 * scaleFactor,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   label: 'cropTips'.tr,
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.cloud, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(Icons.cloud, size: height * 0.028 * scaleFactor, color: Theme.of(context).colorScheme.primary),
+                  activeIcon: Icon(
+                    Icons.cloud,
+                    size: height * 0.028 * scaleFactor,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   label: 'weather'.tr,
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.store, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(Icons.store, size: height * 0.028 * scaleFactor, color: Theme.of(context).colorScheme.primary),
+                  activeIcon: Icon(
+                    Icons.store,
+                    size: height * 0.028 * scaleFactor,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   label: 'market'.tr,
                 ),
                 BottomNavigationBarItem(
@@ -295,7 +306,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   activeIcon: Obx(() => Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          Icon(Icons.chat, size: height * 0.028 * scaleFactor, color: Theme.of(context).colorScheme.primary),
+                          Icon(
+                            Icons.chat,
+                            size: height * 0.028 * scaleFactor,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                           if (chatController.totalUnseenMessageCount > 0)
                             Positioned(
                               right: -5 * scaleFactor,
@@ -324,14 +339,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.settings, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(Icons.settings, size: height * 0.028 * scaleFactor, color: Theme.of(context).colorScheme.primary),
+                  activeIcon: Icon(
+                    Icons.settings,
+                    size: height * 0.028 * scaleFactor,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   label: 'settings'.tr,
                 ),
               ],
-              currentIndex: controller.selectedIndex.value,
+              currentIndex: appController.selectedIndex.value,
               selectedItemColor: Theme.of(context).colorScheme.primary,
-              unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor?.withOpacity(0.6),
-              onTap: controller.changePage,
+              unselectedItemColor:
+                  Theme.of(context).bottomNavigationBarTheme.unselectedItemColor?.withOpacity(0.6),
+              onTap: appController.changePage,
               type: BottomNavigationBarType.fixed,
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -344,9 +364,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 fontWeight: FontWeight.w400,
               ),
             ),
-          ),
-        ),
-      ),
+          )),
     );
   }
 

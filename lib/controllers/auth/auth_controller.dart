@@ -54,7 +54,7 @@ class AuthController extends GetxController with AuthValidationMixin {
     super.onInit();
     final callbacks = AuthControllerCallbacks(
       setIsLoading: (value) => isLoading.value = value,
-      showSnackbar: (title, message, {backgroundColor, colorText, snackPosition, borderRadius, margin}) {
+      showSnackbar: (title, message, {backgroundColor, colorText, snackPosition, borderRadius, margin, duration}) {
         Get.snackbar(
           title,
           message,
@@ -63,7 +63,7 @@ class AuthController extends GetxController with AuthValidationMixin {
           snackPosition: snackPosition ?? SnackPosition.TOP,
           borderRadius: borderRadius ?? 8,
           margin: margin ?? const EdgeInsets.all(16),
-          duration: const Duration(milliseconds: 1500),
+          duration: duration ?? const Duration(milliseconds: 1500),
           isDismissible: true,
           animationDuration: const Duration(milliseconds: 300),
         );
@@ -163,7 +163,12 @@ class AuthController extends GetxController with AuthValidationMixin {
       );
 
       Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
-          backgroundColor: Get.theme.colorScheme.secondary, colorText: Get.theme.colorScheme.onSecondary);
+          backgroundColor: Get.theme.colorScheme.secondary,
+          colorText: Get.theme.colorScheme.onSecondary,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+          duration: const Duration(milliseconds: 1500));
       Get.toNamed(AppRoutes.getVerifyOTPPage(), arguments: {
         'email': user.email.toLowerCase(),
         'user': user,
@@ -171,8 +176,13 @@ class AuthController extends GetxController with AuthValidationMixin {
         'type': 'signup',
       });
     } catch (e) {
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Get.theme.colorScheme.error, colorText: Get.theme.colorScheme.onError);
+      Get.snackbar('error'.tr, 'signup_failed'.tr,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+          duration: const Duration(milliseconds: 1500));
     } finally {
       isLoading.value = false;
     }
@@ -195,6 +205,9 @@ class AuthController extends GetxController with AuthValidationMixin {
       Get.snackbar('success'.tr, 'logged_in_successfully'.tr,
           backgroundColor: Get.theme.colorScheme.secondary,
           colorText: Get.theme.colorScheme.onSecondary,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
           duration: const Duration(milliseconds: 1500));
 
       resetAllFields();
@@ -203,8 +216,13 @@ class AuthController extends GetxController with AuthValidationMixin {
       await Future.delayed(const Duration(milliseconds: 500));
       Get.offAllNamed(AppRoutes.getHomePage(), arguments: {'fromSignIn': true});
     } catch (e) {
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Get.theme.colorScheme.error, colorText: Get.theme.colorScheme.onError);
+      Get.snackbar('error'.tr, 'signin_failed'.tr,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+          duration: const Duration(milliseconds: 1500));
     } finally {
       isLoading.value = false;
     }
@@ -288,8 +306,13 @@ class AuthController extends GetxController with AuthValidationMixin {
       newPasswordController.clear();
       confirmPasswordController.clear();
     } catch (e) {
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Get.theme.colorScheme.error, colorText: Get.theme.colorScheme.onError);
+      Get.snackbar('error'.tr, 'password_change_failed'.tr,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+          duration: const Duration(milliseconds: 1500));
     }
   }
 
@@ -309,8 +332,13 @@ class AuthController extends GetxController with AuthValidationMixin {
       final userEmail = user['email'];
       await _securityManager.setSecurityQuestion(userEmail, question, answer);
     } catch (e) {
-      Get.snackbar('error'.tr, e.toString().replaceFirst('Exception: ', ''),
-          backgroundColor: Get.theme.colorScheme.error, colorText: Get.theme.colorScheme.onError);
+      Get.snackbar('error'.tr, 'security_question_failed'.tr,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+          duration: const Duration(milliseconds: 1500));
     }
   }
 

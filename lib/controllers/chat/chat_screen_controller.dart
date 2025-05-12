@@ -313,11 +313,16 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
   void sendMessage(String text) {
     if (text.trim().isEmpty || chatController.currentUserId.value == null) {
       print('ChatScreenController: Empty text or no userId');
-      Get.snackbar('Error', 'Cannot send empty message'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError,
-          duration: const Duration(seconds: 2));
+      Get.snackbar(
+        'error'.tr,
+        'cannot_send_empty_message'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        duration: const Duration(seconds: 2),
+      );
       return;
     }
     chatController.send(text.trim(), receiverId);
@@ -383,6 +388,16 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     }
     final selectedMessages = validIndices.map((index) => messageItems[index]['message']['message'] as String).join('\n');
     Clipboard.setData(ClipboardData(text: selectedMessages));
+    Get.snackbar(
+      'success'.tr,
+      validIndices.length == 1 ? 'message_copied'.tr : 'messages_copied'.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Get.theme.colorScheme.secondary,
+      colorText: Get.theme.colorScheme.onSecondary,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 8,
+      duration: const Duration(seconds: 2),
+    );
     clearSelection();
   }
 
@@ -396,7 +411,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     Get.dialog(
       AlertDialog(
         title: Text(
-          'Confirm Deletion',
+          'confirm_deletion'.tr,
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
             fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
@@ -404,7 +419,10 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
           ),
         ),
         content: Text(
-          'Are you sure you want to delete ${validIndices.length} message${validIndices.length == 1 ? '' : 's'}?'.tr,
+          'delete_messages_confirmation'.trParams({
+            'count': validIndices.length.toString(),
+            'plural': validIndices.length > 1 ? 's' : '',
+          }),
           style: TextStyle(
             fontFamily: GoogleFonts.poppins().fontFamily,
             fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
@@ -414,7 +432,7 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
-              'Cancel'.tr,
+              'cancel'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
@@ -431,10 +449,20 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
               }
               chatController.saveMessagesForUser(receiverId);
               _updateMessageItems();
+              Get.snackbar(
+                'success'.tr,
+                validIndices.length == 1 ? 'message_deleted'.tr : 'messages_deleted'.tr,
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: Get.theme.colorScheme.secondary,
+                colorText: Get.theme.colorScheme.onSecondary,
+                margin: const EdgeInsets.all(16),
+                borderRadius: 8,
+                duration: const Duration(seconds: 2),
+              );
               clearSelection();
             },
             child: Text(
-              'Delete'.tr,
+              'delete'.tr,
               style: TextStyle(
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],

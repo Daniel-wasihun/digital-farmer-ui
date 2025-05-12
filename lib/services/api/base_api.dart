@@ -11,10 +11,10 @@ abstract class BaseApi {
   // static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'https://digital-farmer-ethio-z9wg.vercel.app';  
   // static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://10.175.28.81:8000';  
 
-  static const String apiBaseUrl = kIsWeb ? 'http://192.168.1.76:5000/api':'http://192.168.1.76:8000/api';
-  static const String imageBaseUrl =kIsWeb ? 'http://192.168.1.76:5000':'http://192.168.1.76:8000';
-  // static const String aiBaseUrl = kIsWeb ? 'http://192.168.1.76:8000': 'https://digital-farmer-ethio-z9wg.vercel.app';  
-  static const String aiBaseUrl = kIsWeb ? 'http://192.168.1.76:8000': 'http://192.168.1.76:7000';  
+  static const String apiBaseUrl = kIsWeb ? 'http://localhost:8000/api':'http://10.175.28.104:8000/api';
+  static const String imageBaseUrl =kIsWeb ? 'http://10.175.28.104:8000':'http://10.175.28.104:8000';
+  // static const String aiBaseUrl = kIsWeb ? 'http://10.175.28.104:8000': 'https://digital-farmer-ethio-z9wg.vercel.app';  
+  static const String aiBaseUrl = kIsWeb ? 'http://10.175.28.104:8000': 'http://10.175.28.104:7000';  
 
 
   // static const String apiBaseUrl = kIsWeb ? 'http://localhost:5000/api':'https://evolutionary-cornelle-daniel-wasihun-5f2c775b.koyeb.app/api';
