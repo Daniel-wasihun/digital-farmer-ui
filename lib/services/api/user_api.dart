@@ -4,9 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
-import 'package:get/get.dart';
 import 'base_api.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class UserApi extends BaseApi {
   Future<List<Map<String, dynamic>>> getUsers() async {

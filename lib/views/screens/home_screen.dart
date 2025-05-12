@@ -13,7 +13,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final AppController controller = Get.find<AppController>();
+  final AppController controller = Get.put(AppController());
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 

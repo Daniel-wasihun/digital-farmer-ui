@@ -98,11 +98,6 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       }
     } catch (e) {
       print('ChatScreenController: Error loading text scale: $e');
-      Get.snackbar('Error', 'Failed to load text settings'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError,
-          duration: const Duration(seconds: 2));
     }
   }
 
@@ -112,11 +107,6 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
       await _storage.write(_textScaleKey, textScaleFactor.value);
     } catch (e) {
       print('ChatScreenController: Error saving text scale: $e');
-      Get.snackbar('Error', 'Failed to save text settings'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError,
-          duration: const Duration(seconds: 2));
     }
   }
 
@@ -393,16 +383,6 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     }
     final selectedMessages = validIndices.map((index) => messageItems[index]['message']['message'] as String).join('\n');
     Clipboard.setData(ClipboardData(text: selectedMessages));
-    Get.snackbar(
-      'Copied',
-      validIndices.length == 1 ? 'Message copied to clipboard'.tr : 'Messages copied to clipboard'.tr,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Get.theme.colorScheme.secondary,
-      colorText: Get.theme.colorScheme.onSecondary,
-      margin: const EdgeInsets.all(8),
-      icon: const Icon(Icons.copy, color: Colors.white),
-      duration: const Duration(seconds: 2),
-    );
     clearSelection();
   }
 
@@ -451,16 +431,6 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
               }
               chatController.saveMessagesForUser(receiverId);
               _updateMessageItems();
-              Get.snackbar(
-                'Deleted',
-                validIndices.length == 1 ? 'Message deleted'.tr : 'Messages deleted'.tr,
-                snackPosition: SnackPosition.TOP,
-                backgroundColor: Get.theme.colorScheme.secondary,
-                colorText: Get.theme.colorScheme.onSecondary,
-                margin: const EdgeInsets.all(8),
-                icon: const Icon(Icons.delete, color: Colors.white),
-                duration: const Duration(seconds: 2),
-              );
               clearSelection();
             },
             child: Text(

@@ -1,46 +1,45 @@
 import 'dart:async';
+import 'package:agri/models/crop_price.dart';
+import 'package:agri/services/market_service.dart';
+import 'package:agri/utils/app_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/crop_price.dart';
-import '../controllers/market_controller.dart';
+import 'package:logger/logger.dart';
 
 class PriceController extends GetxController {
-  final MarketController marketController = Get.find<MarketController>();
-  final CropPrice? price = Get.arguments as CropPrice?;
-  final formKey = GlobalKey<FormState>();
+  final MarketService _marketService = Get.find<MarketService>();
+  final logger = Logger();
+
   final cropName = ''.obs;
   final cropType = ''.obs;
   final marketName = ''.obs;
+  final date = DateTime.now().obs;
+  final isLoading = false.obs;
+  final isEditing = false.obs;
   final cropNameError = Rxn<String>();
   final cropTypeError = Rxn<String>();
   final marketNameError = Rxn<String>();
-  final pricePerKgController = TextEditingController();
-  final pricePerQuintalController = TextEditingController();
   final pricePerKgError = Rxn<String>();
   final pricePerQuintalError = Rxn<String>();
-  final date = DateTime.now().obs;
-  final isLoading = false.obs;
+
+  final pricePerKgController = TextEditingController();
+  final pricePerQuintalController = TextEditingController();
 
   Timer? _debounceTimer;
   static const _debounceDuration = Duration(milliseconds: 300);
 
+  CropPrice? price;
+
+  Map<String, List<String>> get cropData => _marketService.cropData;
+  List<String> get marketNames => _marketService.marketNames;
+
   @override
   void onInit() {
     super.onInit();
+    price = Get.arguments as CropPrice?;
+    logger.i(
+        'PriceController: onInit called, price: ${price != null ? 'ID: ${price!.id}, Crop: ${price!.cropName}' : 'null'}');
     initializeFields();
-  }
-
-  void initializeFields() {
-    if (price != null) {
-      cropName.value = price!.cropName;
-      cropType.value = price!.cropType;
-      marketName.value = price!.marketName;
-      pricePerKgController.text = price!.pricePerKg.toStringAsFixed(2);
-      pricePerQuintalController.text = price!.pricePerQuintal.toStringAsFixed(2);
-      date.value = price!.date;
-    } else {
-      reset();
-    }
   }
 
   @override
@@ -49,6 +48,42 @@ class PriceController extends GetxController {
     pricePerKgController.dispose();
     pricePerQuintalController.dispose();
     super.onClose();
+  }
+
+  void initializeFields() {
+    logger.i(
+        'PriceController: Initializing fields, price: ${price != null ? 'ID: ${price!.id}' : 'null'}');
+    if (price != null) {
+      isEditing.value = true;
+      cropName.value = cropData.containsKey(price!.cropName) ? price!.cropName : '';
+      cropType.value = cropName.value.isNotEmpty &&
+              cropData[cropName.value]?.contains(price!.cropType) == true
+          ? price!.cropType
+          : '';
+      marketName.value =
+          marketNames.contains(price!.marketName) ? price!.marketName : '';
+      pricePerKgController.text = price!.pricePerKg.toStringAsFixed(2);
+      pricePerQuintalController.text = price!.pricePerQuintal.toStringAsFixed(2);
+      date.value = price!.date;
+      if (cropName.value != price!.cropName ||
+          cropType.value != price!.cropType ||
+          marketName.value != price!.marketName) {
+        logger.w(
+            'PriceController: Invalid price data - Crop: ${price!.cropName}, Type: ${price!.cropType}, Market: ${price!.marketName}');
+        AppUtils.showSnackbar(
+          title: 'Warning'.tr,
+          message: 'Some price data is invalid and may not display correctly'.tr,
+          backgroundColor: Get.theme.colorScheme.error,
+          textColor: Colors.white,
+        );
+      }
+      logger.i(
+          'PriceController: Set fields for editing - ID: ${price!.id}, Crop: ${cropName.value}, Type: ${cropType.value}, Market: ${marketName.value}, Price/kg: ${pricePerKgController.text}, Price/quintal: ${pricePerQuintalController.text}, Date: ${date.value}');
+    } else {
+      isEditing.value = false;
+      reset();
+      logger.i('PriceController: Initialized for adding new price');
+    }
   }
 
   void reset() {
@@ -64,11 +99,34 @@ class PriceController extends GetxController {
     pricePerQuintalError.value = null;
     date.value = DateTime.now();
     isLoading.value = false;
+    price = null;
+    logger.i('PriceController: Form reset');
   }
 
-  void debounceValidation(void Function() callback) {
+  void debounceValidation(VoidCallback callback) {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(_debounceDuration, callback);
+  }
+
+  String? validateCropName(String? value) {
+    if (value == null || value.isEmpty || value == 'Crop Name'.tr) {
+      return 'Crop Name required'.tr;
+    }
+    return null;
+  }
+
+  String? validateCropType(String? value) {
+    if (value == null || value.isEmpty || value == 'Crop Type'.tr) {
+      return 'Crop Type required'.tr;
+    }
+    return null;
+  }
+
+  String? validateMarketName(String? value) {
+    if (value == null || value.isEmpty || value == 'Market'.tr) {
+      return 'Market required'.tr;
+    }
+    return null;
   }
 
   String? validatePricePerKg(String? value) {
@@ -85,8 +143,8 @@ class PriceController extends GetxController {
     if (priceValue > 10000) {
       return 'Price/kg too high (max 10,000 ETB)'.tr;
     }
-    // Trigger quintal validation when kg price is valid
-    pricePerQuintalError.value = validatePricePerQuintal(pricePerQuintalController.text, value);
+    pricePerQuintalError.value =
+        validatePricePerQuintal(pricePerQuintalController.text, value);
     return null;
   }
 
@@ -112,25 +170,28 @@ class PriceController extends GetxController {
   }
 
   Future<void> savePrice() async {
-    // Validate dropdowns
-    cropNameError.value = cropName.value.isEmpty ? 'Crop Name required'.tr : null;
-    cropTypeError.value = cropType.value.isEmpty ? 'Crop Type required'.tr : null;
-    marketNameError.value = marketName.value.isEmpty ? 'Market required'.tr : null;
-
-    // Validate price fields
+    logger.i('PriceController: Attempting to save price, isEditing: ${isEditing.value}');
+    cropNameError.value = validateCropName(cropName.value);
+    cropTypeError.value = validateCropType(cropType.value);
+    marketNameError.value = validateMarketName(marketName.value);
     pricePerKgError.value = validatePricePerKg(pricePerKgController.text);
-    pricePerQuintalError.value = validatePricePerQuintal(pricePerQuintalController.text, pricePerKgController.text);
+    pricePerQuintalError.value =
+        validatePricePerQuintal(pricePerQuintalController.text, pricePerKgController.text);
 
-    // Check all validations
-    if (cropNameError.value == null &&
-        cropTypeError.value == null &&
-        marketNameError.value == null &&
-        pricePerKgError.value == null &&
-        pricePerQuintalError.value == null) {
-      isLoading.value = true;
-      final normalizedDate = DateTime.utc(date.value.year, date.value.month, date.value.day);
+    if (cropNameError.value != null ||
+        cropTypeError.value != null ||
+        marketNameError.value != null ||
+        pricePerKgError.value != null ||
+        pricePerQuintalError.value != null) {
+      logger.w('PriceController: Validation failed');
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final normalizedDate = AppUtils.normalizeDate(date.value);
       final newPrice = CropPrice(
-        id: price?.id ?? '',
+        id: price?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         cropName: cropName.value,
         cropType: cropType.value,
         marketName: marketName.value,
@@ -141,61 +202,53 @@ class PriceController extends GetxController {
         updatedAt: DateTime.now(),
       );
 
-      if (price == null) {
-        final exists = marketController.prices.any((p) =>
-            p.cropName == newPrice.cropName &&
-            p.cropType == newPrice.cropType &&
-            p.marketName == newPrice.marketName &&
-            p.date.isAtSameMomentAs(normalizedDate));
+      if (!isEditing.value) {
+        final exists = await _marketService.checkPriceExists(newPrice);
         if (exists) {
-          isLoading.value = false;
-          marketController.showSnackbar(
+          logger.w('PriceController: Duplicate price detected');
+          AppUtils.showSnackbar(
             title: 'Error'.tr,
-            message: 'Price already exists for this crop, type, market, and date'.tr,
+            message:
+                'Price already exists for this crop, type, market, and date'.tr,
             backgroundColor: Get.theme.colorScheme.error,
             textColor: Colors.white,
           );
+          isLoading.value = false;
           return;
         }
       }
 
-      try {
-        if (price == null) {
-          await marketController.addPrice(newPrice);
-          Get.snackbar(
-            'Success'.tr,
-            'Price added successfully'.tr,
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Get.theme.colorScheme.secondary,
-            colorText: Get.theme.colorScheme.onSecondary,
-            duration: const Duration(seconds: 2),
-          );
-        } else {
-          await marketController.updatePrice(price!.id, newPrice);
-          Get.snackbar(
-            'Success'.tr,
-            'Price updated successfully'.tr,
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Get.theme.colorScheme.secondary,
-            colorText: Get.theme.colorScheme.onSecondary,
-            duration: const Duration(seconds: 2),
-          );
-        }
-        reset(); // Clear the form
-        await Future.delayed(const Duration(seconds: 2)); // Wait for snackbar to be visible
-        Get.back(); // Navigate back to market page
-      } catch (e) {
-        marketController.showSnackbar(
-          title: 'Error'.tr,
-          message: price == null
-              ? 'failed_to_add_price'.trParams({'error': e.toString()})
-              : 'failed_to_update_price'.trParams({'error': e.toString()}),
-          backgroundColor: Get.theme.colorScheme.error,
-          textColor: Colors.white,
-        );
-      } finally {
-        isLoading.value = false;
+      if (isEditing.value) {
+        logger.i('PriceController: Updating price with ID: ${price!.id}');
+        await _marketService.updatePrice(price!.id, newPrice);
+      } else {
+        logger.i('PriceController: Adding new price');
+        await _marketService.addPrice(newPrice);
       }
+
+      reset();
+      Get.back();
+      AppUtils.showSnackbar(
+        title: 'Success'.tr,
+        message: isEditing.value
+            ? 'Price updated successfully'.tr
+            : 'Price added successfully'.tr,
+        backgroundColor: Get.theme.colorScheme.primary,
+        textColor: Colors.white,
+      );
+      logger.i('PriceController: Price saved successfully');
+    } catch (e) {
+      logger.e('PriceController: Error saving price: $e');
+      AppUtils.showSnackbar(
+        title: 'Error'.tr,
+        message: isEditing.value
+            ? 'failed_to_update_price'.trParams({'error': e.toString()})
+            : 'failed_to_add_price'.trParams({'error': e.toString()}),
+        backgroundColor: Get.theme.colorScheme.error,
+        textColor: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
     }
   }
 }

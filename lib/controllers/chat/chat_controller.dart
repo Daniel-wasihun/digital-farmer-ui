@@ -269,8 +269,7 @@ class ChatController extends GetxController {
 
   Future<void> connect() async {
     if (_isConnecting || isConnected.value || currentUserId.value == null) {
-      print('ChatController: Skipping connect: connecting=$_isConnecting, connected=${isConnected.value}, userId=${currentUserId.value}');
-      return;
+      return _logSkipConnect();
     }
     final token = storageService.getToken();
     if (token == null || token.isEmpty) {
@@ -314,6 +313,11 @@ class ChatController extends GetxController {
     }
   }
 
+  void _logSkipConnect() {
+    print(
+        'ChatController: Skipping connect: connecting=$_isConnecting, connected=${isConnected.value}, userId=${currentUserId.value}');
+  }
+
   Future<void> send(String text, String receiverId) async {
     if (text.trim().isEmpty || currentUserId.value == null) {
       print('ChatController: Empty text or no userId');
@@ -331,17 +335,8 @@ class ChatController extends GetxController {
     await _addMessage(message);
     if (isConnected.value && socketClient.socket?.connected == true) {
       socketClient.sendMessage(currentUserId.value!, receiverId, text, message['messageId']);
-      Get.snackbar('Message Sent', 'Your message to $receiverId has been sent'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.secondary,
-          colorText: Get.theme.colorScheme.onSecondary,
-          duration: const Duration(seconds: 2));
     } else {
       await storeOfflineMessage(message);
-      Get.snackbar('Offline', 'Message stored locally, will send when online'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.secondary,
-          colorText: Get.theme.colorScheme.onSecondary);
     }
   }
 
@@ -695,11 +690,6 @@ class ChatController extends GetxController {
       saveMessagesForUser(receiverId);
       _updateFilteredUsers();
       print('ChatController: Message delivered: $messageId');
-      Get.snackbar('Message Delivered', 'Your message has been delivered'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.secondary,
-          colorText: Get.theme.colorScheme.onSecondary,
-          duration: const Duration(seconds: 2));
     }
   }
 
@@ -711,11 +701,6 @@ class ChatController extends GetxController {
       saveMessagesForUser(receiverId);
       _updateFilteredUsers();
       print('ChatController: Message read: $messageId');
-      Get.snackbar('Message Read', 'Your message has been read'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.secondary,
-          colorText: Get.theme.colorScheme.onSecondary,
-          duration: const Duration(seconds: 2));
     }
   }
 
@@ -839,7 +824,7 @@ class ChatController extends GetxController {
       'timestamp': latestMessage['timestamp'],
       'senderId': latestMessage['senderId'],
       'delivered': latestMessage['delivered'],
-      'read': latestMessage['read'],
+      'isRead': latestMessage['read'],
     };
   }
 

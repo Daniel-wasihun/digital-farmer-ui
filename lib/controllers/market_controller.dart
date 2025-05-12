@@ -1,14 +1,17 @@
-import 'dart:convert';
-import 'package:agri/services/api/base_api.dart';
+import 'package:agri/models/crop_price.dart';
+import 'package:agri/services/market_service.dart';
+import 'package:agri/utils/app_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:http/http.dart' as http;
-import '../models/crop_price.dart';
 import 'package:logger/logger.dart';
 
 class MarketController extends GetxController {
-  final box = GetStorage();
+  final MarketService _marketService = Get.put(MarketService());
+  final GetStorage box = GetStorage();
+  final logger = Logger();
+
+  // Observables
   final prices = <CropPrice>[].obs;
   final filteredPrices = <CropPrice>[].obs;
   final selectedWeek = Rxn<DateTime>();
@@ -19,255 +22,83 @@ class MarketController extends GetxController {
   final searchQuery = ''.obs;
   final isLoading = false.obs;
 
-  static const String apiBaseUrl = BaseApi.apiBaseUrl;
+  // Sorting options
+  final List<String> priceSortOptions = ['Default', 'Low to High', 'High to Low'];
+  final List<String> nameSortOptions = ['Default', 'Ascending', 'Descending'];
 
-  // Logger for debugging
-  final logger = Logger();
-
-  final Map<String, List<String>> cropData = {
-    "teff": ["red teff", "white teff", "sergegna teff"],
-    "maize": ["white maize", "yellow maize"],
-    "wheat": ["durum wheat", "bread wheat"],
-    "barley": ["malt barley", "food barley"],
-    "sorghum": ["white sorghum", "red sorghum"],
-    "millet": ["finger millet", "pearl millet"],
-    "oats": ["common oats"],
-    "finger_millet": ["red finger millet", "brown finger millet"],
-    "triticale": ["common triticale"],
-    "rice": ["upland rice", "lowland rice"],
-    "chickpea": ["desi chickpea", "kabuli chickpea"],
-    "haricot_bean": ["red haricot", "white haricot"],
-    "lentil": ["red lentil", "green lentil"],
-    "faba_bean": ["small faba", "large faba"],
-    "pea": ["field pea", "garden pea"],
-    "grass_pea": ["common grass pea"],
-    "soybean": ["common soybean"],
-    "niger_seed": ["black niger", "yellow niger"],
-    "flaxseed": ["brown flaxseed", "golden flaxseed"],
-    "sesame": ["white sesame", "black sesame"],
-    "groundnut": ["red groundnut", "white groundnut"],
-    "sunflower": ["common sunflower"],
-    "potato": ["red potato", "white potato"],
-    "sweet_potato": ["orange sweet potato", "white sweet potato"],
-    "taro": ["common taro"],
-    "cassava": ["bitter cassava", "sweet cassava"],
-    "yam": ["white yam", "yellow yam"],
-    "enset": ["common enset"],
-    "onion": ["red onion", "white onion"],
-    "tomato": ["roma tomato", "cherry tomato"],
-    "cabbage": ["green cabbage", "red cabbage"],
-    "carrot": ["orange carrot", "purple carrot"],
-    "beetroot": ["red beetroot"],
-    "kale": ["curly kale", "lacinato kale"],
-    "lettuce": ["romaine lettuce", "iceberg lettuce"],
-    "spinach": ["flat-leaf spinach", "savoy spinach"],
-    "green_pepper": ["bell pepper", "jalapeno"],
-    "eggplant": ["long eggplant", "round eggplant"],
-    "okra": ["green okra"],
-    "squash": ["butternut squash", "acorn squash"],
-    "avocado": ["hass avocado", "fuerte avocado"],
-    "banana": ["cavendish banana", "plantain"],
-    "mango": ["kent mango", "keitt mango"],
-    "papaya": ["solo papaya", "maradol papaya"],
-    "orange": ["navel orange", "valencia orange"],
-    "lemon": ["eureka lemon", "lisbon lemon"],
-    "lime": ["persian lime", "key lime"],
-    "grapefruit": ["ruby red grapefruit", "white grapefruit"],
-    "pineapple": ["cayenne pineapple"],
-    "guava": ["white guava", "pink guava"],
-    "chilli_pepper": ["red chilli", "green chilli"],
-    "ginger": ["common ginger"],
-    "turmeric": ["yellow turmeric"],
-    "garlic": ["hardneck garlic", "softneck garlic"],
-    "fenugreek": ["common fenugreek"],
-    "coriander": ["common coriander"],
-    "coffee": ["arabica coffee", "robusta coffee"],
-    "tea": ["black tea", "green tea"],
-    "sugarcane": ["common sugarcane"],
-    "tobacco": ["virginia tobacco", "burley tobacco"],
-    "cotton": ["upland cotton", "pima cotton"],
-    "cut_flowers": ["rose", "lily"]
-  };
-
-  final List<String> marketNames = ["Local", "Export"];
-  final List<String> priceSortOptions = ["Default", "Low to High", "High to Low"];
-  final List<String> nameSortOptions = ["Default", "Ascending", "Descending"];
+  // Getters for service data
+  Map<String, List<String>> get cropData => _marketService.cropData;
+  List<String> get marketNames => _marketService.marketNames;
 
   @override
   void onInit() {
     super.onInit();
-    selectedWeek.value = _getMondayOfWeek(DateTime.now());
+    // Initialize filters
+    selectedWeek.value = AppUtils.getMondayOfWeek(DateTime.now());
     selectedDay.value = null;
-    nameOrder.value = "Default";
-    priceOrder.value = "Default";
-    marketFilter.value = "";
+    nameOrder.value = 'Default';
+    priceOrder.value = 'Default';
+    marketFilter.value = '';
+
+    // Fetch initial data
     fetchCropData();
     fetchPrices();
 
+    // React to filter changes
     everAll([
       selectedWeek,
       selectedDay,
       priceOrder,
       marketFilter,
       nameOrder,
-      searchQuery
+      searchQuery,
     ], (_) => _applyFiltersAndSorting());
   }
 
-  // Safe method to show snackbars
-  void showSnackbar({
-    required String title,
-    required String message,
-    SnackPosition position = SnackPosition.TOP,
-    Color? backgroundColor,
-    Color? textColor,
-    Duration duration = const Duration(seconds: 3),
-    TextButton? mainButton,
-  }) {
-    if (Get.isSnackbarOpen) {
-      Get.closeCurrentSnackbar();
-    }
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: position,
-      backgroundColor: backgroundColor,
-      colorText: textColor,
-      duration: duration,
-      mainButton: mainButton,
-    );
-  }
-
+  // Fetch crop data
   Future<void> fetchCropData() async {
+    isLoading.value = true;
     try {
-      isLoading.value = true;
-      final response = await http.get(Uri.parse('$apiBaseUrl/crops'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is! List) {
-          throw Exception('Invalid crop data format');
-        }
-        final Map<String, List<String>> tempCropData = {};
-        for (var item in data) {
-          final cropName = item['cropName'] as String?;
-          final cropType = item['cropType'] as String?;
-          if (cropName != null && cropType != null) {
-            tempCropData.putIfAbsent(cropName, () => []).add(cropType);
-            tempCropData[cropName] = tempCropData[cropName]!.toSet().toList(); // Remove duplicates
-          }
-        }
-        cropData.clear();
-        cropData.addAll(tempCropData);
-      } else {
-        throw Exception('Failed to fetch crop data');
-      }
+      await _marketService.fetchCropData();
+      logger.i('MarketController: Fetched crop data');
     } catch (e) {
-      logger.e('Error fetching crop data: $e');
-      showSnackbar(
-        title: 'Error'.tr,
-        message: 'Failed to fetch crop data'.tr,
-        backgroundColor: Get.theme.colorScheme.error,
-        textColor: Colors.white,
-      );
+      logger.e('MarketController: Error fetching crop data: $e');
+      // Avoid showing snackbar on initial fetch
     } finally {
       isLoading.value = false;
     }
   }
 
+  // Fetch prices
   Future<void> fetchPrices() async {
-    Future.microtask(() => isLoading.value = true);
+    isLoading.value = true;
     try {
-      final queryParams = <String, String>{};
-
-      if (selectedDay.value != null) {
-        final dayStart = _normalizeDate(selectedDay.value!);
-        final dayEnd = dayStart.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
-        queryParams['dateStart'] = dayStart.toIso8601String();
-        queryParams['dateEnd'] = dayEnd.toIso8601String();
-      } else if (selectedWeek.value != null) {
-        final weekStart = _normalizeDate(selectedWeek.value!);
-        final weekEnd = _normalizeDate(weekStart.add(const Duration(days: 6)));
-        queryParams['dateStart'] = weekStart.toIso8601String();
-        queryParams['dateEnd'] = weekEnd.toIso8601String();
-      }
-
-      final uri = Uri.parse('$apiBaseUrl/prices').replace(queryParameters: queryParams);
-      final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to fetch prices');
-      }
-
-      final data = jsonDecode(response.body);
-      if (data is! Map<String, dynamic> || data['prices'] is! List) {
-        throw Exception('Invalid price data format');
-      }
-
-      prices.value = (data['prices'] as List).map((e) {
-        if (e['cropName'] == null ||
-            e['cropType'] == null ||
-            e['marketName'] == null ||
-            e['pricePerKg'] == null ||
-            e['pricePerQuintal'] == null ||
-            e['date'] == null) {
-          throw Exception('Invalid price data: missing required fields');
-        }
-        return CropPrice.fromJson({
-          '_id': e['_id']?.toString() ?? '',
-          'cropName': e['cropName'].toString(),
-          'cropType': e['cropType'].toString(),
-          'marketName': e['marketName'].toString(),
-          'pricePerKg': (e['pricePerKg'] is num) ? e['pricePerKg'].toDouble() : 0.0,
-          'pricePerQuintal': (e['pricePerQuintal'] is num) ? e['pricePerQuintal'].toDouble() : 0.0,
-          'date': e['date'].toString(),
-          'createdAt': e['createdAt']?.toString() ?? DateTime.now().toIso8601String(),
-          'updatedAt': e['updatedAt']?.toString() ?? DateTime.now().toIso8601String(),
-        });
-      }).toList();
-
+      prices.value = await _marketService.fetchPrices(
+        selectedDay: selectedDay.value,
+        selectedWeek: selectedWeek.value,
+      );
       _applyFiltersAndSorting();
+      logger.i('MarketController: Fetched ${prices.length} prices');
     } catch (e) {
-      logger.e('Error fetching prices: $e');
+      logger.e('MarketController: Error fetching prices: $e');
       prices.clear();
       filteredPrices.clear();
-      showSnackbar(
-        title: 'Error'.tr,
-        message: 'Failed to fetch prices'.tr,
-        backgroundColor: Get.theme.colorScheme.error,
-        textColor: Colors.white,
-      );
+      // Avoid showing snackbar on initial fetch
     } finally {
       isLoading.value = false;
     }
   }
 
+  // Check if price exists
   Future<bool> checkPriceExists(CropPrice price) async {
     try {
-      if (price.cropName.isEmpty || price.cropType.isEmpty || price.marketName.isEmpty) {
-        throw Exception('Invalid price data for existence check');
-      }
-      final normalizedDate = _normalizeDate(price.date);
-      final queryParams = {
-        'cropName': price.cropName,
-        'cropType': price.cropType,
-        'marketName': price.marketName,
-        'date': normalizedDate.toIso8601String(),
-      };
-      final uri = Uri.parse('$apiBaseUrl/prices').replace(queryParameters: queryParams);
-      final response = await http.get(uri);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is! Map<String, dynamic> || data['prices'] is! List) {
-          throw Exception('Invalid response format');
-        }
-        final exists = (data['prices'] as List).isNotEmpty;
-        logger.i('Duplicate price check: exists=$exists for ${price.cropName}, ${price.cropType}, ${price.marketName}, ${price.date}');
-        return exists;
-      }
-      throw Exception('Failed to check price existence');
+      final exists = await _marketService.checkPriceExists(price);
+      logger.i(
+          'MarketController: Duplicate check for ${price.cropName}, ${price.cropType}, ${price.marketName}, ${price.date}: $exists');
+      return exists;
     } catch (e) {
-      logger.e('Error checking price existence: $e');
-      showSnackbar(
+      logger.e('MarketController: Error checking price existence: $e');
+      AppUtils.showSnackbar(
         title: 'Error'.tr,
         message: 'Failed to check price existence'.tr,
         backgroundColor: Get.theme.colorScheme.error,
@@ -281,53 +112,24 @@ class MarketController extends GetxController {
     }
   }
 
+  // Add price
   Future<void> addPrice(CropPrice price) async {
-    Future.microtask(() => isLoading.value = true);
+    isLoading.value = true;
     try {
-      price = price.copyWith(
-        date: _normalizeDate(price.date),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      if (price.cropName.isEmpty) {
-        throw Exception('Crop name is required'.tr);
-      }
-      if (price.cropType.isEmpty) {
-        throw Exception('Crop type is required'.tr);
-      }
-      if (!marketNames.contains(price.marketName)) {
-        throw Exception('Invalid market name'.tr);
-      }
-      if (price.pricePerKg <= 0) {
-        throw Exception('Price per kg must be positive'.tr);
-      }
-      if (price.pricePerQuintal < price.pricePerKg * 50) {
-        throw Exception('Price per quintal must be at least 50 times price per kg'.tr);
-      }
-
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/prices'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(price.toJson()..remove('_id')),
-      );
-
-      if (response.statusCode != 201) {
-        throw Exception('Failed to add price');
-      }
-
+      await _marketService.addPrice(price);
       await fetchPrices();
-      showSnackbar(
+      AppUtils.showSnackbar(
         title: 'Success'.tr,
         message: 'Price added successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
       );
+      logger.i('MarketController: Price added successfully');
     } catch (e) {
-      logger.e('Error adding price: $e');
-      showSnackbar(
+      logger.e('MarketController: Error adding price: $e');
+      AppUtils.showSnackbar(
         title: 'Error'.tr,
-        message: e.toString(),
+        message: e.toString().tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
       );
@@ -337,55 +139,24 @@ class MarketController extends GetxController {
     }
   }
 
+  // Update price
   Future<void> updatePrice(String id, CropPrice price) async {
-    Future.microtask(() => isLoading.value = true);
+    isLoading.value = true;
     try {
-      if (id.isEmpty) {
-        throw Exception('Price ID required'.tr);
-      }
-      price = price.copyWith(
-        date: _normalizeDate(price.date),
-        updatedAt: DateTime.now(),
-      );
-
-      if (price.cropName.isEmpty) {
-        throw Exception('Crop name is required'.tr);
-      }
-      if (price.cropType.isEmpty) {
-        throw Exception('Crop type is required'.tr);
-      }
-      if (!marketNames.contains(price.marketName)) {
-        throw Exception('Invalid market name'.tr);
-      }
-      if (price.pricePerKg <= 0) {
-        throw Exception('Price per kg must be positive'.tr);
-      }
-      if (price.pricePerQuintal < price.pricePerKg * 50) {
-        throw Exception('Price per quintal must be at least 50 times price per kg'.tr);
-      }
-
-      final response = await http.put(
-        Uri.parse('$apiBaseUrl/prices/$id'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(price.toJson()),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to update price');
-      }
-
+      await _marketService.updatePrice(id, price);
       await fetchPrices();
-      showSnackbar(
+      AppUtils.showSnackbar(
         title: 'Success'.tr,
         message: 'Price updated successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
       );
+      logger.i('MarketController: Price updated successfully for ID: $id');
     } catch (e) {
-      logger.e('Error updating price: $e');
-      showSnackbar(
+      logger.e('MarketController: Error updating price: $e');
+      AppUtils.showSnackbar(
         title: 'Error'.tr,
-        message: e.toString(),
+        message: e.toString().tr,
         backgroundColor: Get.theme.colorScheme.error,
         textColor: Colors.white,
       );
@@ -395,31 +166,22 @@ class MarketController extends GetxController {
     }
   }
 
+  // Delete price
   Future<void> deletePrice(String id) async {
-    Future.microtask(() => isLoading.value = true);
+    isLoading.value = true;
     try {
-      if (id.isEmpty) {
-        throw Exception('Price ID required'.tr);
-      }
-      final response = await http.delete(
-        Uri.parse('$apiBaseUrl/prices/$id'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to delete price');
-      }
-
+      await _marketService.deletePrice(id);
       await fetchPrices();
-      showSnackbar(
+      AppUtils.showSnackbar(
         title: 'Success'.tr,
         message: 'Price deleted successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
       );
+      logger.i('MarketController: Price deleted successfully for ID: $id');
     } catch (e) {
-      logger.e('Error deleting price: $e');
-      showSnackbar(
+      logger.e('MarketController: Error deleting price: $e');
+      AppUtils.showSnackbar(
         title: 'Error'.tr,
         message: 'Failed to delete price'.tr,
         backgroundColor: Get.theme.colorScheme.error,
@@ -431,37 +193,17 @@ class MarketController extends GetxController {
     }
   }
 
+  // Clone prices
   Future<Map<String, dynamic>> clonePrices(List<DateTime> sourceDays, DateTime targetDate) async {
-    Future.microtask(() => isLoading.value = true);
+    isLoading.value = true;
     try {
-      if (sourceDays.isEmpty) {
-        throw Exception('Source days cannot be empty');
-      }
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/prices/clone'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'sourceDays': sourceDays.map((day) => _normalizeDate(day).toIso8601String()).toList(),
-          'targetDate': _normalizeDate(targetDate).toIso8601String(),
-        }),
-      );
-
-      if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception('Failed to clone prices');
-      }
-
-      final responseData = jsonDecode(response.body);
-      if (responseData is! Map<String, dynamic>) {
-        throw Exception('Invalid response format');
-      }
-
-      return {
-        'message': responseData['message']?.toString() ?? 'No prices available to clone',
-        'clonedPriceIds': List<String>.from(responseData['clonedPriceIds'] ?? []),
-      };
+      final result = await _marketService.clonePrices(sourceDays, targetDate);
+      await fetchPrices();
+      logger.i('MarketController: Cloned prices successfully');
+      return result;
     } catch (e) {
-      logger.e('Error cloning prices: $e');
-      showSnackbar(
+      logger.e('MarketController: Error cloning prices: $e');
+      AppUtils.showSnackbar(
         title: 'Error'.tr,
         message: 'Failed to clone prices'.tr,
         backgroundColor: Get.theme.colorScheme.error,
@@ -473,35 +215,22 @@ class MarketController extends GetxController {
     }
   }
 
+  // Undo clone
   Future<void> undoClonePrices(List<String> priceIds, DateTime weekStart) async {
-    Future.microtask(() => isLoading.value = true);
+    isLoading.value = true;
     try {
-      if (priceIds.isEmpty) {
-        throw Exception('Price IDs cannot be empty');
-      }
-          final response = await http.post(
-        Uri.parse('$apiBaseUrl/prices/delete-batch'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'priceIds': priceIds,
-          'weekStart': _normalizeDate(weekStart).toIso8601String(),
-        }),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to undo clone');
-      }
-
+      await _marketService.undoClonePrices(priceIds, weekStart);
       await fetchPrices();
-      showSnackbar(
+      AppUtils.showSnackbar(
         title: 'Success'.tr,
-        message: 'Clone operation undone successfully'.tr,
+        message: 'Clone undone successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
       );
+      logger.i('MarketController: Clone undone successfully');
     } catch (e) {
-      logger.e('Error undoing clone: $e');
-      showSnackbar(
+      logger.e('MarketController: Error undoing clone: $e');
+      AppUtils.showSnackbar(
         title: 'Error'.tr,
         message: 'Failed to undo clone'.tr,
         backgroundColor: Get.theme.colorScheme.error,
@@ -513,57 +242,22 @@ class MarketController extends GetxController {
     }
   }
 
+  // Batch insert prices
   Future<void> batchInsertPrices(List<CropPrice> pricesToInsert) async {
-    Future.microtask(() => isLoading.value = true);
+    isLoading.value = true;
     try {
-      if (pricesToInsert.isEmpty) {
-        throw Exception('No prices provided for batch insert');
-      }
-      final validatedPrices = pricesToInsert.map((price) {
-        if (price.cropName.isEmpty) {
-          throw Exception('Crop name is required'.tr);
-        }
-        if (price.cropType.isEmpty) {
-          throw Exception('Crop type is required'.tr);
-        }
-        if (!marketNames.contains(price.marketName)) {
-          throw Exception('Invalid market name'.tr);
-        }
-        if (price.pricePerKg <= 0) {
-          throw Exception('Price per kg must be positive'.tr);
-        }
-        if (price.pricePerQuintal < price.pricePerKg * 50) {
-          throw Exception('Price per quintal must be at least 50 times price per kg'.tr);
-        }
-        return price.copyWith(
-          date: _normalizeDate(price.date),
-          createdAt: price.createdAt ?? DateTime.now(),
-          updatedAt: price.updatedAt ?? DateTime.now(),
-        );
-      }).toList();
-
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/prices/batch'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'prices': validatedPrices.map((p) => p.toJson()..remove('_id')).toList(),
-        }),
-      );
-
-      if (response.statusCode != 201) {
-        throw Exception('Failed to batch insert prices');
-      }
-
+      await _marketService.batchInsertPrices(pricesToInsert);
       await fetchPrices();
-      showSnackbar(
+      AppUtils.showSnackbar(
         title: 'Success'.tr,
-        message: 'Batch inserted ${pricesToInsert.length} prices successfully'.tr,
+        message: 'Prices batch inserted successfully'.tr,
         backgroundColor: Get.theme.colorScheme.primary,
         textColor: Colors.white,
       );
+      logger.i('MarketController: Batch inserted ${pricesToInsert.length} prices');
     } catch (e) {
-      logger.e('Error batch inserting prices: $e');
-      showSnackbar(
+      logger.e('MarketController: Error batch inserting prices: $e');
+      AppUtils.showSnackbar(
         title: 'Error'.tr,
         message: 'Failed to batch insert prices'.tr,
         backgroundColor: Get.theme.colorScheme.error,
@@ -575,16 +269,17 @@ class MarketController extends GetxController {
     }
   }
 
+  // Setters for filters
   void setSelectedWeek(DateTime? week) {
-    selectedWeek.value = week != null ? _normalizeDate(week) : null;
+    selectedWeek.value = week != null ? AppUtils.normalizeDate(week) : null;
     selectedDay.value = null;
     fetchPrices();
   }
 
   void setSelectedDay(DateTime? day) {
     if (day != null) {
-      selectedDay.value = _normalizeDate(day);
-      selectedWeek.value = _getMondayOfWeek(day);
+      selectedDay.value = AppUtils.normalizeDate(day);
+      selectedWeek.value = AppUtils.getMondayOfWeek(day);
     } else {
       selectedDay.value = null;
     }
@@ -611,51 +306,16 @@ class MarketController extends GetxController {
     searchQuery.value = value.toLowerCase();
   }
 
+  // Apply filters and sorting
   void _applyFiltersAndSorting() {
-    List<CropPrice> result = List.from(prices);
-
-    if (marketFilter.value.isNotEmpty) {
-      result = result.where((price) => price.marketName == marketFilter.value).toList();
-    }
-
-    if (searchQuery.value.isNotEmpty) {
-      result = result.where((price) {
-        final query = searchQuery.value;
-        return price.cropName.toLowerCase().contains(query) ||
-            price.cropType.toLowerCase().contains(query) ||
-            price.marketName.toLowerCase().contains(query);
-      }).toList();
-    }
-
-    result.sort((a, b) {
-      if (priceOrder.value == 'Low to High') {
-        final priceCompare = a.pricePerKg.compareTo(b.pricePerKg);
-        if (priceCompare != 0) return priceCompare;
-      } else if (priceOrder.value == 'High to Low') {
-        final priceCompare = b.pricePerKg.compareTo(a.pricePerKg);
-        if (priceCompare != 0) return priceCompare;
-      }
-
-      if (nameOrder.value == 'Ascending') {
-        final nameCompare = a.cropName.compareTo(b.cropName);
-        if (nameCompare != 0) return nameCompare;
-      } else if (nameOrder.value == 'Descending') {
-        final nameCompare = b.cropName.compareTo(a.cropName);
-        if (nameCompare != 0) return nameCompare;
-      }
-
-      return b.date.compareTo(a.date);
-    });
-
-    filteredPrices.value = result;
-  }
-
-  DateTime _getMondayOfWeek(DateTime date) {
-    final daysToSubtract = (date.weekday - 1) % 7;
-    return _normalizeDate(date.subtract(Duration(days: daysToSubtract)));
-  }
-
-  DateTime _normalizeDate(DateTime date) {
-    return DateTime.utc(date.year, date.month, date.day);
+    filteredPrices.value = _marketService.filterAndSortPrices(
+      prices: prices,
+      selectedWeek: selectedWeek.value,
+      selectedDay: selectedDay.value,
+      searchQuery: searchQuery.value,
+      nameOrder: nameOrder.value,
+      priceOrder: priceOrder.value,
+      marketFilter: marketFilter.value.isEmpty ? 'All' : marketFilter.value,
+    );
   }
 }

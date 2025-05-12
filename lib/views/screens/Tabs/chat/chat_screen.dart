@@ -5,6 +5,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../../../controllers/chat/chat_screen_controller.dart';
 import '../../../../routes/app_routes.dart';
+import 'user_profile_screen.dart';
+import '../../../../utils/constants.dart';
+import '../../../../services/api/base_api.dart';
 
 class ChatScreen extends StatelessWidget {
   final String receiverId;
@@ -222,46 +225,49 @@ class ChatScreen extends StatelessWidget {
 
   Widget _buildSelectionAppBar(
       BuildContext context, double scaleFactor, ChatScreenController controller, List<String> fontFamilyFallbacks) {
-    return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      elevation: 2,
-      shadowColor: Colors.black26,
-      title: Obx(() => Text(
-            '${controller.selectedIndices.length} ${controller.selectedIndices.length == 1 ? 'message_selected'.tr : 'messages_selected'.tr}',
-            style: TextStyle(
-              fontFamily: GoogleFonts.poppins().fontFamily,
-              fontFamilyFallback: fontFamilyFallbacks,
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 18 * scaleFactor,
-              fontWeight: FontWeight.w600,
+    return PreferredSize(
+      preferredSize: Size.fromHeight(80 * scaleFactor),
+      child: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        elevation: 2,
+        shadowColor: Colors.black26,
+        title: Obx(() => Text(
+              '${controller.selectedIndices.length} ${controller.selectedIndices.length == 1 ? 'message_selected'.tr : 'messages_selected'.tr}',
+              style: TextStyle(
+                fontFamily: GoogleFonts.poppins().fontFamily,
+                fontFamilyFallback: fontFamilyFallbacks,
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontSize: 20 * scaleFactor,
+                fontWeight: FontWeight.w600,
+              ),
+            )),
+        leading: IconButton(
+          icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
+          onPressed: controller.clearSelection,
+          tooltip: 'cancel'.tr,
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.copy, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
+            onPressed: controller.copySelectedMessages,
+            tooltip: 'copy'.tr,
+          ),
+          IconButton(
+            icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
+            onPressed: () => controller.deleteSelectedMessages(),
+            tooltip: 'delete'.tr,
+          ),
+        ],
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                Theme.of(context).colorScheme.secondary.withOpacity(0.6),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          )),
-      leading: IconButton(
-        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
-        onPressed: controller.clearSelection,
-        tooltip: 'cancel'.tr,
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.copy, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
-          onPressed: controller.copySelectedMessages,
-          tooltip: 'copy'.tr,
-        ),
-        IconButton(
-          icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
-          onPressed: () => controller.deleteSelectedMessages(),
-          tooltip: 'delete'.tr,
-        ),
-      ],
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.6),
-              Theme.of(context).colorScheme.secondary.withOpacity(0.6),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
           ),
         ),
       ),
@@ -270,166 +276,148 @@ class ChatScreen extends StatelessWidget {
 
   Widget _buildAppBar(
       BuildContext context, double scaleFactor, ChatScreenController controller, List<String> fontFamilyFallbacks) {
-    return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      elevation: 2,
-      shadowColor: Colors.black26,
-      titleSpacing: 0,
-      title: Obx(() {
-        final user = controller.chatController.allUsers
-            .firstWhereOrNull((u) => u['email'] == receiverId);
-        final isTyping = controller.chatController.typingUsers.contains(receiverId);
-        final isOnline = user != null && user['online'] == true;
-        return GestureDetector(
-          onTap: () => Get.toNamed(
-            AppRoutes.getUserProfilePage(receiverId, receiverUsername),
-            arguments: {
+    return PreferredSize(
+      preferredSize: Size.fromHeight(80 * scaleFactor),
+      child: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        elevation: 2,
+        shadowColor: Colors.black26,
+        titleSpacing: 0,
+        title: Obx(() {
+          final user = controller.chatController.allUsers
+              .firstWhereOrNull((u) => u['email'] == receiverId);
+          final isTyping = controller.chatController.typingUsers.contains(receiverId);
+          final isOnline = user != null && user['online'] == true;
+          return GestureDetector(
+            onTap: () => UserProfileScreen.show(context, {
               'email': receiverId,
               'username': receiverUsername,
               'profilePicture': user?['profilePicture'],
               'bio': user?['bio'],
-            },
-          ),
-          child: Row(
-            children: [
-              SizedBox(width: 8 * scaleFactor),
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 20 * scaleFactor,
-                    backgroundColor: Theme.of(context).colorScheme.onPrimary,
-                    child: user != null && user['profilePicture']?.isNotEmpty == true
-                        ? ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: 'http://localhost:5000${user['profilePicture']}',
-                              fit: BoxFit.cover,
-                              width: 40 * scaleFactor,
-                              height: 40 * scaleFactor,
-                              placeholder: (context, url) => const CircularProgressIndicator(),
-                              errorWidget: (context, url, error) {
-                                print('AppBar profile picture error: $error, URL: $url');
-                                return Text(
-                                  receiverUsername.isNotEmpty ? receiverUsername[0].toUpperCase() : '?',
-                                  style: TextStyle(
-                                    fontFamily: GoogleFonts.poppins().fontFamily,
-                                    fontFamilyFallback: fontFamilyFallbacks,
-                                    color: Theme.of(context).colorScheme.primary,
-                                    fontSize: 20 * scaleFactor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        : Text(
-                            receiverUsername.isNotEmpty ? receiverUsername[0].toUpperCase() : '?',
+            }),
+            child: Row(
+              children: [
+                SizedBox(width: 8 * scaleFactor),
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 30 * scaleFactor,
+                      backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
+                      backgroundImage: user != null && user['profilePicture']?.isNotEmpty == true
+                          ? CachedNetworkImageProvider('${BaseApi.imageBaseUrl}${user['profilePicture']}')
+                          : null,
+                      child: user == null || user['profilePicture']?.isEmpty != false
+                          ? Text(
+                              receiverUsername.isNotEmpty ? receiverUsername[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                fontFamily: GoogleFonts.poppins().fontFamily,
+                                fontFamilyFallback: fontFamilyFallbacks,
+                                color: Colors.white,
+                                fontSize: 20 * scaleFactor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : null,
+                    ),
+                    if (isOnline)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          width: 12 * scaleFactor,
+                          height: 12 * scaleFactor,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Theme.of(context).colorScheme.onPrimary, width: 1.5 * scaleFactor),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                SizedBox(width: 8 * scaleFactor),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        receiverUsername,
+                        style: TextStyle(
+                          fontFamily: GoogleFonts.poppins().fontFamily,
+                          fontFamilyFallback: fontFamilyFallbacks,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontSize: 20 * scaleFactor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            isTyping ? 'typing'.tr : isOnline ? 'online'.tr : 'offline'.tr,
                             style: TextStyle(
                               fontFamily: GoogleFonts.poppins().fontFamily,
                               fontFamilyFallback: fontFamilyFallbacks,
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 20 * scaleFactor,
-                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                              fontSize: 14 * scaleFactor,
                             ),
                           ),
-                  ),
-                  if (isOnline)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 10 * scaleFactor,
-                        height: 10 * scaleFactor,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Theme.of(context).colorScheme.onPrimary, width: 1.5 * scaleFactor),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              SizedBox(width: 8 * scaleFactor),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      receiverUsername,
-                      style: TextStyle(
-                        fontFamily: GoogleFonts.poppins().fontFamily,
-                        fontFamilyFallback: fontFamilyFallbacks,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontSize: 18 * scaleFactor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          isTyping ? 'typing'.tr : isOnline ? 'online'.tr : 'offline'.tr,
-                          style: TextStyle(
-                            fontFamily: GoogleFonts.poppins().fontFamily,
-                            fontFamilyFallback: fontFamilyFallbacks,
-                            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-                            fontSize: 13 * scaleFactor,
-                          ),
-                        ),
-                        if (isTyping) ...[
-                          SizedBox(width: 5 * scaleFactor),
-                          _TypingDots(scaleFactor: scaleFactor, controller: controller),
+                          if (isTyping) ...[
+                            SizedBox(width: 5 * scaleFactor),
+                            _TypingDots(scaleFactor: scaleFactor, controller: controller),
+                          ],
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      }),
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
-        onPressed: () {
-          Get.delete<ChatScreenController>();
-          Get.offNamed(AppRoutes.getHomePage());
-        },
-        tooltip: 'back'.tr,
-      ),
-      actions: [
-        Obx(() => controller.chatController.errorMessage.value.isNotEmpty
-            ? IconButton(
-                icon: Icon(Icons.error, color: Colors.redAccent, size: 24 * scaleFactor),
-                onPressed: () => Get.snackbar(
-                  'Error',
-                  controller.chatController.errorMessage.value,
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.redAccent.withOpacity(0.8),
-                  colorText: Theme.of(context).colorScheme.onPrimary,
-                  margin: EdgeInsets.all(8 * scaleFactor),
-                  icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
-                  shouldIconPulse: true,
-                ),
-                tooltip: 'show_error'.tr,
-              )
-            : const SizedBox.shrink()),
-        IconButton(
-          icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onPrimary, size: 24 * scaleFactor),
+              ],
+            ),
+          );
+        }),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
           onPressed: () {
-            // TODO: Implement chat options/info
+            Get.delete<ChatScreenController>();
+            Get.offNamed(AppRoutes.getHomePage());
           },
-          tooltip: 'more_options'.tr,
+          tooltip: 'back'.tr,
         ),
-      ],
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.6),
-              Theme.of(context).colorScheme.secondary.withOpacity(0.6),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        actions: [
+          Obx(() => controller.chatController.errorMessage.value.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.error, color: Colors.redAccent, size: 28 * scaleFactor),
+                  onPressed: () => Get.snackbar(
+                    'Error',
+                    controller.chatController.errorMessage.value,
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.redAccent.withOpacity(0.8),
+                    colorText: Theme.of(context).colorScheme.onPrimary,
+                    margin: EdgeInsets.all(8 * scaleFactor),
+                    icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
+                    shouldIconPulse: true,
+                  ),
+                  tooltip: 'show_error'.tr,
+                )
+              : const SizedBox.shrink()),
+          IconButton(
+            icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onPrimary, size: 28 * scaleFactor),
+            onPressed: () {
+              // TODO: Implement chat options/info
+            },
+            tooltip: 'more_options'.tr,
+          ),
+        ],
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                Theme.of(context).colorScheme.secondary.withOpacity(0.6),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
         ),
       ),
