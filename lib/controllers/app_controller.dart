@@ -11,7 +11,7 @@ import 'auth/auth_controller.dart';
 import 'theme_controller.dart';
 
 class AppController extends GetxController {
-  final AuthController authController = Get.find<AuthController>();
+  final AuthController authController = Get.put(AuthController());
   final ThemeController themeController = Get.find<ThemeController>();
   final StorageService storageService = Get.find<StorageService>();
 

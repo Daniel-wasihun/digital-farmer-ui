@@ -4,6 +4,7 @@ import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
+import '../weather_controller.dart';
 import 'auth_controller_callbacks.dart';
 import 'auth_otp_manager.dart';
 import 'auth_password_manager.dart';
@@ -13,6 +14,7 @@ import 'auth_validation_mixin.dart';
 class AuthController extends GetxController with AuthValidationMixin {
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
+  final WeatherController _weatherController = Get.put(WeatherController());
 
   late final AuthOtpManager _otpManager;
   late final AuthPasswordManager _passwordManager;
@@ -20,7 +22,7 @@ class AuthController extends GetxController with AuthValidationMixin {
 
   final isLoading = false.obs;
   final isPasswordChangeSuccess = false.obs;
-  final userName = ''.obs; // Added userName observable
+  final userName = ''.obs;
 
   @override
   var usernameError = ''.obs;
@@ -83,7 +85,6 @@ class AuthController extends GetxController with AuthValidationMixin {
     _passwordManager = AuthPasswordManager(_apiService, _storageService, callbacks);
     _securityManager = AuthSecurityManager(_apiService, _storageService, callbacks);
 
-    // Initialize userName from stored user data
     _loadUserName();
   }
 
@@ -100,7 +101,6 @@ class AuthController extends GetxController with AuthValidationMixin {
     super.onClose();
   }
 
-  // Load username from storage
   void _loadUserName() {
     final user = _storageService.getUser();
     if (user != null && user['username'] != null) {
@@ -174,6 +174,8 @@ class AuthController extends GetxController with AuthValidationMixin {
         password,
       );
 
+      await _weatherController.storeUserLocation();
+
       Get.snackbar('success'.tr, 'otp_sent_to_email'.tr,
           backgroundColor: Get.theme.colorScheme.secondary,
           colorText: Get.theme.colorScheme.onSecondary,
@@ -214,7 +216,6 @@ class AuthController extends GetxController with AuthValidationMixin {
       await _storageService.saveUser(response['user']);
       await _storageService.saveToken(response['token']);
       
-      // Update userName after successful sign-in
       userName.value = response['user']['username'] ?? '';
 
       Get.snackbar('success'.tr, 'logged_in_successfully'.tr,
@@ -228,8 +229,9 @@ class AuthController extends GetxController with AuthValidationMixin {
       resetAllFields();
       resetErrors();
 
-      await Future.delayed(const Duration(milliseconds: 500));
       Get.offAllNamed(AppRoutes.getHomePage(), arguments: {'fromSignIn': true});
+
+      _weatherController.storeUserLocation();
     } catch (e) {
       Get.snackbar('error'.tr, 'signin_failed'.tr,
           backgroundColor: Get.theme.colorScheme.error,
@@ -244,7 +246,7 @@ class AuthController extends GetxController with AuthValidationMixin {
   }
 
   Future<void> logout() async {
-    userName.value = ''; // Clear userName on logout
+    userName.value = '';
     await _storageService.clear();
     Get.offAllNamed(AppRoutes.getSignInPage());
   }

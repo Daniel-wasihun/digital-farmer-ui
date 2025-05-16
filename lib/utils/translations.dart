@@ -317,11 +317,11 @@ class AppTranslations extends Translations {
           'Cash Crop': 'Cash Crop',
 
           // Soil Types
-          'Nitosols': 'Nitosols',
-          'Vertisols': 'Vertisols',
-          'Cambisols': 'Cambisols',
-          'Arenosols': 'Arenosols',
-          'Fluvisols': 'Fluvisols',
+          'Nitosols': 'Loam',
+          'Vertisols': 'Clay',
+          'Cambisols': 'Silt',
+          'Arenosols': 'Sandy',
+          'Fluvisols': 'Muddy',
 
           // Growing Seasons
           'Meher': 'Meher',
@@ -719,6 +719,13 @@ class AppTranslations extends Translations {
         "message_selected": "Message selected",
         "messages_selected": "Messages selected",
 
+        'optimal_temp_range': 'Optimal Temperature Range',
+        'weekly_water': 'Weekly Water',
+        'optimal_humidity': 'Optimal Humidity',
+        'altitude_range': 'Altitude Range',
+        'soil_type': 'Soil Type',
+        'growing_season': 'Growing Season',
+
 
         },
 
@@ -1040,11 +1047,13 @@ class AppTranslations extends Translations {
           'Cash Crop': 'ገንዘብ ሰብል',
 
           // Soil Types
-          'Nitosols': 'ኒቶሶልስ',
-          'Vertisols': 'ቨርቲሶልስ',
-          'Cambisols': 'ካምቢሶልስ',
-          'Arenosols': 'አረኖሶልስ',
-          'Fluvisols': 'ፍሉቪሶልስ',
+
+          // Soil Textures
+          'Nitosols': 'ለምለም አፈር', // Fertile, balanced soil
+          'Arenosols': 'አሸዋማ አፈር', // Sandy soil
+          'Vertisols': 'ጭቃ አፈር', // Clay soil
+          'Cambisols': 'ጭቃማ አፈር', // Silty soil
+          'Fluvisols': 'ጭቃማ አፈር',
 
           // Growing Seasons
           'Meher': 'መኸር',
@@ -1441,10 +1450,13 @@ class AppTranslations extends Translations {
           "message_selected": "መልእክት ተመርጧል",
           "messages_selected": "መልእክቶች ተመርጠዋል",
 
+          'optimal_temp_range': 'ተስማሚ የሙቀት መጠን',
+          'weekly_water': 'ሳምንታዊ ውሃ',
+          'optimal_humidity': 'ተስማሚ እርጥበት',
+          'altitude_range': 'የከፍታ መጠን',
+          'soil_type': 'የአፈር አይነት',
+          'growing_season': 'የእድገት ወቅት',
+
         },
       };
 }
-      
-
-
-      

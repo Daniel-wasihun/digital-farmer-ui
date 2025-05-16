@@ -75,8 +75,9 @@ class CropTipsTab extends StatelessWidget {
             heroTag: 'ai_chat_page',
             onPressed: () => Get.to(() => const AIChatScreen(), transition: Transition.noTransition),
             backgroundColor: Colors.green[700],
-            tooltip: 'AI Chat'.tr,
-            child: Icon(Icons.psychology, color: Colors.white, size: 24 * adjustedScaleFactor),
+            tooltip: 'Chat'.tr,
+            shape: CircleBorder(), // Explicitly ensure circular shape
+            child: Icon(Icons.message, color: Colors.white, size: 24 * adjustedScaleFactor),
           ),
         ),
       ),
@@ -84,6 +85,7 @@ class CropTipsTab extends StatelessWidget {
   }
 }
 
+// Rest of the code (CropTipsView, CropInfoView, CropDetailSheet, _parsePlainTextResponse) remains unchanged
 class CropTipsView extends StatelessWidget {
   final CropTipsController controller;
   final double scaleFactor;
@@ -280,7 +282,7 @@ class CropTipsView extends StatelessWidget {
                                   Text(
                                     'category_label'.tr + ': ${(entry.value['category'] as String).tr}',
                                     style: TextStyle(
-                                      fontSize: detailFontSize ,
+                                      fontSize: detailFontSize,
                                       color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                       fontFamilyFallback: fontFamilyFallbacks,
                                     ),
@@ -379,7 +381,7 @@ class CropInfoView extends StatelessWidget {
               if (controller.cropInfo.value == null || controller.selectedCrop.value == 'select_crop') {
                 return Center(
                   child: SizedBox(
-                    height: MediaQuery.of(context).size.height - 200, // Adjust height to center vertically
+                    height: MediaQuery.of(context).size.height - 200,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -387,14 +389,14 @@ class CropInfoView extends StatelessWidget {
                         Icon(
                           Icons.eco,
                           color: Colors.green[700],
-                          size: 150 * scaleFactor, // Increased icon size
+                          size: 150 * scaleFactor,
                         ),
                         SizedBox(height: padding),
                         Text(
                           'select_crop_to_view_details'.tr,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: subtitleFontSize*1.1,
+                            fontSize: subtitleFontSize * 1.1,
                             color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                             fontFamilyFallback: fontFamilyFallbacks,
                           ),

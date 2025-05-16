@@ -108,7 +108,7 @@ class AIChatScreen extends GetView<AIChatController> {
                         SizedBox(width: 10 * adjustedScaleFactor),
                         Expanded(
                           child: Text(
-                            'ask_ai',
+                            'ask_ai'.tr,
                             style: TextStyle(
                               fontFamily: GoogleFonts.poppins().fontFamily,
                               fontFamilyFallback: fontFamilyFallbacks,
