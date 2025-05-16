@@ -1,8 +1,13 @@
+import 'dart:convert';
+import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../../../controllers/weather_controller.dart';
 
 // Utility to capitalize the first letter of a string
 String capitalizeFirstLetter(String text) =>
@@ -18,12 +23,347 @@ List<String> getLast7DaysDates() => List.generate(
       (i) => DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: i))),
     );
 
+class WeatherController extends GetxController {
+  final storage = GetStorage();
+  var weatherData = Rxn<Map<String, dynamic>>();
+  var isLoading = false.obs;
+  var errorMessage = ''.obs;
+  var isOffline = false.obs;
+
+  var questionController = TextEditingController();
+  var askAnswer = Rxn<String>();
+  var isAskLoading = false.obs;
+
+  static const String aiBaseUrl = BaseApi.aiBaseUrl;
+  static const String openCageBaseUrl = 'https://api.opencagedata.com/geocode/v1/json';
+
+  @override
+  void onInit() async {
+    super.onInit();
+    // Load environment variables
+    await dotenv.load(fileName: ".env");
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      loadCachedData();
+      await fetchDeviceWeatherData();
+    });
+  }
+
+  @override
+  void onClose() {
+    questionController.dispose();
+    super.onClose();
+  }
+
+  void loadCachedData() {
+    final cachedData = storage.read('weatherData');
+    if (cachedData != null) {
+      try {
+        final parsedData = jsonDecode(cachedData);
+        if (isValidWeatherData(parsedData)) {
+          weatherData.value = parsedData;
+          isOffline.value = true;
+        } else {
+          storage.remove('weatherData');
+          Get.snackbar(
+            'Error'.tr,
+            'An error occurred. Please try again.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+        }
+      } catch (e) {
+        storage.remove('weatherData');
+        Get.snackbar(
+          'Error'.tr,
+          'An error occurred. Please try again.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    }
+  }
+
+  bool isValidWeatherData(dynamic data) {
+    if (data is! Map<String, dynamic>) return false;
+    return data.containsKey('location') &&
+        data['location'] is Map &&
+        data['location'].containsKey('name') &&
+        data.containsKey('current') &&
+        data['current'] is Map &&
+        data['current'].containsKey('condition') &&
+        data['current'].containsKey('temperature') &&
+        data.containsKey('forecast') &&
+        data['forecast'] is List &&
+        data.containsKey('historical') &&
+        data['historical'] is List &&
+        data.containsKey('cropData') &&
+        data.containsKey('irrigation') &&
+        data.containsKey('pestDiseaseRisk') &&
+        data.containsKey('tempStress') &&
+        data.containsKey('plantingWindows');
+  }
+
+  Future<Position?> _getDeviceLocation() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        Get.snackbar(
+          'Error'.tr,
+          'Location services are disabled.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          Get.snackbar(
+            'Error'.tr,
+            'Location permissions are denied.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return null;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        Get.snackbar(
+          'Error'.tr,
+          'Location permissions are permanently denied.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      // Get current position
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to get device location.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('Location fetch exception: $e');
+      return null;
+    }
+  }
+
+  Future<String?> _getCityFromCoordinates(double latitude, double longitude) async {
+    try {
+      final apiKey = dotenv.env['OPEN_CAGE_API_KEY'];
+      if (apiKey == null || apiKey.isEmpty) {
+        Get.snackbar(
+          'Error'.tr,
+          'API key is missing.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      final response = await http.get(
+        Uri.parse('$openCageBaseUrl?q=$latitude,+$longitude&key=$apiKey'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final results = data['results'] as List;
+        if (results.isNotEmpty) {
+          final components = results[0]['components'] as Map<String, dynamic>;
+          return components['town']?.toString() ?? components['_normalized_city']?.toString();
+        } else {
+          Get.snackbar(
+            'Error'.tr,
+            'No city found for the given coordinates.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return null;
+        }
+      } else {
+        Get.snackbar(
+          'Error'.tr,
+          'Failed to fetch city name.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        print('City fetch error: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to fetch city name.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('City fetch exception: $e');
+      return null;
+    }
+  }
+
+  Future<void> fetchDeviceWeatherData() async {
+    final position = await _getDeviceLocation();
+    if (position == null) {
+      // Fallback to cached data if location fetch fails
+      loadCachedData();
+      return;
+    }
+
+    final city = await _getCityFromCoordinates(position.latitude, position.longitude);
+    if (city == null) {
+      // Fallback to cached data if city fetch fails
+      loadCachedData();
+      return;
+    }
+
+    await fetchWeatherData(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      city: city,
+    );
+  }
+
+  Future<void> fetchWeatherData({
+    required double latitude,
+    required double longitude,
+    required String city,
+  }) async {
+    isLoading.value = true;
+    errorMessage.value = '';
+    isOffline.value = false;
+
+    try {
+      print('Fetching weather data for $city ($latitude, $longitude)');
+      final response = await http.get(
+        Uri.parse('$aiBaseUrl/weather?latitude=$latitude&longitude=$longitude&city=$city'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (isValidWeatherData(data)) {
+          weatherData.value = data;
+          storage.write('weatherData', jsonEncode(data));
+          print('Weather data fetched successfully');
+        } else {
+          Get.snackbar(
+            'Error'.tr,
+            'An error occurred. Please try again.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          loadCachedData();
+        }
+      } else {
+        Get.snackbar(
+          'Error'.tr,
+          'An error occurred. Please try again.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        loadCachedData();
+        print('Weather fetch error: ${response.statusCode}');
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      loadCachedData();
+      print('Weather fetch exception: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> askWeatherQuestion() async {
+    if (questionController.text.isEmpty) {
+      Get.snackbar(
+        'Error'.tr,
+        'Please enter a question'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    isAskLoading.value = true;
+    askAnswer.value = null;
+    try {
+      final position = await _getDeviceLocation();
+      final city = position != null
+          ? await _getCityFromCoordinates(position.latitude, position.longitude) ?? 'unknown'
+          : 'unknown';
+
+      final payload = {
+        'question': questionController.text,
+        'latitude': position?.latitude ?? 11.7833,
+        'longitude': position?.longitude ?? 39.6,
+        'city': city,
+        'language': Get.locale?.languageCode ?? 'en',
+      };
+      print('Sending request to $aiBaseUrl/ask/weather: $payload');
+      final response = await http.post(
+        Uri.parse('$aiBaseUrl/ask/weather'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(payload),
+        encoding: Encoding.getByName('utf-8'),
+      ).timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        askAnswer.value = data['answer']?.toString() ?? 'No answer provided';
+        print('Received answer: ${askAnswer.value}');
+      } else {
+        Get.snackbar(
+          'Error'.tr,
+          'An error occurred. Please try again.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        print('Error response: status=${response.statusCode}, body=${utf8.decode(response.bodyBytes)}');
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'An error occurred. Please try again.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('Request error: $e');
+    } finally {
+      isAskLoading.value = false;
+    }
+  }
+
+  void toggleLanguage() {
+    final newLocale = Get.locale?.languageCode == 'en' ? const Locale('am', 'ET') : const Locale('en', 'US');
+    Get.updateLocale(newLocale);
+    print('Locale changed to: ${newLocale.languageCode}');
+  }
+}
+
 class WeatherTab extends StatelessWidget {
   const WeatherTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final WeatherController controller = Get.put(WeatherController());
+    final WeatherController controller = Get.put<WeatherController>(WeatherController());
     final size = MediaQuery.of(context).size;
     final screenWidth = size.width;
 
@@ -97,11 +437,7 @@ class WeatherTab extends StatelessWidget {
                       ),
                       SizedBox(height: padding * 0.8),
                       ElevatedButton(
-                        onPressed: () => controller.fetchWeatherData(
-                          latitude: 11.7833,
-                          longitude: 39.6,
-                          city: 'weldiya',
-                        ),
+                        onPressed: () => controller.fetchDeviceWeatherData(),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
                           padding: EdgeInsets.symmetric(horizontal: 24 * adjustedScaleFactor, vertical: 12 * adjustedScaleFactor),
@@ -221,11 +557,7 @@ class WeatherTab extends StatelessWidget {
                             size: 26 * adjustedScaleFactor,
                             color: isDarkMode ? Colors.green[300] : Colors.green[500],
                           ),
-                          onPressed: () => controller.fetchWeatherData(
-                            latitude: 11.7833,
-                            longitude: 39.6,
-                            city: 'weldiya',
-                          ),
+                          onPressed: () => controller.fetchDeviceWeatherData(),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),

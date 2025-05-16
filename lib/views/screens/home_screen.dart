@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/app_controller.dart';
+import '../../controllers/auth/auth_controller.dart';
 import '../../controllers/chat/chat_controller.dart';
 import '../../controllers/market_controller.dart';
 import '../../utils/constants.dart';
@@ -15,6 +16,7 @@ class HomeScreen extends StatelessWidget {
     // Initialize controllers
     final AppController appController = Get.put(AppController());
     final ChatController chatController = Get.put(ChatController());
+    final AuthController authController = Get.put(AuthController());
 
     // Use TweenAnimationBuilder for stateless fade animation
     return TweenAnimationBuilder<double>(
@@ -30,6 +32,7 @@ class HomeScreen extends StatelessWidget {
       child: _HomeScreenContent(
         appController: appController,
         chatController: chatController,
+        authController: authController,
       ),
     );
   }
@@ -38,11 +41,13 @@ class HomeScreen extends StatelessWidget {
 class _HomeScreenContent extends StatelessWidget {
   final AppController appController;
   final ChatController chatController;
+  final AuthController authController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   _HomeScreenContent({
     required this.appController,
     required this.chatController,
+    required this.authController,
   });
 
   @override
@@ -51,7 +56,10 @@ class _HomeScreenContent extends StatelessWidget {
     final height = size.height;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet ? 1.2 : 1.0;
+    final textScaleFactor = isTablet ? 1.0 : 0.9; // Match SettingsTab
     final appBarHeight = (height * 0.07 * scaleFactor).clamp(48.0, 64.0);
+    // Dynamic drawer width: 75% of screen width, clamped between 250px and 400px
+    final drawerWidth = (size.width * 0.75).clamp(250.0, 400.0);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -77,45 +85,7 @@ class _HomeScreenContent extends StatelessWidget {
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           actions: [
-            Obx(() => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(right: 6 * scaleFactor),
-                      child: Text(
-                        Get.locale?.languageCode == 'am' ? 'አማ' : 'En',
-                        style: TextStyle(
-                          fontSize: height * 0.018 * scaleFactor,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.language,
-                        size: height * 0.028 * scaleFactor,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => appController.toggleLanguage(),
-                      tooltip: 'toggle_language'.tr,
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        appController.themeController.isDarkMode.value
-                            ? Icons.light_mode
-                            : Icons.dark_mode,
-                        size: height * 0.028 * scaleFactor,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => appController.toggleTheme(),
-                      tooltip: appController.themeController.isDarkMode.value
-                          ? 'switch_to_light_mode'.tr
-                          : 'switch_to_dark_mode'.tr,
-                    ),
-                    SizedBox(width: 6 * scaleFactor),
-                  ],
-                )),
+            SizedBox(width: 6 * scaleFactor), // Minimal spacing for balance
           ],
           flexibleSpace: Container(
             decoration: BoxDecoration(
@@ -139,83 +109,13 @@ class _HomeScreenContent extends StatelessWidget {
         ),
       ),
       drawer: Drawer(
-        width: 160,
-        child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Menu'.tr,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: height * 0.032 * scaleFactor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'App Name'.tr,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: height * 0.018 * scaleFactor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _buildDrawerItem(
-                context: context,
-                icon: Icons.home,
-                title: 'Home'.tr,
-                onTap: () {
-                  appController.changePage(0);
-                  Get.back();
-                },
-                height: height,
-                scaleFactor: scaleFactor,
-              ),
-              _buildDrawerItem(
-                context: context,
-                icon: Icons.brightness_4,
-                title: appController.themeController.isDarkMode.value
-                    ? 'Light Mode'.tr
-                    : 'Dark Mode'.tr,
-                onTap: () {
-                  appController.toggleTheme();
-                  Get.back();
-                },
-                height: height,
-                scaleFactor: scaleFactor,
-              ),
-              _buildDrawerItem(
-                context: context,
-                icon: Icons.logout,
-                title: 'logout'.tr,
-                onTap: () {
-                  appController.logout();
-                  Get.back();
-                },
-                height: height,
-                scaleFactor: scaleFactor,
-              ),
-            ],
-          ),
+        width: drawerWidth,
+        child: _ProfessionalDrawer(
+          appController: appController,
+          authController: authController,
+          height: height,
+          scaleFactor: scaleFactor,
+          textScaleFactor: textScaleFactor,
         ),
       ),
       body: Container(
@@ -367,43 +267,358 @@ class _HomeScreenContent extends StatelessWidget {
           )),
     );
   }
+}
+
+class _ProfessionalDrawer extends StatelessWidget {
+  final AppController appController;
+  final AuthController authController;
+  final double height;
+  final double scaleFactor;
+  final double textScaleFactor;
+
+  const _ProfessionalDrawer({
+    required this.appController,
+    required this.authController,
+    required this.height,
+    required this.scaleFactor,
+    required this.textScaleFactor,
+  });
+
+  // Show logout confirmation dialog matching SettingsTab
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12 * scaleFactor),
+        ),
+        title: Text(
+          'logout'.tr,
+          textScaleFactor: textScaleFactor,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        content: Text(
+          'are_you_sure_logout'.tr,
+          textScaleFactor: textScaleFactor,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('no'.tr, textScaleFactor: textScaleFactor),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back(); // Close dialog
+              Get.back(); // Close drawer
+              authController.logout();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text('yes'.tr, textScaleFactor: textScaleFactor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    return Container(
+      color: isDarkMode
+          ? const Color(0xFF1A252F) // Blue-black for dark mode
+          : theme.drawerTheme.backgroundColor ?? theme.scaffoldBackgroundColor,
+      child: Column(
+        children: [
+          // Professional Drawer Header
+          Container(
+            height: height * 0.22 * scaleFactor,
+            padding: EdgeInsets.all(16 * scaleFactor),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primary.withOpacity(0.85),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Row(
+                children: [
+                  // App Logo/Icon
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.2),
+                    ),
+                    padding: EdgeInsets.all(8 * scaleFactor),
+                    child: Icon(
+                      Icons.agriculture,
+                      size: 40 * scaleFactor,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 12 * scaleFactor),
+                  // App Name and Optional User Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Agri App'.tr,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24 * scaleFactor,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(height: 4 * scaleFactor),
+                        Text(
+                          'Welcome'.tr,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16 * scaleFactor,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Drawer Items
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
+              children: [
+                // Navigation Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
+                  child: Text(
+                    'Navigation'.tr,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : theme.textTheme.bodySmall!.color?.withOpacity(0.6),
+                      fontSize: 14 * scaleFactor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.agriculture_outlined,
+                  title: 'Crop Tips'.tr,
+                  isSelected: appController.selectedIndex.value == 0,
+                  onTap: () {
+                    appController.changePage(0);
+                    Get.back();
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.cloud_outlined,
+                  title: 'weather'.tr,
+                  isSelected: appController.selectedIndex.value == 1,
+                  onTap: () {
+                    appController.changePage(1);
+                    Get.back();
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.store_outlined,
+                  title: 'Market'.tr,
+                  isSelected: appController.selectedIndex.value == 2,
+                  onTap: () {
+                    appController.changePage(2);
+                    Get.back();
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.chat_outlined,
+                  title: 'chat'.tr,
+                  isSelected: appController.selectedIndex.value == 3,
+                  onTap: () {
+                    appController.changePage(3);
+                    Get.back();
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.settings_outlined,
+                  title: 'settings'.tr,
+                  isSelected: appController.selectedIndex.value == 4,
+                  onTap: () {
+                    appController.changePage(4);
+                    Get.back();
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+                // Preferences Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
+                  child: Text(
+                    'Preferences'.tr,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : theme.textTheme.bodySmall!.color?.withOpacity(0.6),
+                      fontSize: 14 * scaleFactor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: appController.themeController.isDarkMode.value
+                      ? Icons.light_mode_outlined
+                      : Icons.dark_mode_outlined,
+                  title: appController.themeController.isDarkMode.value
+                      ? 'Light Mode'.tr
+                      : 'Dark Mode'.tr,
+                  isSelected: false,
+                  onTap: () {
+                    appController.toggleTheme();
+                    Get.back();
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.language_outlined,
+                  title: 'Toggle Language'.tr,
+                  isSelected: false,
+                  onTap: () {
+                    appController.toggleLanguage();
+                    Get.back();
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+                // Account Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
+                  child: Text(
+                    'Account'.tr,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : theme.textTheme.bodySmall!.color?.withOpacity(0.6),
+                      fontSize: 14 * scaleFactor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                _buildDrawerItem(
+                  context: context,
+                  icon: Icons.logout_outlined,
+                  title: 'logout'.tr,
+                  isSelected: false,
+                  onTap: () {
+                    _showLogoutConfirmationDialog(context);
+                  },
+                  scaleFactor: scaleFactor,
+                  isDarkMode: isDarkMode,
+                ),
+              ],
+            ),
+          ),
+          // Footer
+          Container(
+            padding: EdgeInsets.all(16 * scaleFactor),
+            child: Text(
+              'Version 1.0.0'.tr,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white60 : theme.textTheme.bodySmall!.color?.withOpacity(0.5),
+                fontSize: 12 * scaleFactor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDrawerItem({
     required BuildContext context,
     required IconData icon,
     required String title,
+    required bool isSelected,
     required VoidCallback onTap,
-    required double height,
     required double scaleFactor,
+    required bool isDarkMode,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: height * 0.015 * scaleFactor),
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 2 * scaleFactor),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Theme.of(context).cardColor.withOpacity(0.8),
+          color: isSelected
+              ? theme.colorScheme.primary.withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12 * scaleFactor),
         ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: height * 0.028 * scaleFactor,
-              color: Theme.of(context).iconTheme.color,
+        child: ListTile(
+          leading: Icon(
+            icon,
+            size: 24 * scaleFactor,
+            color: isSelected
+                ? theme.colorScheme.primary
+                : isDarkMode
+                    ? Colors.white70
+                    : theme.iconTheme.color?.withOpacity(0.7),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16 * scaleFactor,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : isDarkMode
+                      ? Colors.white70
+                      : theme.textTheme.bodyMedium!.color,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: height * 0.018 * scaleFactor,
-                  color: Theme.of(context).textTheme.bodyMedium!.color,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
+          ),
+          onTap: onTap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12 * scaleFactor),
+          ),
+          tileColor: Colors.transparent,
+          hoverColor: theme.colorScheme.primary.withOpacity(0.05),
+          splashColor: theme.colorScheme.primary.withOpacity(0.1),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 16 * scaleFactor,
+            vertical: 4 * scaleFactor,
+          ),
+          minVerticalPadding: 8 * scaleFactor,
+          visualDensity: VisualDensity.standard,
         ),
       ),
     );

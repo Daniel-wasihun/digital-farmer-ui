@@ -3,6 +3,9 @@ import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../../../utils/crop_data.dart';
 
 class CropTipsController extends GetxController {
@@ -19,7 +22,35 @@ class CropTipsController extends GetxController {
   var isCropInfoLoading = false.obs;
   var cropInfo = Rxn<String>();
 
+  // Storage for caching location
+  final storage = GetStorage();
+
   static const String aiBaseUrl = BaseApi.aiBaseUrl;
+  static const String openCageBaseUrl = 'https://api.opencagedata.com/geocode/v1/json';
+
+  @override
+  void onInit() async {
+    super.onInit();
+    // Load environment variables
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e) {
+      print('Failed to load .env file: $e');
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to load configuration. Using cached location.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      // Load cached location if available
+      loadCachedLocation();
+    }
+    // Fetch crop info for default crop
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchCropInfo(selectedCrop.value);
+    });
+  }
 
   @override
   void onClose() {
@@ -69,23 +100,192 @@ class CropTipsController extends GetxController {
     return hasAmharic;
   }
 
+  // Load cached location data
+  void loadCachedLocation() {
+    final cachedLatitude = storage.read('latitude');
+    final cachedLongitude = storage.read('longitude');
+    final cachedCity = storage.read('city');
+    if (cachedLatitude != null && cachedLongitude != null && cachedCity != null) {
+      print('Loaded cached location: $cachedCity ($cachedLatitude, $cachedLongitude)');
+    }
+  }
+
+  // Get device location
+  Future<Position?> _getDeviceLocation() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        Get.snackbar(
+          'Error'.tr,
+          'Location services are disabled.'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          Get.snackbar(
+            'Error'.tr,
+            'Location permissions are denied.'.tr,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return null;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        Get.snackbar(
+          'Error'.tr,
+          'Location permissions are permanently denied.'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      // Get current position
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      // Cache location
+      storage.write('latitude', position.latitude);
+      storage.write('longitude', position.longitude);
+      return position;
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to get device location.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('Location fetch exception: $e');
+      return null;
+    }
+  }
+
+  // Get city from coordinates using OpenCageData API
+  Future<String?> _getCityFromCoordinates(double latitude, double longitude) async {
+    try {
+      final apiKey = dotenv.env['OPEN_CAGE_API_KEY'];
+      if (apiKey == null || apiKey.isEmpty) {
+        Get.snackbar(
+          'Error'.tr,
+          'API key is missing or invalid.'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      final response = await http.get(
+        Uri.parse('$openCageBaseUrl?q=$latitude,+$longitude&key=$apiKey'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final results = data['results'] as List;
+        if (results.isNotEmpty) {
+          final components = results[0]['components'] as Map<String, dynamic>;
+          final city = components['town']?.toString() ??
+              components['_normalized_city']?.toString() ??
+              'Unknown';
+          // Cache city
+          storage.write('city', city);
+          return city;
+        } else {
+          Get.snackbar(
+            'Error'.tr,
+            'No city found for the given coordinates.'.tr,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return null;
+        }
+      } else {
+        Get.snackbar(
+          'Error'.tr,
+          'Failed to fetch city name.'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        print('City fetch error: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to fetch city name.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('City fetch exception: $e');
+      return null;
+    }
+  }
+
   Future<void> fetchCropInfo(String cropType) async {
     print('Fetching crop info for: $cropType');
     isCropInfoLoading.value = true;
     cropInfo.value = null;
+
+    // Get device location and city
+    double latitude = 11.7833; // Default fallback
+    double longitude = 39.6;
+    String city = 'weldiya';
+
+    final cachedLatitude = storage.read('latitude');
+    final cachedLongitude = storage.read('longitude');
+    final cachedCity = storage.read('city');
+
+    if (cachedLatitude != null && cachedLongitude != null && cachedCity != null) {
+      latitude = cachedLatitude;
+      longitude = cachedLongitude;
+      city = cachedCity;
+      print('Using cached location: $city ($latitude, $longitude)');
+    } else {
+      final position = await _getDeviceLocation();
+      if (position != null) {
+        latitude = position.latitude;
+        longitude = position.longitude;
+        final fetchedCity = await _getCityFromCoordinates(latitude, longitude);
+        if (fetchedCity != null) {
+          city = fetchedCity;
+        }
+      }
+    }
+
     try {
       final url = '$aiBaseUrl/ask/agriculture/$cropType';
       print('Request URL: $url');
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json; charset=utf-8'},
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({
-          'latitude': 11.7833,
-          'longitude': 39.6,
-          'city': 'weldiya',
+          'latitude': latitude,
+          'longitude': longitude,
+          'city': city,
           'language': Get.locale?.languageCode ?? 'en',
         }),
-      );
+      ).timeout(const Duration(seconds: 30));
 
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
@@ -93,7 +293,7 @@ class CropTipsController extends GetxController {
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);
         final data = jsonDecode(decodedBody);
-        String answer = data['answer'];
+        String answer = data['answer']?.toString() ?? '';
         print('Parsed answer: $answer');
         if (answer.isEmpty) {
           throw Exception('Empty response from server');

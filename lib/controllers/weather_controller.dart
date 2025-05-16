@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class WeatherController extends GetxController {
   final storage = GetStorage();
@@ -17,13 +19,27 @@ class WeatherController extends GetxController {
   var isAskLoading = false.obs;
 
   static const String aiBaseUrl = BaseApi.aiBaseUrl;
+  static const String openCageBaseUrl = 'https://api.opencagedata.com/geocode/v1/json';
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Load environment variables with error handling
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e) {
+      print('Failed to load .env file: $e');
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to load configuration. Using cached data.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       loadCachedData();
-      fetchWeatherData(latitude: 11.7833, longitude: 39.6, city: 'weldiya');
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      loadCachedData();
+      await fetchDeviceWeatherData();
     });
   }
 
@@ -45,7 +61,7 @@ class WeatherController extends GetxController {
           storage.remove('weatherData');
           Get.snackbar(
             'Error'.tr,
-            'An error occurred. Please try again.'.tr,
+            'Invalid cached data. Please try again.'.tr,
             backgroundColor: Colors.red,
             colorText: Colors.white,
           );
@@ -54,7 +70,7 @@ class WeatherController extends GetxController {
         storage.remove('weatherData');
         Get.snackbar(
           'Error'.tr,
-          'An error occurred. Please try again.'.tr,
+          'Failed to load cached data. Please try again.'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -82,6 +98,140 @@ class WeatherController extends GetxController {
         data.containsKey('plantingWindows');
   }
 
+  Future<Position?> _getDeviceLocation() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        Get.snackbar(
+          'Error'.tr,
+          'Location services are disabled.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          Get.snackbar(
+            'Error'.tr,
+            'Location permissions are denied.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return null;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        Get.snackbar(
+          'Error'.tr,
+          'Location permissions are permanently denied.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      // Get current position
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to get device location.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('Location fetch exception: $e');
+      return null;
+    }
+  }
+
+  Future<String?> _getCityFromCoordinates(double latitude, double longitude) async {
+    try {
+      final apiKey = dotenv.env['OPEN_CAGE_API_KEY'];
+      if (apiKey == null || apiKey.isEmpty) {
+        Get.snackbar(
+          'Error'.tr,
+          'API key is missing or invalid.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+
+      final response = await http.get(
+        Uri.parse('$openCageBaseUrl?q=$latitude,+$longitude&key=$apiKey'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final results = data['results'] as List;
+        if (results.isNotEmpty) {
+          final components = results[0]['components'] as Map<String, dynamic>;
+          return components['town']?.toString() ??
+              components['_normalized_city']?.toString() ??
+              'Unknown';
+        } else {
+          Get.snackbar(
+            'Error'.tr,
+            'No city found for the given coordinates.'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return null;
+        }
+      } else {
+        Get.snackbar(
+          'Error'.tr,
+          'Failed to fetch city name.'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        print('City fetch error: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to fetch city name.'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('City fetch exception: $e');
+      return null;
+    }
+  }
+
+  Future<void> fetchDeviceWeatherData() async {
+    final position = await _getDeviceLocation();
+    if (position == null) {
+      // Fallback to cached data if location fetch fails
+      loadCachedData();
+      return;
+    }
+
+    final city = await _getCityFromCoordinates(position.latitude, position.longitude);
+    if (city == null) {
+      // Fallback to cached data if city fetch fails
+      loadCachedData();
+      return;
+    }
+
+    await fetchWeatherData(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      city: city,
+    );
+  }
+
   Future<void> fetchWeatherData({
     required double latitude,
     required double longitude,
@@ -106,7 +256,7 @@ class WeatherController extends GetxController {
         } else {
           Get.snackbar(
             'Error'.tr,
-            'An error occurred. Please try again.'.tr,
+            'Invalid weather data received. Please try again.'.tr,
             backgroundColor: Colors.red,
             colorText: Colors.white,
           );
@@ -115,7 +265,7 @@ class WeatherController extends GetxController {
       } else {
         Get.snackbar(
           'Error'.tr,
-          'An error occurred. Please try again.'.tr,
+          'Failed to fetch weather data. Please try again.'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -125,7 +275,7 @@ class WeatherController extends GetxController {
     } catch (e) {
       Get.snackbar(
         'Error'.tr,
-        'An error occurred. Please try again.'.tr,
+        'Failed to fetch weather data. Please try again.'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -150,11 +300,16 @@ class WeatherController extends GetxController {
     isAskLoading.value = true;
     askAnswer.value = null;
     try {
+      final position = await _getDeviceLocation();
+      final city = position != null
+          ? await _getCityFromCoordinates(position.latitude, position.longitude) ?? 'unknown'
+          : 'unknown';
+
       final payload = {
         'question': questionController.text,
-        'latitude': 11.7833,
-        'longitude': 39.6,
-        'city': 'weldiya',
+        'latitude': position?.latitude ?? 11.7833,
+        'longitude': position?.longitude ?? 39.6,
+        'city': city,
         'language': Get.locale?.languageCode ?? 'en',
       };
       print('Sending request to $aiBaseUrl/ask/weather: $payload');
@@ -174,7 +329,7 @@ class WeatherController extends GetxController {
       } else {
         Get.snackbar(
           'Error'.tr,
-          'An error occurred. Please try again.'.tr,
+          'Failed to get answer. Please try again.'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -183,7 +338,7 @@ class WeatherController extends GetxController {
     } catch (e) {
       Get.snackbar(
         'Error'.tr,
-        'An error occurred. Please try again.'.tr,
+        'Failed to get answer. Please try again.'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );

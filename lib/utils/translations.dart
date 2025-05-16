@@ -661,6 +661,11 @@ class AppTranslations extends Translations {
           'Received answer: {answer}': 'Received answer: {answer}',
           'Locale changed to: {locale}': 'Locale changed to: {locale}',
 
+
+          'Account':'Account',
+          'Navigation':'Navigation',
+          'Preferences':'Preferences'
+
         },
 
         'am_ET': {
@@ -1325,6 +1330,10 @@ class AppTranslations extends Translations {
           'Weather fetch exception: {error}': 'የአየር ሁኔታ መልሶ ማግኘት ተለይቶ: {error}',
           'Received answer: {answer}': 'የተቀበለ መልስ: {answer}',
           'Locale changed to: {locale}': 'ቋንቋ ወደ {locale} ተቀይሯል',
+          'Account':'መለያ',
+          'Navigation':'አሰሳ',
+          'Preferences':'ምርጫዎች'
+
 
           
           
