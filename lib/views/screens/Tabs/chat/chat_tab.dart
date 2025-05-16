@@ -326,7 +326,7 @@ class ChatTab extends StatelessWidget {
       itemCount: userListItems.length,
       itemBuilder: (context, index) {
         final userData = userListItems[index];
-        print('ChatTab: Rendering user ${userData['user']['email']}, last message: ${userData['lastMessage']}, unseenCount: ${userData['unseenCount']}');
+        print('ChatTab: Rendering user ${userData['user']['email']}, timestamp: ${userData['timestamp']}');
         return FadeInRight(
           duration: Duration(milliseconds: 300 + (index * 50)),
           child: UserListItem(
@@ -386,7 +386,7 @@ class UserListItem extends StatelessWidget {
     final isRead = userData['isRead'] as bool;
     final isOnline = user['online'] == true;
 
-    print('UserListItem: Rendering ${user['email']}, unseenCount: $unseenCount');
+    print('UserListItem: Rendering ${user['email']}, timestamp: $timestamp');
 
     return Card(
       key: ValueKey(user['email']),
@@ -519,9 +519,17 @@ class UserListItem extends StatelessWidget {
                               children: [
                                 if (isSentByUser && lastMessage.isNotEmpty) ...[
                                   Icon(
-                                    isDelivered || isRead ? Icons.done_all : Icons.check,
+                                    isRead
+                                        ? Icons.done_all
+                                        : isDelivered
+                                            ? Icons.done_all
+                                            : Icons.check,
                                     size: 16 * adjustedScaleFactor,
-                                    color: isRead ? Colors.blue[300] : Colors.grey[400],
+                                    color: isRead
+                                        ? Colors.blue[300]
+                                        : isDelivered
+                                            ? Colors.grey[400]
+                                            : Colors.grey[400],
                                   ),
                                   SizedBox(width: 4 * adjustedScaleFactor),
                                 ],
@@ -564,21 +572,31 @@ class UserListItem extends StatelessWidget {
   }
 
   String _formatTimestamp(String timestamp) {
-    if (timestamp.isEmpty) return '';
-    final dateTime = DateTime.tryParse(timestamp) ?? DateTime.now();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = DateTime(now.year, now.month, now.day - 1);
-    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    if (timestamp.isEmpty) {
+      print('UserListItem: Empty timestamp');
+      return '';
+    }
+    try {
+      final dateTime = DateTime.parse(timestamp).toLocal();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
-    if (messageDate == today) {
-      return DateFormat('h:mm a').format(dateTime);
-    } else if (messageDate == yesterday) {
-      return 'yesterday'.tr;
-    } else if (now.difference(dateTime).inDays < 7) {
-      return DateFormat('EEE').format(dateTime);
-    } else {
-      return DateFormat('dd/MM/yy').format(dateTime);
+      String formatted;
+      if (messageDate == today) {
+        formatted = DateFormat('h:mm a').format(dateTime); // e.g., 7:24 PM
+      } else if (messageDate == DateTime(now.year, now.month, now.day - 1)) {
+        formatted = 'yesterday'.tr; // Yesterday
+      } else if (now.difference(dateTime).inDays < 7) {
+        formatted = DateFormat('EEEE').format(dateTime); // e.g., Monday
+      } else {
+        formatted = DateFormat('dd/MM/yy').format(dateTime); // e.g., 15/05/25
+      }
+      print('UserListItem: Formatted timestamp $timestamp to $formatted');
+      return formatted;
+    } catch (e) {
+      print('UserListItem: Failed to parse timestamp: $timestamp, error: $e');
+      return '';
     }
   }
 }

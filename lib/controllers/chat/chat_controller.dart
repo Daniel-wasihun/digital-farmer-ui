@@ -83,7 +83,6 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: Initialize error: $e');
       errorMessage.value = 'failed_to_initialize'.tr;
-      // Snackbar removed as per request: previously showed 'failed_to_initialize'
     }
   }
 
@@ -175,7 +174,6 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: loadLocalData error: $e');
       errorMessage.value = 'failed_to_load_local_data'.tr;
-      // Snackbar removed as per request: previously showed 'failed_to_load_local_data'
     }
   }
 
@@ -432,7 +430,11 @@ class ChatController extends GetxController {
       for (var msg in unseenNotifications[receiverId]!) {
         if (msg['receiverId'] == currentUserId.value && !msg['read']) {
           socketClient.markAsRead(msg['messageId']);
-          messages[msg['messageId']]!['read'] = true;
+          messages[msg['messageId']] = {
+            ...messages[msg['messageId']]!,
+            'delivered': true,
+            'read': true,
+          };
         }
       }
       unseenNotifications.remove(receiverId);
@@ -469,6 +471,7 @@ class ChatController extends GetxController {
     return filteredUsers.map((user) {
       final email = user['email'] as String;
       final lastMessageData = _getLastMessageData(email);
+      print('ChatController: userListItems for $email, timestamp: ${lastMessageData['timestamp']}');
       return {
         'user': user,
         'unseenCount': getUnseenMessageCount(email),
@@ -481,7 +484,7 @@ class ChatController extends GetxController {
       };
     }).toList();
   }
-
+  
   Map<String, dynamic> _normalizeUser(Map<String, dynamic> u) {
     return {
       'email': u['email']?.toString() ?? '',
@@ -525,13 +528,15 @@ class ChatController extends GetxController {
 
   String _validateTimestamp(dynamic timestamp) {
     if (timestamp == null || timestamp.toString().isEmpty) {
+      print('ChatController: Invalid or null timestamp, using current time');
       return DateTime.now().toIso8601String();
     }
     try {
-      DateTime.parse(timestamp.toString());
-      return timestamp.toString();
+      final parsed = DateTime.parse(timestamp.toString());
+      print('ChatController: Validated timestamp: ${parsed.toIso8601String()}');
+      return parsed.toIso8601String();
     } catch (e) {
-      print('ChatController: Invalid timestamp: $timestamp, using current time');
+      print('ChatController: Failed to parse timestamp: $timestamp, error: $e, using current time');
       return DateTime.now().toIso8601String();
     }
   }
@@ -579,7 +584,10 @@ class ChatController extends GetxController {
       }
     }
     await saveMessagesForUser(receiverId);
-    _updateUserLastMessageTime(newMessages.isNotEmpty ? newMessages.last : {'receiverId': receiverId});
+    final latestMessage = newMessages.isNotEmpty
+        ? newMessages.reduce((a, b) => DateTime.parse(a['timestamp']).isAfter(DateTime.parse(b['timestamp'])) ? a : b)
+        : {'receiverId': receiverId, 'timestamp': ''};
+    _updateUserLastMessageTime(latestMessage);
     _updateFilteredUsers();
   }
 
@@ -601,12 +609,13 @@ class ChatController extends GetxController {
   void _refreshUserList() {
     _updateFilteredUsers();
     filteredUsers.refresh();
-    unseenNotifications.refresh(); // Force UI update for badges
+    unseenNotifications.refresh();
+    messages.refresh(); // Ensure UI reflects message status changes
     print('ChatController: Refreshed user list with ${filteredUsers.length} users, notifications: ${unseenNotifications.length}');
   }
 
   void debounceSearch() {
-    if (_disposed) return; // Prevent access if disposed
+    if (_disposed) return;
     _searchDebounceTimer?.cancel();
     _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (!_disposed) {
@@ -633,7 +642,6 @@ class ChatController extends GetxController {
   void _handleReceivedMessage(Map<String, dynamic> data) {
     if (data['receiverId'] == currentUserId.value || data['senderId'] == currentUserId.value) {
       if (_isValidMessage(data) && !messages.containsKey(data['messageId'])) {
-        // Force read: false for received messages
         final normalizedMessage = _normalizeMessage({...data, 'read': false});
         print('ChatController: Received message: ${data['messageId']}, read: ${normalizedMessage['read']}, sender: ${data['senderId']}');
         _addMessage(normalizedMessage);
@@ -651,7 +659,6 @@ class ChatController extends GetxController {
             print('ChatController: Added to unseen notifications for $senderId: ${data['messageId']}, total: ${unseenNotifications[senderId]!.length}');
             _refreshUserList();
 
-            // Get sender's username or fallback to email
             final senderUser = allUsers.firstWhere(
               (u) => u['email'] == senderId,
               orElse: () => {'username': senderId, 'email': senderId},
@@ -676,7 +683,11 @@ class ChatController extends GetxController {
           }
         } else {
           socketClient.markAsRead(data['messageId']);
-          messages[data['messageId']]!['read'] = true;
+          messages[data['messageId']] = {
+            ...messages[data['messageId']]!,
+            'delivered': true,
+            'read': true,
+          };
           saveMessagesForUser(senderId);
           unseenNotifications.remove(senderId);
           saveUnseenNotifications();
@@ -702,21 +713,27 @@ class ChatController extends GetxController {
 
   void _handleMessageDelivered(String messageId) {
     if (messages.containsKey(messageId)) {
-      messages[messageId]!['delivered'] = true;
+      messages[messageId] = {
+        ...messages[messageId]!,
+        'delivered': true,
+      };
       final receiverId = messages[messageId]!['receiverId'];
       saveMessagesForUser(receiverId);
-      _updateFilteredUsers();
+      _refreshUserList();
       print('ChatController: Message delivered: $messageId');
     }
   }
 
   void _handleMessageRead(String messageId) {
     if (messages.containsKey(messageId)) {
-      messages[messageId]!['delivered'] = true;
-      messages[messageId]!['read'] = true;
+      messages[messageId] = {
+        ...messages[messageId]!,
+        'delivered': true,
+        'read': true,
+      };
       final receiverId = messages[messageId]!['receiverId'];
       saveMessagesForUser(receiverId);
-      _updateFilteredUsers();
+      _refreshUserList();
       print('ChatController: Message read: $messageId');
     }
   }
@@ -827,19 +844,18 @@ class ChatController extends GetxController {
       return {'message': '', 'timestamp': '', 'senderId': '', 'delivered': false, 'read': false};
     }
 
-    relatedMessages.sort((a, b) {
+    final latestMessage = relatedMessages.reduce((a, b) {
       final aTime = DateTime.parse(a['timestamp']);
       final bTime = DateTime.parse(b['timestamp']);
-      return bTime.compareTo(aTime);
+      return aTime.isAfter(bTime) ? a : b;
     });
 
-    final latestMessage = relatedMessages.first;
     return {
       'message': latestMessage['message'],
       'timestamp': latestMessage['timestamp'],
       'senderId': latestMessage['senderId'],
       'delivered': latestMessage['delivered'],
-      'isRead': latestMessage['read'],
+      'read': latestMessage['read'],
     };
   }
 
@@ -854,13 +870,13 @@ class ChatController extends GetxController {
 
     if (relatedMessages.isEmpty) return '';
 
-    relatedMessages.sort((a, b) {
+    final latestMessage = relatedMessages.reduce((a, b) {
       final aTime = DateTime.parse(a['timestamp']);
       final bTime = DateTime.parse(b['timestamp']);
-      return bTime.compareTo(aTime);
+      return aTime.isAfter(bTime) ? a : b;
     });
 
-    return relatedMessages.first['timestamp'];
+    return latestMessage['timestamp'];
   }
 
   void _updateUserLastMessageTime(Map<String, dynamic> message) {
@@ -881,10 +897,11 @@ class ChatController extends GetxController {
       }
     }
   }
-
+  
   void _updateAllUsersLastMessageTime() {
     for (var user in allUsers) {
-      user['lastMessageTime'] = _getLatestMessageTime(user['email']);
+      final latestTime = _getLatestMessageTime(user['email']);
+      user['lastMessageTime'] = latestTime;
     }
     allUsers.sort((a, b) {
       final aTime = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -897,3 +914,5 @@ class ChatController extends GetxController {
     print('ChatController: Updated all users last message times');
   }
 }
+
+
