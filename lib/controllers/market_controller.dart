@@ -1,5 +1,6 @@
 import 'package:agri/models/crop_price.dart';
 import 'package:agri/services/market_service.dart';
+import 'package:agri/services/storage_service.dart';
 import 'package:agri/utils/app_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,9 +9,10 @@ import 'package:logger/logger.dart';
 
 class MarketController extends GetxController {
   final MarketService _marketService = Get.put(MarketService());
+  final StorageService _storageService = Get.find<StorageService>();
   final GetStorage box = GetStorage();
   final logger = Logger();
-  bool _isInitialized = false; // Safeguard for initialization
+  bool _isInitialized = false;
 
   // Observables
   final prices = <CropPrice>[].obs;
@@ -22,6 +24,7 @@ class MarketController extends GetxController {
   final nameOrder = 'Default'.obs;
   final searchQuery = ''.obs;
   final isLoading = false.obs;
+  final isAdmin = false.obs;
 
   // Sorting options
   final List<String> priceSortOptions = ['Default', 'Low to High', 'High to Low'];
@@ -41,6 +44,10 @@ class MarketController extends GetxController {
     priceOrder.value = 'Default';
     marketFilter.value = '';
 
+    // Initialize admin status
+    _checkAdminStatus();
+    logger.i('MarketController: Initialized with isAdmin: ${isAdmin.value}');
+
     // Fetch initial data
     fetchCropData();
     fetchPrices();
@@ -58,13 +65,30 @@ class MarketController extends GetxController {
         Future.microtask(() => _applyFiltersAndSorting());
       }
     });
+
+    // Listen to user changes to update admin status
+    ever(_storageService.user, (_) {
+      _checkAdminStatus();
+      logger.i('MarketController: User changed, updated isAdmin: ${isAdmin.value}');
+    });
   }
 
   @override
   void onReady() {
     super.onReady();
     _isInitialized = true;
-    _applyFiltersAndSorting(); // Apply filters after widget tree is built
+    _applyFiltersAndSorting();
+    logger.i('MarketController: onReady, isAdmin: ${isAdmin.value}');
+  }
+
+  // Check admin status
+  void _checkAdminStatus() {
+    isAdmin.value = _storageService.getIsAdmin();
+    logger.i('MarketController: Checked admin status, isAdmin: ${isAdmin.value}');
+    // Explicitly log no redirect for non-admin users
+    if (!isAdmin.value) {
+      logger.i('MarketController: Non-admin user detected, no navigation enforced');
+    }
   }
 
   // Fetch crop data

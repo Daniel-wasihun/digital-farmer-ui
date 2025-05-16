@@ -191,7 +191,7 @@ class AIChatScreen extends GetView<AIChatController> {
                           child: TextField(
                             controller: controller.textController,
                             decoration: InputDecoration(
-                              hintText: 'ask_your_question',
+                              hintText: 'ask_your_question'.tr,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
                                 borderSide: BorderSide.none,

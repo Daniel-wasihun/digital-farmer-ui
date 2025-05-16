@@ -423,3 +423,4 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
     messageItems.refresh();
   }
 }
+

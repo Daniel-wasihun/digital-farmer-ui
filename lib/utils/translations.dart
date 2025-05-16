@@ -725,6 +725,29 @@ class AppTranslations extends Translations {
         'altitude_range': 'Altitude Range',
         'soil_type': 'Soil Type',
         'growing_season': 'Growing Season',
+        
+        "couldnt_load_chat_history": "Couldn't load chat history",
+        "couldnt_save_chat_history": "Couldn't save chat history",
+        "please_type_question": "Please type a question",
+        "question_too_long": "Question is too long (max {max} characters)",
+        "couldnt_process_try_again": "Couldn't process your request, please try again",
+        "couldnt_process": "Couldn't process your request",
+        "couldnt_connect_try_again": "Couldn't connect to the server, please try again",
+        "couldnt_connect": "Couldn't connect to the server",
+        "something_went_wrong": "Something went wrong",
+        "copied_to_clipboard": "Copied to clipboard",
+        "confirm_delete": "Confirm Delete",
+        "delete_messages_confirmation": "Are you sure you want to delete {count} message{plural}?",
+        "delete": "Delete",
+        "messages_deleted": "Messages deleted",
+        "signup_failed": "Signup failed. Please try again.",
+        "signin_failed": "Signin failed. Please check your credentials.",
+        "logout_failed": "Logout failed. Please try again.",
+        "password_change_failed": "Password change failed. Please try again.",
+        "security_question_failed": "Failed to set security question. Please try again.",
+        "user_email_not_found": "User email not found.",
+        "please_enter_answer": "Please enter an answer."
+
 
 
         },
@@ -1456,6 +1479,32 @@ class AppTranslations extends Translations {
           'altitude_range': 'የከፍታ መጠን',
           'soil_type': 'የአፈር አይነት',
           'growing_season': 'የእድገት ወቅት',
+
+          
+          "couldnt_load_chat_history": "የውይይት ታሪክ መጫን አልተቻለም",
+          "couldnt_save_chat_history": "የውይይት ታሪክ መቆጠብ አልተቻለም",
+          "please_type_question": "እባክዎ ጥያቄ ይተይቡ",
+          "question_too_long": "ጥያቄው በጣም ረጅም ነው (ከፍተኛ {max} ቁምፊዎች)",
+          "couldnt_process_try_again": "ጥያቄዎን መስራት አልተቻለም፣ እባክዎ እንደገና ይሞክሩ",
+          "couldnt_process": "ጥያቄዎን መስራት አልተቻለም",
+          "couldnt_connect_try_again": "ከአገልጋይ ጋር መገናኘት አልተቻለም፣ እባክዎ እንደገና ይሞክሩ",
+          "couldnt_connect": "ከአገልጋይ ጋር መገናኘት አልተቻለም",
+          "something_went_wrong": "አንድ ነገር ተሳሳተ",
+          "copied_to_clipboard": "ወደ ቅንጥብ ሰሌዳ ተገልብጧል",
+          "confirm_delete": "መሰረዝን ያረጋግጡ",
+          "delete_messages_confirmation": "{count} መልእክት{plural} መሰረዝ እንደሚፈልጉ እርግጠኛ ነዎት?",
+          "delete": "ሰርዝ",
+          "messages_deleted": "መልእክቶች ተሰርዘዋል",
+
+          "signup_failed": "ምዝገባ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+          "signin_failed": "መግባት አልተሳካም። እባክዎ መረጃዎችዎን ያረጋግጡ።",
+          "logout_failed": "መውጣት አልተሳካም። እባክዎ እንደገና ይሞክሹ።",
+          "password_change_failed": "የይለፍ ቃል መቀየር አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+          "security_question_failed": "የደህንነት ጥያቄ ማዘጋጀት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+          "user_email_not_found": "የተጠቃሚ ኢሜል አልተገኘም።",
+          "please_enter_answer": "እባክዎ መልስ ያስገቡ።"
+          
+
 
         },
       };

@@ -52,10 +52,10 @@ class SocketClient {
         socket!.emit('register', userId);
         onConnect();
         _isConnecting = false;
-        Get.snackbar('Success', 'Connected to chat'.tr,
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Get.theme.colorScheme.secondary,
-            colorText: Get.theme.colorScheme.onSecondary);
+        // Get.snackbar('Success', 'Connected to chat'.tr,
+        //     snackPosition: SnackPosition.TOP,
+        //     backgroundColor: Get.theme.colorScheme.secondary,
+        //     colorText: Get.theme.colorScheme.onSecondary);
       });
 
       socket!.on('registered', (data) {
@@ -192,10 +192,10 @@ class SocketClient {
   void sendMessage(String senderId, String receiverId, String message, String messageId) {
     if (socket == null || !socket!.connected) {
       print('SocketClient: Cannot send message, socket not connected');
-      Get.snackbar('Error', 'Not connected to server'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Get.theme.colorScheme.error,
-          colorText: Get.theme.colorScheme.onError);
+      // Get.snackbar('Error', 'Not connected to server'.tr,
+      //     snackPosition: SnackPosition.TOP,
+      //     backgroundColor: Get.theme.colorScheme.error,
+      //     colorText: Get.theme.colorScheme.onError);
       return;
     }
     if (senderId.isEmpty || receiverId.isEmpty || message.isEmpty || messageId.isEmpty) {

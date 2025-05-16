@@ -13,6 +13,7 @@ class SignUpScreen extends GetView<SignUpController> {
 
   @override
   Widget build(BuildContext context) {
+    Get.put(SignUpController());
     final ThemeController themeController = Get.find<ThemeController>();
     final AppController appController = Get.find<AppController>();
 

@@ -10,11 +10,13 @@ import 'auth_otp_manager.dart';
 import 'auth_password_manager.dart';
 import 'auth_security_manager.dart';
 import 'auth_validation_mixin.dart';
+import 'package:logger/logger.dart';
 
 class AuthController extends GetxController with AuthValidationMixin {
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
   final WeatherController _weatherController = Get.put(WeatherController());
+  final logger = Logger();
 
   late final AuthOtpManager _otpManager;
   late final AuthPasswordManager _passwordManager;
@@ -71,10 +73,14 @@ class AuthController extends GetxController with AuthValidationMixin {
           animationDuration: const Duration(milliseconds: 300),
         );
       },
-      navigateTo: (pageName, {arguments, id, preventDuplicates = true, parameters}) =>
-          Get.toNamed(pageName, arguments: arguments, id: id, preventDuplicates: preventDuplicates, parameters: parameters),
-      navigateOffAll: (pageName, {arguments, id, parameters}) =>
-          Get.offAllNamed(pageName, arguments: arguments, id: id, parameters: parameters),
+      navigateTo: (pageName, {arguments, id, preventDuplicates = true, parameters}) {
+        logger.i('Navigating to: $pageName, arguments: $arguments');
+        Get.toNamed(pageName, arguments: arguments, id: id, preventDuplicates: preventDuplicates, parameters: parameters);
+      },
+      navigateOffAll: (pageName, {arguments, id, parameters}) {
+        logger.i('Navigating off all to: $pageName, arguments: $arguments');
+        Get.offAllNamed(pageName, arguments: arguments, id: id, parameters: parameters);
+      },
       resetPasswordErrors: resetPasswordErrors,
       updatePasswordChangeSuccess: (value) => isPasswordChangeSuccess.value = value,
       setCurrentPasswordError: (value) => currentPasswordError.value = value,
@@ -105,6 +111,7 @@ class AuthController extends GetxController with AuthValidationMixin {
     final user = _storageService.getUser();
     if (user != null && user['username'] != null) {
       userName.value = user['username'].toString();
+      logger.i('AuthController: Loaded username: ${userName.value}');
     }
   }
 
@@ -190,6 +197,7 @@ class AuthController extends GetxController with AuthValidationMixin {
         'type': 'signup',
       });
     } catch (e) {
+      logger.e('AuthController: Signup failed: $e');
       Get.snackbar('error'.tr, 'signup_failed'.tr,
           backgroundColor: Get.theme.colorScheme.error,
           colorText: Get.theme.colorScheme.onError,
@@ -213,26 +221,44 @@ class AuthController extends GetxController with AuthValidationMixin {
     try {
       isLoading.value = true;
       final response = await _apiService.auth.signin(email.toLowerCase(), password);
-      await _storageService.saveUser(response['user']);
-      await _storageService.saveToken(response['token']);
-      
-      userName.value = response['user']['username'] ?? '';
+      final userData = Map<String, dynamic>.from(response['user']);
+      logger.i('AuthController: Signin userData: $userData');
 
-      Get.snackbar('success'.tr, 'logged_in_successfully'.tr,
-          backgroundColor: Get.theme.colorScheme.secondary,
-          colorText: Get.theme.colorScheme.onSecondary,
-          snackPosition: SnackPosition.TOP,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 8,
-          duration: const Duration(milliseconds: 1500));
+      // Check admin status from role field
+      final isAdmin = userData['role'] == 'admin';
+      logger.i('AuthController: isAdmin: $isAdmin (role: ${userData['role']})');
+      await _storageService.saveIsAdmin(isAdmin);
+
+      // Save user data including role
+      final userToSave = <String, dynamic>{
+        ...userData,
+        'role': userData['role'] ?? 'user', // Ensure role is included
+      };
+      await _storageService.saveUser(userToSave);
+      logger.i('AuthController: Saved user: $userToSave');
+
+      await _storageService.saveToken(response['token']);
+      logger.i('AuthController: Saved token');
+
+      userName.value = userData['username'] ?? '';
+      logger.i('AuthController: Set userName: ${userName.value}');
 
       resetAllFields();
       resetErrors();
 
-      Get.offAllNamed(AppRoutes.getHomePage(), arguments: {'fromSignIn': true});
+      // Navigate all users to home page, bypass middleware checks
+      logger.i('AuthController: Navigating to home page for user: ${userName.value}, isAdmin: $isAdmin');
+      Get.offAllNamed(
+        AppRoutes.getHomePage(),
+        arguments: {
+          'fromSignIn': true,
+          'bypassMiddleware': true, // Flag to skip admin checks
+        },
+      );
 
       _weatherController.storeUserLocation();
     } catch (e) {
+      logger.e('AuthController: Signin failed: $e');
       Get.snackbar('error'.tr, 'signin_failed'.tr,
           backgroundColor: Get.theme.colorScheme.error,
           colorText: Get.theme.colorScheme.onError,
@@ -246,21 +272,63 @@ class AuthController extends GetxController with AuthValidationMixin {
   }
 
   Future<void> logout() async {
-    userName.value = '';
-    await _storageService.clear();
-    Get.offAllNamed(AppRoutes.getSignInPage());
+    try {
+      // Reset controller state
+      userName.value = '';
+      resetAllFields();
+      resetErrors();
+      logger.i('AuthController: Reset controller state (userName, fields, errors)');
+
+      // Clear all storage data
+      await _storageService.clear();
+      logger.i('AuthController: Cleared all storage data');
+
+      // Verify storage is empty
+      if (_storageService.getUser() == null && _storageService.getToken() == null && !_storageService.getIsAdmin()) {
+        logger.i('AuthController: Verified storage is empty (user, token, isAdmin)');
+      } else {
+        logger.w('AuthController: Storage not fully cleared: user=${_storageService.getUser()}, token=${_storageService.getToken()}, isAdmin=${_storageService.getIsAdmin()}');
+      }
+
+      // Navigate to sign-in page
+      logger.i('AuthController: Navigating to sign-in page');
+      Get.offAllNamed(AppRoutes.getSignInPage());
+    } catch (e) {
+      logger.e('AuthController: Logout failed: $e');
+      Get.snackbar('error'.tr, 'logout_failed'.tr,
+          backgroundColor: Get.theme.colorScheme.error,
+          colorText: Get.theme.colorScheme.onError,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+          duration: const Duration(milliseconds: 1500));
+    }
   }
 
   bool isLoggedIn() {
-    return _storageService.getToken() != null;
+    final isLoggedIn = _storageService.getToken() != null;
+    logger.i('AuthController: isLoggedIn: $isLoggedIn');
+    return isLoggedIn;
   }
 
   Future<void> verifyOTP(String email, String otp) async {
-    await _otpManager.verifyOTP(email, otp);
+    try {
+      await _otpManager.verifyOTP(email, otp);
+      logger.i('AuthController: OTP verified for email: $email');
+    } catch (e) {
+      logger.e('AuthController: OTP verification failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> resendOTP(String email, String type) async {
-    await _otpManager.resendOTP(email, type);
+    try {
+      await _otpManager.resendOTP(email, type);
+      logger.i('AuthController: OTP resent for email: $email, type: $type');
+    } catch (e) {
+      logger.e('AuthController: Resend OTP failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> requestPasswordReset(String email) async {
@@ -268,16 +336,28 @@ class AuthController extends GetxController with AuthValidationMixin {
     if (emailError.value.isNotEmpty) {
       return;
     }
-    await _passwordManager.requestPasswordReset(email);
+    try {
+      await _passwordManager.requestPasswordReset(email);
+      logger.i('AuthController: Password reset requested for email: $email');
+    } catch (e) {
+      logger.e('AuthController: Password reset request failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> verifyPasswordResetOTP(String email, String otp) async {
-    final resetToken = await _passwordManager.verifyPasswordResetOTP(email, otp);
-    if (resetToken != null) {
-      Get.toNamed(AppRoutes.getResetPasswordPage(), arguments: {
-        'resetToken': resetToken,
-        'email': email,
-      });
+    try {
+      final resetToken = await _passwordManager.verifyPasswordResetOTP(email, otp);
+      if (resetToken != null) {
+        logger.i('AuthController: Password reset OTP verified for email: $email');
+        Get.toNamed(AppRoutes.getResetPasswordPage(), arguments: {
+          'resetToken': resetToken,
+          'email': email,
+        });
+      }
+    } catch (e) {
+      logger.e('AuthController: Password reset OTP verification failed: $e');
+      rethrow;
     }
   }
 
@@ -289,7 +369,13 @@ class AuthController extends GetxController with AuthValidationMixin {
     if (newPasswordError.value.isNotEmpty || confirmPasswordError.value.isNotEmpty) {
       return;
     }
-    await _passwordManager.resetPassword(resetToken, newPassword, confirmPassword);
+    try {
+      await _passwordManager.resetPassword(resetToken, newPassword, confirmPassword);
+      logger.i('AuthController: Password reset successfully');
+    } catch (e) {
+      logger.e('AuthController: Password reset failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> changePassword() async {
@@ -319,11 +405,13 @@ class AuthController extends GetxController with AuthValidationMixin {
       }
       final userEmail = user['email'].toString().trim();
       await _passwordManager.changePassword(currentPassword, newPassword, userEmail);
+      logger.i('AuthController: Password changed successfully for email: $userEmail');
 
       currentPasswordController.clear();
       newPasswordController.clear();
       confirmPasswordController.clear();
     } catch (e) {
+      logger.e('AuthController: Password change failed: $e');
       Get.snackbar('error'.tr, 'password_change_failed'.tr,
           backgroundColor: Get.theme.colorScheme.error,
           colorText: Get.theme.colorScheme.onError,
@@ -349,7 +437,9 @@ class AuthController extends GetxController with AuthValidationMixin {
       }
       final userEmail = user['email'];
       await _securityManager.setSecurityQuestion(userEmail, question, answer);
+      logger.i('AuthController: Security question set for email: $userEmail');
     } catch (e) {
+      logger.e('AuthController: Security question set failed: $e');
       Get.snackbar('error'.tr, 'security_question_failed'.tr,
           backgroundColor: Get.theme.colorScheme.error,
           colorText: Get.theme.colorScheme.onError,
@@ -368,9 +458,16 @@ class AuthController extends GetxController with AuthValidationMixin {
       return;
     }
 
-    final resetToken = await _securityManager.verifySecurityAnswer(email, question, answer);
-    if (resetToken != null) {
-      onSuccess(resetToken);
+    try {
+      final resetToken = await _securityManager.verifySecurityAnswer(email, question, answer);
+      if (resetToken != null) {
+        logger.i('AuthController: Security answer verified for email: $email');
+        onSuccess(resetToken);
+      }
+    } catch (e) {
+      logger.e('AuthController: Security answer verification failed: $e');
+      rethrow;
     }
   }
 }
+

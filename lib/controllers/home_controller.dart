@@ -31,8 +31,7 @@ class HomeController extends GetxController {
         storageService.saveTabIndex(0);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load tab index: $e',
-          backgroundColor: Colors.red.shade100);
+      // Snackbar removed: previously showed 'Failed to load tab index'
       currentIndex.value = 0;
     }
   }

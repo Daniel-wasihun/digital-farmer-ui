@@ -69,7 +69,7 @@ class WeatherTab extends StatelessWidget {
               final hasValidData = weatherData != null && controller.isValidWeatherData(weatherData);
 
               // Loading state with "Please Wait..." message
-              if (controller.isLoading.value) {
+              if (controller.isLoading.value || !hasValidData) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -96,7 +96,7 @@ class WeatherTab extends StatelessWidget {
               }
 
               // Error state
-              if (!hasValidData && controller.errorMessage.value.isNotEmpty) {
+              if (controller.errorMessage.value.isNotEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -139,21 +139,6 @@ class WeatherTab extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
-                );
-              }
-
-              // No data state
-              if (!hasValidData) {
-                return Center(
-                  child: Text(
-                    'No Weather Data Available'.tr,
-                    style: TextStyle(
-                      fontFamily: GoogleFonts.poppins().fontFamily,
-                      fontFamilyFallback: fontFamilyFallbacks,
-                      fontSize: subtitleFontSize,
-                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                    ),
                   ),
                 );
               }
@@ -803,7 +788,6 @@ class WeatherTab extends StatelessWidget {
   }
 }
 
-// ForecastDetailSheet remains unchanged
 class ForecastDetailSheet extends StatelessWidget {
   final String label;
   final dynamic dayData;

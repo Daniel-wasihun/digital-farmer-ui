@@ -466,41 +466,43 @@ class MarketPage extends StatelessWidget {
             },
           ),
         ),
-        floatingActionButton: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FloatingActionButton(
-              heroTag: "clone_price",
-              onPressed: () => Get.dialog(ClonePriceDialog(
-                scaleFactor: adjustedScaleFactor,
-                padding: padding,
-                titleFontSize: titleFontSize,
-                subtitleFontSize: subtitleFontSize,
-                detailFontSize: detailFontSize,
-              )),
-              backgroundColor: isDarkMode ? Colors.blue[300] : Colors.blue[500],
-              tooltip: 'Clone Prices'.tr,
-              child: Icon(
-                Icons.copy,
-                color: Colors.white,
-                size: 24 * adjustedScaleFactor,
-              ),
-            ),
-            SizedBox(height: 12 * adjustedScaleFactor),
-            FloatingActionButton(
-              heroTag: "add_price",
-              onPressed: () => Get.toNamed(AppRoutes.price),
-              backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
-              tooltip: 'Add Price'.tr,
-              child: Icon(
-                Icons.add,
-                color: Colors.white,
-                size: 24 * adjustedScaleFactor,
-              ),
-            ),
-            SizedBox(height: 16 * adjustedScaleFactor),
-          ],
-        ),
+        floatingActionButton: Obx(() => controller.isAdmin.value
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FloatingActionButton(
+                    heroTag: "clone_price",
+                    onPressed: () => Get.dialog(ClonePriceDialog(
+                      scaleFactor: adjustedScaleFactor,
+                      padding: padding,
+                      titleFontSize: titleFontSize,
+                      subtitleFontSize: subtitleFontSize,
+                      detailFontSize: detailFontSize,
+                    )),
+                    backgroundColor: isDarkMode ? Colors.blue[300] : Colors.blue[500],
+                    tooltip: 'Clone Prices'.tr,
+                    child: Icon(
+                      Icons.copy,
+                      color: Colors.white,
+                      size: 24 * adjustedScaleFactor,
+                    ),
+                  ),
+                  SizedBox(height: 12 * adjustedScaleFactor),
+                  FloatingActionButton(
+                    heroTag: "add_price",
+                    onPressed: () => Get.toNamed(AppRoutes.price),
+                    backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+                    tooltip: 'Add Price'.tr,
+                    child: Icon(
+                      Icons.add,
+                      color: Colors.white,
+                      size: 24 * adjustedScaleFactor,
+                    ),
+                  ),
+                  SizedBox(height: 16 * adjustedScaleFactor),
+                ],
+              )
+            : const SizedBox.shrink()),
       ),
     );
   }

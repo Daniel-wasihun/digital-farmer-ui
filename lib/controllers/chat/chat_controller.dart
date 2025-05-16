@@ -83,16 +83,7 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: Initialize error: $e');
       errorMessage.value = 'failed_to_initialize'.tr;
-      Get.snackbar(
-        'error'.tr,
-        'failed_to_initialize'.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Get.theme.colorScheme.error,
-        colorText: Get.theme.colorScheme.onError,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 8,
-        duration: const Duration(seconds: 2),
-      );
+      // Snackbar removed as per request: previously showed 'failed_to_initialize'
     }
   }
 
@@ -160,7 +151,6 @@ class ChatController extends GetxController {
     typingUsers.clear();
     unseenNotifications.clear();
     selectedReceiverId.value = '';
-    searchController.clear();
     errorMessage.value = '';
     isConnected.value = false;
     hasInternet.value = true;
@@ -185,16 +175,7 @@ class ChatController extends GetxController {
     } catch (e) {
       print('ChatController: loadLocalData error: $e');
       errorMessage.value = 'failed_to_load_local_data'.tr;
-      Get.snackbar(
-        'error'.tr,
-        'failed_to_load_local_data'.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Get.theme.colorScheme.error,
-        colorText: Get.theme.colorScheme.onError,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 8,
-        duration: const Duration(seconds: 2),
-      );
+      // Snackbar removed as per request: previously showed 'failed_to_load_local_data'
     }
   }
 
@@ -625,7 +606,7 @@ class ChatController extends GetxController {
   }
 
   void debounceSearch() {
-    if (_disposed) return;
+    if (_disposed) return; // Prevent access if disposed
     _searchDebounceTimer?.cancel();
     _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (!_disposed) {
@@ -648,6 +629,7 @@ class ChatController extends GetxController {
     }
     return false;
   }
+
   void _handleReceivedMessage(Map<String, dynamic> data) {
     if (data['receiverId'] == currentUserId.value || data['senderId'] == currentUserId.value) {
       if (_isValidMessage(data) && !messages.containsKey(data['messageId'])) {
@@ -707,7 +689,6 @@ class ChatController extends GetxController {
     }
   }
 
-  
   void _handleSentMessage(Map<String, dynamic> data) {
     if (data['senderId'] == currentUserId.value && _isValidMessage(data)) {
       messages[data['messageId']] = _normalizeMessage(data);

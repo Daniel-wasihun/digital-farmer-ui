@@ -132,46 +132,6 @@ class PriceList extends StatelessWidget {
                       fontFamilyFallback: fontFamilyFallback,
                     ),
                   ),
-                  SizedBox(height: 4 * adjustedScaleFactor),
-                  Text(
-                    'Add prices or try different filters'.tr,
-                    style: TextStyle(
-                      fontSize: subtitleFontSize,
-                      fontWeight: FontWeight.w600,
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                      fontFamilyFallback: fontFamilyFallback,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 8 * adjustedScaleFactor),
-                  ElevatedButton(
-                    onPressed: () => Get.to(
-                      () => const PriceScreen(),
-                      binding: BindingsBuilder(() {
-                        Get.put(PriceController());
-                      }),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isDarkMode ? Colors.green[300] : Colors.green[500],
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16 * adjustedScaleFactor,
-                        vertical: 8 * adjustedScaleFactor,
-                      ),
-                      shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8 * adjustedScaleFactor)),
-                    ),
-                    child: Text(
-                      'Add Price'.tr,
-                      style: TextStyle(
-                        fontSize: subtitleFontSize,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        fontFamilyFallback: fontFamilyFallback,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             );
@@ -245,6 +205,7 @@ class PriceList extends StatelessWidget {
     required double detailFontSize,
     required List<String> fontFamilyFallback,
   }) {
+    final controller = Get.find<MarketController>(); // Access MarketController
     final dayLabel = AppUtils.formatDate(price.date, 'EEE, dd MMM');
     final cardColor =
         theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white);
@@ -364,90 +325,77 @@ class PriceList extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            buildActionButton(
-                              icon: Icons.edit,
-                              color: actionIconColor,
-                              onPressed: () {
-                                print(
-                                    'PriceList: Navigating to edit price with ID: ${price.id}, Crop: ${price.cropName}, Type: ${price.cropType}, Market: ${price.marketName}, Date: ${price.date}');
-                                Get.to(
-                                  () => const PriceScreen(),
-                                  arguments: price,
-                                  binding: BindingsBuilder(() {
-                                    Get.put(PriceController());
-                                  }),
-                                );
-                              },
-                            ),
-                            SizedBox(width: 8 * adjustedScaleFactor),
-                            buildActionButton(
-                              icon: Icons.delete,
-                              color: errorIconColor,
-                              onPressed: () async {
-                                await Future.delayed(
-                                    const Duration(milliseconds: 100));
-                                final confirm = await Get.dialog<bool>(
-                                  Dialog(
-                                    backgroundColor: Colors.transparent,
-                                    child: Container(
-                                      width:
-                                          MediaQuery.of(context).size.width * 0.75,
-                                      decoration: BoxDecoration(
-                                        color: cardColor,
-                                        borderRadius: BorderRadius.circular(
-                                            12 * adjustedScaleFactor),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: isDarkMode
-                                                ? Colors.black26
-                                                : Colors.grey[200]!,
-                                            blurRadius: 6,
-                                            spreadRadius: 0.5,
-                                          ),
-                                        ],
-                                      ),
-                                      padding: EdgeInsets.all(padding * 0.8),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Confirm Delete'.tr,
-                                            style: TextStyle(
-                                              fontSize: cropNameFontSize,
-                                              fontWeight: FontWeight.w700,
-                                              color: errorIconColor,
-                                              fontFamilyFallback:
-                                                  fontFamilyFallback,
+                        // Conditionally show edit and delete buttons for admin only
+                        Obx(() => controller.isAdmin.value
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  buildActionButton(
+                                    icon: Icons.edit,
+                                    color: actionIconColor,
+                                    onPressed: () {
+                                      print(
+                                          'PriceList: Navigating to edit price with ID: ${price.id}, Crop: ${price.cropName}, Type: ${price.cropType}, Market: ${price.marketName}, Date: ${price.date}');
+                                      Get.to(
+                                        () => const PriceScreen(),
+                                        arguments: price,
+                                        binding: BindingsBuilder(() {
+                                          Get.put(PriceController());
+                                        }),
+                                      );
+                                    },
+                                  ),
+                                  SizedBox(width: 8 * adjustedScaleFactor),
+                                  buildActionButton(
+                                    icon: Icons.delete,
+                                    color: errorIconColor,
+                                    onPressed: () async {
+                                      await Future.delayed(
+                                          const Duration(milliseconds: 100));
+                                      final confirm = await Get.dialog<bool>(
+                                        Dialog(
+                                          backgroundColor: Colors.transparent,
+                                          child: Container(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.75,
+                                            decoration: BoxDecoration(
+                                              color: cardColor,
+                                              borderRadius: BorderRadius.circular(
+                                                  12 * adjustedScaleFactor),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: isDarkMode
+                                                      ? Colors.black26
+                                                      : Colors.grey[200]!,
+                                                  blurRadius: 6,
+                                                  spreadRadius: 0.5,
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                          SizedBox(
-                                              height: 8 * adjustedScaleFactor),
-                                          Text(
-                                            'Delete price for {cropName}?'.trParams(
-                                                {'cropName': price.cropName.tr}),
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: subtitleFontSize,
-                                              fontWeight: FontWeight.w600,
-                                              color: textColorSecondary,
-                                              fontFamilyFallback:
-                                                  fontFamilyFallback,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                              height: 12 * adjustedScaleFactor),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.end,
-                                            children: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Get.back(result: false),
-                                                child: Text(
-                                                  'Cancel'.tr,
+                                            padding:
+                                                EdgeInsets.all(padding * 0.8),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'Confirm Delete'.tr,
+                                                  style: TextStyle(
+                                                    fontSize: cropNameFontSize,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: errorIconColor,
+                                                    fontFamilyFallback:
+                                                        fontFamilyFallback,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                    height:
+                                                        8 * adjustedScaleFactor),
+                                                Text(
+                                                  'Delete price for {cropName}?'.trParams(
+                                                      {'cropName': price.cropName.tr}),
+                                                  textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontSize: subtitleFontSize,
                                                     fontWeight: FontWeight.w600,
@@ -456,66 +404,97 @@ class PriceList extends StatelessWidget {
                                                         fontFamilyFallback,
                                                   ),
                                                 ),
-                                              ),
-                                              SizedBox(
-                                                  width: 8 * adjustedScaleFactor),
-                                              ElevatedButton(
-                                                onPressed: () =>
-                                                    Get.back(result: true),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor:
-                                                      errorIconColor,
-                                                  foregroundColor: Colors.white,
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal:
-                                                        12 * adjustedScaleFactor,
-                                                    vertical:
-                                                        6 * adjustedScaleFactor,
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8 *
-                                                                  adjustedScaleFactor)),
-                                                  elevation: 1,
+                                                SizedBox(
+                                                    height:
+                                                        12 * adjustedScaleFactor),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  children: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Get.back(result: false),
+                                                      child: Text(
+                                                        'Cancel'.tr,
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              subtitleFontSize,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color:
+                                                              textColorSecondary,
+                                                          fontFamilyFallback:
+                                                              fontFamilyFallback,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                        width: 8 *
+                                                            adjustedScaleFactor),
+                                                    ElevatedButton(
+                                                      onPressed: () =>
+                                                          Get.back(result: true),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            errorIconColor,
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                        padding: EdgeInsets.symmetric(
+                                                          horizontal: 12 *
+                                                              adjustedScaleFactor,
+                                                          vertical: 6 *
+                                                              adjustedScaleFactor,
+                                                        ),
+                                                        shape: RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                    8 *
+                                                                        adjustedScaleFactor)),
+                                                        elevation: 1,
+                                                      ),
+                                                      child: Text(
+                                                        'Delete'.tr,
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              subtitleFontSize,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          fontFamilyFallback:
+                                                              fontFamilyFallback,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                child: Text(
-                                                  'Delete'.tr,
-                                                  style: TextStyle(
-                                                    fontSize: subtitleFontSize,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontFamilyFallback:
-                                                        fontFamilyFallback,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        try {
+                                          print(
+                                              'PriceList: Deleting price with ID: ${price.id}');
+                                          // await controller.deletePrice(price.id);
+                                        } catch (e) {
+                                          print(
+                                              'PriceList: Error deleting price: $e');
+                                          AppUtils.showSnackbar(
+                                            title: 'Error'.tr,
+                                            message: 'failed_to_delete_price'
+                                                .trParams(
+                                                    {'error': e.toString()}),
+                                            backgroundColor:
+                                                theme.colorScheme.error,
+                                            textColor: Colors.white,
+                                          );
+                                        }
+                                      }
+                                    },
                                   ),
-                                );
-                                if (confirm == true) {
-                                  try {
-                                    print(
-                                        'PriceList: Deleting price with ID: ${price.id}');
-                                    // await controller.deletePrice(price.id);
-                                  } catch (e) {
-                                    print('PriceList: Error deleting price: $e');
-                                    AppUtils.showSnackbar(
-                                      title: 'Error'.tr,
-                                      message: 'failed_to_delete_price'
-                                          .trParams({'error': e.toString()}),
-                                      backgroundColor: theme.colorScheme.error,
-                                      textColor: Colors.white,
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                                ],
+                              )
+                            : const SizedBox.shrink()),
                       ],
                     ),
                     SizedBox(height: 8 * adjustedScaleFactor),
