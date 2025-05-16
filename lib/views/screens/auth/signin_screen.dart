@@ -258,8 +258,8 @@ class SignInScreen extends GetView<SignInController> {
                                     ),
                                   ),
                                   SizedBox(height: (8 * scaleFactor).clamp(8.0, 12.0)),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       TextButton(
                                         onPressed: controller.authController.isLoading.value
@@ -271,9 +271,10 @@ class SignInScreen extends GetView<SignInController> {
                                         child: Text(
                                           'dont_have_account'.tr,
                                           style: theme.textButtonTheme.style?.textStyle?.resolve({}) ??
-                                              TextStyle(fontSize: (14 * scaleFactor).clamp(12.0, 16.0)),
+                                              TextStyle(fontSize: (12 * scaleFactor).clamp(10.0, 14.0)),
                                         ),
                                       ),
+                                      SizedBox(height: (2 * scaleFactor).clamp(2.0, 3.0)),
                                       TextButton(
                                         onPressed: controller.authController.isLoading.value
                                             ? null
@@ -284,7 +285,7 @@ class SignInScreen extends GetView<SignInController> {
                                         child: Text(
                                           'forgot_password'.tr,
                                           style: theme.textButtonTheme.style?.textStyle?.resolve({}) ??
-                                              TextStyle(fontSize: (14 * scaleFactor).clamp(12.0, 16.0)),
+                                              TextStyle(fontSize: (12 * scaleFactor).clamp(10.0, 14.0)),
                                         ),
                                       ),
                                     ],

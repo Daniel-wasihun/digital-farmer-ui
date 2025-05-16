@@ -15,7 +15,7 @@ class SignUpScreen extends GetView<SignUpController> {
   Widget build(BuildContext context) {
     Get.put(SignUpController());
     final ThemeController themeController = Get.find<ThemeController>();
-    final AppController appController = Get.find<AppController>();
+    final AppController appController = Get.put(AppController());
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.reset();
@@ -72,13 +72,6 @@ class SignUpScreen extends GetView<SignUpController> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Text(
-            'app_title'.tr,
-            style: theme.textTheme.titleLarge!.copyWith(
-              fontSize: 18 * scaleFactor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
           actions: [
             Row(
               children: [
