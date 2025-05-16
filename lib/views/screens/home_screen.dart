@@ -56,9 +56,8 @@ class _HomeScreenContent extends StatelessWidget {
     final height = size.height;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet ? 1.2 : 1.0;
-    final textScaleFactor = isTablet ? 1.0 : 0.9; // Match SettingsTab
+    final textScaleFactor = isTablet ? 1.0 : 0.9;
     final appBarHeight = (height * 0.07 * scaleFactor).clamp(48.0, 64.0);
-    // Dynamic drawer width: 75% of screen width, clamped between 250px and 400px
     final drawerWidth = (size.width * 0.75).clamp(250.0, 400.0);
 
     return Scaffold(
@@ -85,7 +84,7 @@ class _HomeScreenContent extends StatelessWidget {
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           actions: [
-            SizedBox(width: 6 * scaleFactor), // Minimal spacing for balance
+            SizedBox(width: 6 * scaleFactor),
           ],
           flexibleSpace: Container(
             decoration: BoxDecoration(
@@ -110,6 +109,10 @@ class _HomeScreenContent extends StatelessWidget {
       ),
       drawer: Drawer(
         width: drawerWidth,
+        elevation: 8,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
+        ),
         child: _ProfessionalDrawer(
           appController: appController,
           authController: authController,
@@ -284,7 +287,7 @@ class _ProfessionalDrawer extends StatelessWidget {
     required this.textScaleFactor,
   });
 
-  // Show logout confirmation dialog matching SettingsTab
+  // Show logout confirmation dialog
   void _showLogoutConfirmationDialog(BuildContext context) {
     Get.dialog(
       AlertDialog(
@@ -329,12 +332,22 @@ class _ProfessionalDrawer extends StatelessWidget {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Container(
-      color: isDarkMode
-          ? const Color(0xFF1A252F) // Blue-black for dark mode
-          : theme.drawerTheme.backgroundColor ?? theme.scaffoldBackgroundColor,
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? const Color(0xFF1A252F)
+            : theme.drawerTheme.backgroundColor ?? Colors.white,
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
       child: Column(
         children: [
-          // Professional Drawer Header
+          // Drawer Header
           Container(
             height: height * 0.22 * scaleFactor,
             padding: EdgeInsets.all(16 * scaleFactor),
@@ -372,7 +385,7 @@ class _ProfessionalDrawer extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 12 * scaleFactor),
-                  // App Name and Optional User Info
+                  // App Name and User Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,14 +401,16 @@ class _ProfessionalDrawer extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 4 * scaleFactor),
-                        Text(
-                          'Welcome'.tr,
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16 * scaleFactor,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
+                        Obx(() => Text(
+                              authController.userName.value.isNotEmpty
+                                  ? '${'Hello'.tr}, ${authController.userName.value}'
+                                  : 'Welcome'.tr,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16 * scaleFactor,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            )),
                       ],
                     ),
                   ),

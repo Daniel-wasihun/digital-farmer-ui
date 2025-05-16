@@ -23,9 +23,7 @@ class CropTipsTab extends StatelessWidget {
     final crossAxisCount = screenWidth < 360 ? 1 : screenWidth < 600 ? 2 : screenWidth < 900 ? 3 : 4;
     const fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
-    if (controller.selectedCrop.value.isEmpty) {
-      controller.selectedCrop.value = 'teff';
-    }
+    controller.selectedCrop.value = 'select_crop';
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -37,7 +35,7 @@ class CropTipsTab extends StatelessWidget {
               children: [
                 Container(
                   color: Theme.of(context).cardTheme.color ??
-                      (Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.white),
+                      (Theme.of(context).brightness == Brightness.dark ? Colors.blueGrey[900] : Colors.white),
                   child: TabBar(
                     tabs: [Tab(text: 'Crop Tips'.tr), Tab(text: 'Crop Info'.tr)],
                     labelStyle: TextStyle(fontSize: subtitleFontSize, fontWeight: FontWeight.w700, fontFamilyFallback: fontFamilyFallbacks),
@@ -123,7 +121,7 @@ class CropTipsView extends StatelessWidget {
     }
 
     return Container(
-      color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+      color: theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white),
       child: Column(
         children: [
           Padding(
@@ -153,7 +151,7 @@ class CropTipsView extends StatelessWidget {
                           borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.2 * scaleFactor),
                         ),
                         filled: true,
-                        fillColor: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                        fillColor: theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white),
                         contentPadding: EdgeInsets.symmetric(vertical: 10 * scaleFactor, horizontal: 10 * scaleFactor),
                       ),
                     ),
@@ -222,6 +220,7 @@ class CropTipsView extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final entry = filteredCrops[index];
                   return Card(
+                    color: isDarkMode ? Colors.blueGrey[900] : Colors.white,
                     elevation: 4,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: InkWell(
@@ -271,17 +270,17 @@ class CropTipsView extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    'Temp: ${entry.value['temp_range'][0]}${'degree_celsius'.tr} - ${entry.value['temp_range'][1]}${'degree_celsius'.tr}',
+                                    'temp_label'.tr + ': ${entry.value['temp_range'][0]}${'degree_celsius'.tr} - ${entry.value['temp_range'][1]}${'degree_celsius'.tr}',
                                     style: TextStyle(
-                                      fontSize: detailFontSize,
+                                      fontSize: detailFontSize * 0.95,
                                       color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                       fontFamilyFallback: fontFamilyFallbacks,
                                     ),
                                   ),
                                   Text(
-                                    'Category: ${(entry.value['category'] as String).tr}',
+                                    'category_label'.tr + ': ${(entry.value['category'] as String).tr}',
                                     style: TextStyle(
-                                      fontSize: detailFontSize,
+                                      fontSize: detailFontSize ,
                                       color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                       fontFamilyFallback: fontFamilyFallbacks,
                                     ),
@@ -331,7 +330,7 @@ class CropInfoView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final cardColor = theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white);
+    final cardColor = theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white);
 
     return Container(
       color: cardColor,
@@ -347,21 +346,25 @@ class CropInfoView extends StatelessWidget {
                 value: controller.selectedCrop.value,
                 isExpanded: true,
                 decoration: InputDecoration(
-                  hintText: 'Select Crop'.tr,
+                  hintText: 'select_crop'.tr,
                   hintStyle: TextStyle(fontSize: detailFontSize, color: Colors.grey[500]),
                   filled: true,
                   fillColor: cardColor,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
-                items: cropData.keys
-                    .map((crop) => DropdownMenuItem<String>(
-                          value: crop,
-                          child: Text(crop.tr, style: TextStyle(fontSize: detailFontSize, fontFamilyFallback: fontFamilyFallbacks)),
-                        ))
-                    .toList(),
+                items: [
+                  DropdownMenuItem<String>(
+                    value: 'select_crop',
+                    child: Text('select_crop'.tr, style: TextStyle(fontSize: detailFontSize, fontFamilyFallback: fontFamilyFallbacks)),
+                  ),
+                  ...cropData.keys.map((crop) => DropdownMenuItem<String>(
+                        value: crop,
+                        child: Text(crop.tr, style: TextStyle(fontSize: detailFontSize, fontFamilyFallback: fontFamilyFallbacks)),
+                      )),
+                ].toList(),
                 onChanged: (value) {
-                  if (value != null) {
+                  if (value != null && value != 'select_crop') {
                     controller.selectedCrop.value = value;
                     controller.fetchCropInfo(value);
                   }
@@ -373,10 +376,32 @@ class CropInfoView extends StatelessWidget {
               if (controller.isCropInfoLoading.value) {
                 return Center(child: CircularProgressIndicator(color: Colors.green[700]));
               }
-              if (controller.cropInfo.value == null) {
+              if (controller.cropInfo.value == null || controller.selectedCrop.value == 'select_crop') {
                 return Center(
-                  child: Text('Select a crop to view details'.tr,
-                      style: TextStyle(fontSize: subtitleFontSize, color: isDarkMode ? Colors.grey[300] : Colors.grey[700], fontFamilyFallback: fontFamilyFallbacks)),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 200, // Adjust height to center vertically
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.eco,
+                          color: Colors.green[700],
+                          size: 150 * scaleFactor, // Increased icon size
+                        ),
+                        SizedBox(height: padding),
+                        Text(
+                          'select_crop_to_view_details'.tr,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: subtitleFontSize*1.1,
+                            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                            fontFamilyFallback: fontFamilyFallbacks,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               }
               final sections = _parsePlainTextResponse(controller.cropInfo.value!);
@@ -508,7 +533,7 @@ class CropDetailSheet extends StatelessWidget {
               onTap: () {},
               child: Container(
                 decoration: BoxDecoration(
-                  color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                  color: theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(
@@ -546,15 +571,15 @@ class CropDetailSheet extends StatelessWidget {
                                     color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                     fontFamilyFallback: fontFamilyFallbacks)),
                             const Divider(height: 16),
-                            _buildDetailRow('Optimal Temp Range'.tr,
+                            _buildDetailRow('optimal_temp_range'.tr,
                                 '${data['temp_range'][0]}${'degree_celsius'.tr} - ${data['temp_range'][1]}${'degree_celsius'.tr}', Icons.thermostat),
-                            _buildDetailRow('Weekly Water'.tr,
+                            _buildDetailRow('weekly_water'.tr,
                                 '${data['weekly_water_mm'][0]}${'millimeters'.tr} - ${data['weekly_water_mm'][1]}${'millimeters'.tr}', Icons.water_drop),
-                            _buildDetailRow('Optimal Humidity'.tr, '${data['humidity_range'][0]}% - ${data['humidity_range'][1]}%', Icons.opacity),
-                            _buildDetailRow('Altitude Range'.tr,
+                            _buildDetailRow('optimal_humidity'.tr, '${data['humidity_range'][0]}% - ${data['humidity_range'][1]}%', Icons.opacity),
+                            _buildDetailRow('altitude_range'.tr,
                                 '${data['altitude_range_m'][0]}${'meters'.tr} - ${data['altitude_range_m'][1]}${'meters'.tr}', Icons.height),
-                            _buildDetailRow('Soil Type'.tr, (data['soil_type'] as List<String>).map((soil) => soil.tr).join(', '), Icons.landscape),
-                            _buildDetailRow('Growing Season'.tr, (data['growing_season'] as List<String>).map((season) => season.tr).join(', '), Icons.calendar_today),
+                            _buildDetailRow('soil_type'.tr, (data['soil_type'] as List<String>).map((soil) => soil.tr).join(', '), Icons.landscape),
+                            _buildDetailRow('growing_season'.tr, (data['growing_season'] as List<String>).map((season) => season.tr).join(', '), Icons.calendar_today),
                           ],
                         ),
                       ),

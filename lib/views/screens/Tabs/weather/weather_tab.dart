@@ -15,7 +15,7 @@ String capitalizeFirstLetter(String text) =>
 
 // Format location name with capitalization
 String getFormattedLocationName(String? location) =>
-    location != null ? capitalizeFirstLetter(location) : 'Unknown';
+    location != null ? capitalizeFirstLetter(location) : 'Unknown'.tr;
 
 // Generate dates for the last 7 days
 List<String> getLast7DaysDates() => List.generate(
@@ -367,26 +367,26 @@ class WeatherTab extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final screenWidth = size.width;
 
-    // Responsive scaling factor (matched to ChatTab and CropTipsTab)
+    // Responsive scaling factor (matched to CropTipsTab)
     final double scaleFactor = (0.9 + (screenWidth - 320) / (1200 - 320) * (1.6 - 0.9)).clamp(0.9, 1.6);
     final double adjustedScaleFactor = scaleFactor * 1.1;
 
-    // Dynamic responsive padding (matched to ChatTab and CropTipsTab)
+    // Dynamic responsive padding (matched to CropTipsTab)
     final double padding = (8 + (screenWidth - 320) / (1200 - 320) * (32 - 8)).clamp(8.0, 32.0);
 
-    // Base font sizes (matched to ChatTab and CropTipsTab)
+    // Base font sizes (matched to CropTipsTab)
     const double baseHeaderFontSize = 32.0;
     const double baseTitleFontSize = 20.0;
     const double baseSubtitleFontSize = 16.0;
     const double baseDetailFontSize = 14.0;
 
-    // Scaled font sizes with clamps (matched to ChatTab and CropTipsTab)
+    // Scaled font sizes with clamps (matched to CropTipsTab)
     final double headerFontSize = (baseHeaderFontSize * adjustedScaleFactor).clamp(22.0, 38.0);
     final double titleFontSize = (baseTitleFontSize * adjustedScaleFactor).clamp(16.0, 28.0);
     final double subtitleFontSize = (baseSubtitleFontSize * adjustedScaleFactor * 0.9).clamp(12.0, 20.0);
     final double detailFontSize = (baseDetailFontSize * adjustedScaleFactor * 0.9).clamp(10.0, 18.0);
 
-    // Font fallbacks for Amharic (matched to ChatTab and CropTipsTab)
+    // Font fallbacks for Amharic (matched to CropTipsTab)
     const List<String> fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
     final theme = Theme.of(context);
@@ -607,7 +607,7 @@ class WeatherTab extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '${weatherData['current']?['temperature']?['c']?.toString() ?? 'N/A'}°C',
+                                  '${weatherData['current']?['temperature']?['c']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}',
                                   style: TextStyle(
                                     fontFamily: GoogleFonts.poppins().fontFamily,
                                     fontFamilyFallback: fontFamilyFallbacks,
@@ -617,7 +617,7 @@ class WeatherTab extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'Feels Like: ${weatherData['current']?['feels_like']?['c']?.toString() ?? 'N/A'}°C'.tr,
+                                  '${'feels_like'.tr}: ${weatherData['current']?['feels_like']?['c']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}',
                                   style: TextStyle(
                                     fontFamily: GoogleFonts.poppins().fontFamily,
                                     fontFamilyFallback: fontFamilyFallbacks,
@@ -626,7 +626,7 @@ class WeatherTab extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'Humidity: ${weatherData['current']?['humidity']?.toString() ?? 'N/A'}%'.tr,
+                                  '${'humidity'.tr}: ${weatherData['current']?['humidity']?.toString() ?? 'N/A'}%',
                                   style: TextStyle(
                                     fontFamily: GoogleFonts.poppins().fontFamily,
                                     fontFamilyFallback: fontFamilyFallbacks,
@@ -915,7 +915,7 @@ class WeatherTab extends StatelessWidget {
                                                     ),
                                                     SizedBox(width: 6 * adjustedScaleFactor),
                                                     Text(
-                                                      '${dayData?['max_temp']?['c']?.toString() ?? 'N/A'}°C / ${dayData?['min_temp']?['c']?.toString() ?? 'N/A'}°C',
+                                                      '${dayData?['max_temp']?['c']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr} / ${dayData?['min_temp']?['c']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}',
                                                       style: TextStyle(
                                                         fontFamily: GoogleFonts.poppins().fontFamily,
                                                         fontFamilyFallback: fontFamilyFallbacks,
@@ -1022,7 +1022,7 @@ class WeatherTab extends StatelessWidget {
                                           crossAxisAlignment: CrossAxisAlignment.end,
                                           children: [
                                             Text(
-                                              '${historical['avg_temp']?.toString() ?? 'N/A'}°C',
+                                              '${historical['avg_temp']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}',
                                               style: TextStyle(
                                                 fontFamily: GoogleFonts.poppins().fontFamily,
                                                 fontFamilyFallback: fontFamilyFallbacks,
@@ -1032,7 +1032,7 @@ class WeatherTab extends StatelessWidget {
                                               ),
                                             ),
                                             Text(
-                                              'Precip: ${historical['total_precip']?.toString() ?? 'N/A'} mm'.tr,
+                                              '${'precipitation'.tr}: ${historical['total_precip']?.toString() ?? 'N/A'} ${'millimeters'.tr}',
                                               style: TextStyle(
                                                 fontFamily: GoogleFonts.poppins().fontFamily,
                                                 fontFamilyFallback: fontFamilyFallbacks,
@@ -1228,57 +1228,57 @@ class ForecastDetailSheet extends StatelessWidget {
                         height: 16 * scaleFactor,
                       ),
                       _buildDetailRow(
-                        'Max/Min Temp'.tr,
-                        '${dayData?['max_temp']?['c']?.toString() ?? 'N/A'}°C / ${dayData?['min_temp']?['c']?.toString() ?? 'N/A'}°C',
+                        'max_min_temp'.tr,
+                        '${dayData?['max_temp']?['c']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr} / ${dayData?['min_temp']?['c']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.thermostat,
                       ),
                       _buildDetailRow(
-                        'Avg Temp'.tr,
-                        '${dayData?['avg_temp']?['c']?.toString() ?? 'N/A'}°C',
+                        'avg_temp'.tr,
+                        '${dayData?['avg_temp']?['c']?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.thermostat_auto,
                       ),
                       _buildDetailRow(
-                        'Precipitation'.tr,
-                        dayData?['precipitation']?['chance']?.toString() ?? 'N/A',
+                        'precipitation'.tr,
+                        '${dayData?['precipitation']?['chance']?.toString() ?? 'N/A'} ${'chance_of_rain'.tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.umbrella,
                       ),
                       _buildDetailRow(
-                        'Wind'.tr,
-                        '${dayData?['max_wind']?['kph']?.toString() ?? 'N/A'} kph',
+                        'wind'.tr,
+                        '${dayData?['max_wind']?['kph']?.toString() ?? 'N/A'} ${'kilometers_per_hour'.tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.air,
                       ),
                       _buildDetailRow(
-                        'Humidity'.tr,
+                        'humidity'.tr,
                         '${dayData?['humidity']?.toString() ?? 'N/A'}%',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.water_drop_outlined,
                       ),
                       _buildDetailRow(
-                        'UV Index'.tr,
+                        'uv_index'.tr,
                         dayData?['uv']?.toString() ?? 'N/A',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.wb_sunny_outlined,
                       ),
                       _buildDetailRow(
-                        'Visibility'.tr,
-                        '${dayData?['visibility']?['km']?.toString() ?? 'N/A'} km',
+                        'visibility'.tr,
+                        '${dayData?['visibility']?['km']?.toString() ?? 'N/A'} ${'kilometers'.tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.visibility,
                       ),
                       SizedBox(height: 12 * scaleFactor),
                       Text(
-                        'Hourly Forecast'.tr,
+                        'hourly_forecast'.tr,
                         style: TextStyle(
                           fontFamily: GoogleFonts.poppins().fontFamily,
                           fontFamilyFallback: fontFamilyFallbacks,
@@ -1289,22 +1289,22 @@ class ForecastDetailSheet extends StatelessWidget {
                       ),
                       SizedBox(height: 8 * scaleFactor),
                       _buildDetailRow(
-                        'Morning'.tr,
-                        '${hourlyData?['morning']?['temp_range']?[0]?.toString() ?? 'N/A'}°C - ${hourlyData?['morning']?['temp_range']?[1]?.toString() ?? 'N/A'}°C, ${(hourlyData?['morning']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
+                        'morning'.tr,
+                        '${hourlyData?['morning']?['temp_range']?[0]?.toString() ?? 'N/A'}${ 'degree_celsius'.tr} - ${hourlyData?['morning']?['temp_range']?[1]?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}, ${(hourlyData?['morning']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.wb_sunny,
                       ),
                       _buildDetailRow(
-                        'Midday'.tr,
-                        '${hourlyData?['midday']?['temp_range']?[0]?.toString() ?? 'N/A'}°C - ${hourlyData?['midday']?['temp_range']?[1]?.toString() ?? 'N/A'}°C, ${(hourlyData?['midday']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
+                        'midday'.tr,
+                        '${hourlyData?['midday']?['temp_range']?[0]?.toString() ?? 'N/A'}${ 'degree_celsius'.tr} - ${hourlyData?['midday']?['temp_range']?[1]?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}, ${(hourlyData?['midday']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.wb_sunny,
                       ),
                       _buildDetailRow(
-                        'Evening'.tr,
-                        '${hourlyData?['evening']?['temp_range']?[0]?.toString() ?? 'N/A'}°C - ${hourlyData?['evening']?['temp_range']?[1]?.toString() ?? 'N/A'}°C, ${(hourlyData?['evening']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
+                        'evening'.tr,
+                        '${hourlyData?['evening']?['temp_range']?[0]?.toString() ?? 'N/A'}${ 'degree_celsius'.tr} - ${hourlyData?['evening']?['temp_range']?[1]?.toString() ?? 'N/A'}${ 'degree_celsius'.tr}, ${(hourlyData?['evening']?['condition']?.toString() ?? 'N/A').toLowerCase().tr}',
                         detailFontSize,
                         isDarkMode,
                         icon: Icons.nights_stay,
@@ -1312,7 +1312,7 @@ class ForecastDetailSheet extends StatelessWidget {
                       if (astroData != null) ...[
                         SizedBox(height: 12 * scaleFactor),
                         Text(
-                          'Astronomy'.tr,
+                          'astronomy'.tr,
                           style: TextStyle(
                             fontFamily: GoogleFonts.poppins().fontFamily,
                             fontFamilyFallback: fontFamilyFallbacks,
@@ -1323,35 +1323,35 @@ class ForecastDetailSheet extends StatelessWidget {
                         ),
                         SizedBox(height: 8 * scaleFactor),
                         _buildDetailRow(
-                          'Sunrise'.tr,
+                          'sunrise'.tr,
                           astroData['sunrise']?.toString() ?? 'N/A',
                           detailFontSize,
                           isDarkMode,
                           icon: Icons.wb_sunny,
                         ),
                         _buildDetailRow(
-                          'Sunset'.tr,
+                          'sunset'.tr,
                           astroData['sunset']?.toString() ?? 'N/A',
                           detailFontSize,
                           isDarkMode,
                           icon: Icons.nights_stay,
                         ),
                         _buildDetailRow(
-                          'Moon Phase'.tr,
+                          'moon_phase'.tr,
                           astroData['moon_phase']?.toString() ?? 'N/A',
                           detailFontSize,
                           isDarkMode,
                           icon: Icons.nightlight_round,
                         ),
                         _buildDetailRow(
-                          'Moonrise'.tr,
+                          'moonrise'.tr,
                           astroData['moonrise']?.toString() ?? 'N/A',
                           detailFontSize,
                           isDarkMode,
                           icon: Icons.nightlight,
                         ),
                         _buildDetailRow(
-                          'Moonset'.tr,
+                          'moonset'.tr,
                           astroData['moonset']?.toString() ?? 'N/A',
                           detailFontSize,
                           isDarkMode,

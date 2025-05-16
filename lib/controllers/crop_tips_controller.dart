@@ -18,7 +18,7 @@ class CropTipsController extends GetxController {
   RxInt currentTabIndex = 0.obs;
 
   // For Crop Info section
-  var selectedCrop = 'teff'.obs;
+  var selectedCrop = 'select_crop'.obs; // Default to 'select_crop'
   var isCropInfoLoading = false.obs;
   var cropInfo = Rxn<String>();
 
@@ -46,10 +46,7 @@ class CropTipsController extends GetxController {
       // Load cached location if available
       loadCachedLocation();
     }
-    // Fetch crop info for default crop
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      fetchCropInfo(selectedCrop.value);
-    });
+    // Do NOT fetch crop info automatically
   }
 
   @override
@@ -113,7 +110,6 @@ class CropTipsController extends GetxController {
   // Get device location
   Future<Position?> _getDeviceLocation() async {
     try {
-      // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         Get.snackbar(
@@ -126,7 +122,6 @@ class CropTipsController extends GetxController {
         return null;
       }
 
-      // Check location permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -153,11 +148,9 @@ class CropTipsController extends GetxController {
         return null;
       }
 
-      // Get current position
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      // Cache location
       storage.write('latitude', position.latitude);
       storage.write('longitude', position.longitude);
       return position;
@@ -202,7 +195,6 @@ class CropTipsController extends GetxController {
           final city = components['town']?.toString() ??
               components['_normalized_city']?.toString() ??
               'Unknown';
-          // Cache city
           storage.write('city', city);
           return city;
         } else {
@@ -240,11 +232,17 @@ class CropTipsController extends GetxController {
   }
 
   Future<void> fetchCropInfo(String cropType) async {
+    // Prevent fetching if cropType is 'select_crop'
+    if (cropType == 'select_crop') {
+      isCropInfoLoading.value = false;
+      cropInfo.value = null;
+      return;
+    }
+
     print('Fetching crop info for: $cropType');
     isCropInfoLoading.value = true;
     cropInfo.value = null;
 
-    // Get device location and city
     double latitude = 11.7833; // Default fallback
     double longitude = 39.6;
     String city = 'weldiya';

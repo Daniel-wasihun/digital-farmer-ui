@@ -664,7 +664,61 @@ class AppTranslations extends Translations {
 
           'Account':'Account',
           'Navigation':'Navigation',
-          'Preferences':'Preferences'
+          'Preferences':'Preferences',
+          'Hello':'Hello',
+          'Version 1.0.0': 'Version 1.0.0',
+
+
+          'An error occurred. Please try again.': 'An error occurred. Please try again.',
+          'Location services are disabled.': 'Location services are disabled.',
+          'Location permissions are denied.': 'Location permissions are denied.',
+          'Location permissions are permanently denied.': 'Location permissions are permanently denied.',
+          'Failed to get device location.': 'Failed to get device location.',
+          'API key is missing.': 'API key is missing.',
+          'Failed to fetch city name.': 'Failed to fetch city name.',
+          'No city found for the given coordinates.': 'No city found for the given coordinates.',
+          'Day After': 'Day After',
+          'OK': 'OK',
+          // Weather conditions
+          // Units and terms
+          'AM': 'AM',
+          'PM': 'PM',
+          'kilometers': 'km',
+          'kilometers_per_hour': 'kph',
+          'chance_of_rain': 'Chance of Rain',
+          'precipitation': 'Precipitation',
+          'wind': 'Wind',
+          'visibility': 'Visibility',
+          'sunrise': 'Sunrise',
+          'sunset': 'Sunset',
+          'moon_phase': 'Moon Phase',
+          'moonrise': 'Moonrise',
+          'moonset': 'Moonset',
+          'astronomy': 'Astronomy',
+
+
+        "temp_label": "Temperature",
+        "category_label": "Category",
+        "select_crop": "Select a crop",
+        "select_crop_to_view_details": "Select a crop to view details",
+
+        "search_users": "Search users",
+        "no_internet": "No internet connection",
+        "server_unavailable": "Server unavailable",
+        "no_results": "No results found",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun",
+
+        "coming_soon": "Coming Soon",
+        "delete_messages_coming_soon": "Message deletion is coming soon...",
+        "message_selected": "Message selected",
+        "messages_selected": "Messages selected",
+
 
         },
 
@@ -1332,11 +1386,61 @@ class AppTranslations extends Translations {
           'Locale changed to: {locale}': 'ቋንቋ ወደ {locale} ተቀይሯል',
           'Account':'መለያ',
           'Navigation':'አሰሳ',
-          'Preferences':'ምርጫዎች'
+          'Preferences':'ምርጫዎች',
+          'Hello':'ሰላም',
+          'Version 1.0.0': 'ስሪት 1.0.0',
 
 
+          'An error occurred. Please try again.': 'ስህተት ተከስቷል። እባክዎ እንደገና ይሞክሩ።',
+          'Location services are disabled.': 'የቦታ አገልግሎቶች ተሰናክለዋል።',
+          'Location permissions are denied.': 'የቦታ ፈቃዶች ተከልክለዋል።',
+          'Location permissions are permanently denied.': 'የቦታ ፈቃዶች በቋሚነት ተከልክለዋል።',
+          'Failed to get device location.': 'የመሣሪያ ቦታ ማግኘት አልተሳካም።',
+          'API key is missing.': 'የ API ቁልፍ ጠፍቷል።',
+          'Failed to fetch city name.': 'የከተማ ስም ማግኘት አልተሳካም።',
+          'No city found for the given coordinates.': 'ለተሰጡት መጋጠሚያዎች ምንም ከተማ አልተገኘም።',
+          'Day After': 'ከነገ በኋላ',
+          'OK': 'እሺ',
+          // Weather conditions
+          // Units and terms
+          'AM': 'ጥዋት',
+          'PM': 'ከሰዓት',
+          'kilometers': 'ኪሜ',
+          'kilometers_per_hour': 'ኪሜ/ሰ',
+          'chance_of_rain': 'የዝናብ ዕድል',
+          'precipitation': 'ዝናብ',
+          'wind': 'ነፋስ',
+          'visibility': 'ታይነት',
+          'sunrise': 'ፀሐይ መውጣት',
+          'sunset': 'ፀሐይ መግባት',
+          'moon_phase': 'የጨረቃ ሁኔታ',
+          'moonrise': 'ጨረቃ መውጣት',
+          'moonset': 'ጨረቃ መግባት',
+          'astronomy': 'ሥነ ፈለክ',
           
-          
+          "temp_label": "የሙቀት መጠን",
+          "category_label": "ምድብ",
+          "select_crop": "ሰብል ምረጥ",
+          "select_crop_to_view_details": "ዝርዝሮችን ለማየት ሰብል ምረጥ",
+
+
+          "search_users": "ተጠቃሚዎችን ፈልግ",
+          "no_internet": "የበይነመረብ ግንኙነት የለም",
+          "server_unavailable": "አገልጋይ አይገኝም",
+          "no_results": "ምንም ውጤቶች አልተገኙም",
+          "mon": "ሰኞ",
+          "tue": "ማክሰኞ",
+          "wed": "ረቡዕ",
+          "thu": "ሐሙስ",
+          "fri": "አርብ",
+          "sat": "ቅዳሜ",
+          "sun": "እሑድ",
+
+          "coming_soon": "በቅርቡ ይመጣል",
+          "delete_messages_coming_soon": "መልእክቶችን መሰረዝ በቅርቡ ይመጣል...",
+          "message_selected": "መልእክት ተመርጧል",
+          "messages_selected": "መልእክቶች ተመርጠዋል",
+
         },
       };
 }

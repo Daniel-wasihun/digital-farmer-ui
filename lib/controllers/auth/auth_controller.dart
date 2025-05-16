@@ -20,6 +20,7 @@ class AuthController extends GetxController with AuthValidationMixin {
 
   final isLoading = false.obs;
   final isPasswordChangeSuccess = false.obs;
+  final userName = ''.obs; // Added userName observable
 
   @override
   var usernameError = ''.obs;
@@ -81,6 +82,9 @@ class AuthController extends GetxController with AuthValidationMixin {
     _otpManager = AuthOtpManager(_apiService, _storageService, callbacks);
     _passwordManager = AuthPasswordManager(_apiService, _storageService, callbacks);
     _securityManager = AuthSecurityManager(_apiService, _storageService, callbacks);
+
+    // Initialize userName from stored user data
+    _loadUserName();
   }
 
   @override
@@ -94,6 +98,14 @@ class AuthController extends GetxController with AuthValidationMixin {
     securityQuestionTextController.dispose();
     securityAnswerTextController.dispose();
     super.onClose();
+  }
+
+  // Load username from storage
+  void _loadUserName() {
+    final user = _storageService.getUser();
+    if (user != null && user['username'] != null) {
+      userName.value = user['username'].toString();
+    }
   }
 
   void resetAllFields() {
@@ -201,6 +213,9 @@ class AuthController extends GetxController with AuthValidationMixin {
       final response = await _apiService.auth.signin(email.toLowerCase(), password);
       await _storageService.saveUser(response['user']);
       await _storageService.saveToken(response['token']);
+      
+      // Update userName after successful sign-in
+      userName.value = response['user']['username'] ?? '';
 
       Get.snackbar('success'.tr, 'logged_in_successfully'.tr,
           backgroundColor: Get.theme.colorScheme.secondary,
@@ -229,6 +244,7 @@ class AuthController extends GetxController with AuthValidationMixin {
   }
 
   Future<void> logout() async {
+    userName.value = ''; // Clear userName on logout
     await _storageService.clear();
     Get.offAllNamed(AppRoutes.getSignInPage());
   }

@@ -218,7 +218,7 @@ class ChatScreen extends StatelessWidget {
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 fontFamilyFallback: fontFamilyFallbacks,
                 color: Theme.of(context).colorScheme.onPrimary,
-                fontSize: 20 * scaleFactor,
+                fontSize: 18 * scaleFactor, // Reduced from 20 to 18
                 fontWeight: FontWeight.w600,
               ),
             )),
@@ -566,12 +566,12 @@ class _MessageBubble extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(right: 8 * scaleFactor),
                   child: Container(
-                    padding: EdgeInsets.all(4 * scaleFactor),
+                    padding: EdgeInsets.all(3 * scaleFactor), // Reduced from 4 to 3
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.check, size: 12 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
+                    child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary), // Reduced from 12 to 10
                   ),
                 ),
               ConstrainedBox(
@@ -609,12 +609,12 @@ class _MessageBubble extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(left: 8 * scaleFactor),
                   child: Container(
-                    padding: EdgeInsets.all(4 * scaleFactor),
+                    padding: EdgeInsets.all(3 * scaleFactor), // Reduced from 4 to 3
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.check, size: 12 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
+                    child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary), // Reduced from 12 to 10
                   ),
                 ),
             ],

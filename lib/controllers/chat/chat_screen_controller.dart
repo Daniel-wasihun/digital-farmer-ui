@@ -403,76 +403,17 @@ class ChatScreenController extends GetxController with GetSingleTickerProviderSt
 
   void deleteSelectedMessages() {
     if (selectedIndices.isEmpty) return;
-    final validIndices = selectedIndices.where((index) => index < messageItems.length && messageItems[index]['type'] == 'message').toList();
-    if (validIndices.isEmpty) {
-      clearSelection();
-      return;
-    }
-    Get.dialog(
-      AlertDialog(
-        title: Text(
-          'confirm_deletion'.tr,
-          style: TextStyle(
-            fontFamily: GoogleFonts.poppins().fontFamily,
-            fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          'delete_messages_confirmation'.trParams({
-            'count': validIndices.length.toString(),
-            'plural': validIndices.length > 1 ? 's' : '',
-          }),
-          style: TextStyle(
-            fontFamily: GoogleFonts.poppins().fontFamily,
-            fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'cancel'.tr,
-              style: TextStyle(
-                fontFamily: GoogleFonts.poppins().fontFamily,
-                fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
-                color: AppConstants.primaryColor,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              final messagesToDelete = validIndices.map((index) => messageItems[index]['message']['messageId'] as String).toList();
-              for (var messageId in messagesToDelete) {
-                chatController.messages.remove(messageId);
-              }
-              chatController.saveMessagesForUser(receiverId);
-              _updateMessageItems();
-              Get.snackbar(
-                'success'.tr,
-                validIndices.length == 1 ? 'message_deleted'.tr : 'messages_deleted'.tr,
-                snackPosition: SnackPosition.TOP,
-                backgroundColor: Get.theme.colorScheme.secondary,
-                colorText: Get.theme.colorScheme.onSecondary,
-                margin: const EdgeInsets.all(16),
-                borderRadius: 8,
-                duration: const Duration(seconds: 2),
-              );
-              clearSelection();
-            },
-            child: Text(
-              'delete'.tr,
-              style: TextStyle(
-                fontFamily: GoogleFonts.poppins().fontFamily,
-                fontFamilyFallback: ['NotoSansEthiopic', 'AbyssinicaSIL', 'Noto Sans', 'Roboto', 'Arial'],
-                color: Get.theme.colorScheme.error,
-              ),
-            ),
-          ),
-        ],
-      ),
+    Get.snackbar(
+      'coming_soon'.tr,
+      'delete_messages_coming_soon'.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.green[700],
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 8,
+      duration: const Duration(seconds: 2),
     );
+    clearSelection();
   }
 
   void clearSelection() {
