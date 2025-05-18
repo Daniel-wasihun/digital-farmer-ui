@@ -76,10 +76,12 @@ class AuthController extends GetxController with AuthValidationMixin {
       navigateTo: (pageName, {arguments, id, preventDuplicates = true, parameters}) {
         logger.i('Navigating to: $pageName, arguments: $arguments');
         Get.toNamed(pageName, arguments: arguments, id: id, preventDuplicates: preventDuplicates, parameters: parameters);
+        return null;
       },
       navigateOffAll: (pageName, {arguments, id, parameters}) {
         logger.i('Navigating off all to: $pageName, arguments: $arguments');
         Get.offAllNamed(pageName, arguments: arguments, id: id, parameters: parameters);
+        return null;
       },
       resetPasswordErrors: resetPasswordErrors,
       updatePasswordChangeSuccess: (value) => isPasswordChangeSuccess.value = value,

@@ -69,6 +69,7 @@ dependencies:
   translator: ^1.0.3+1
   geolocator: ^14.0.0
   flutter_dotenv: ^5.2.1
+  flutter_animate: ^4.5.2
 
 dev_dependencies:
   flutter_test:

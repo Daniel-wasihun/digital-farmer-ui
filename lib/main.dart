@@ -1,13 +1,10 @@
 import 'package:agri/controllers/auth/signin_controller.dart';
 import 'package:agri/controllers/auth/signup_controller.dart';
-import 'package:agri/controllers/market_controller.dart';
 import 'package:agri/controllers/price_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'controllers/auth/auth_controller.dart';
-import 'controllers/chat/chat_controller.dart';
-import 'controllers/app_controller.dart';
 import 'controllers/feedback_controller.dart';
 import 'utils/translations.dart';
 import 'routes/app_routes.dart';
@@ -42,10 +39,10 @@ void main() async {
     Get.put(SignInController());
     Get.put(PriceController());
     Get.put(SignUpController());
-    Get.put(MarketController());
+    // Get.put(MarketController());
 
-    Get.lazyPut<ChatController>(() => ChatController());
-    Get.put(AppController());
+    // Get.lazyPut<ChatController>(() => ChatController());
+    // Get.put(AppController());
     print('Main: All services and controllers initialized');
   } catch (e) {
     print('Main: Initialization error: $e');

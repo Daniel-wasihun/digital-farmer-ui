@@ -1,6 +1,5 @@
 import 'package:agri/services/api/base_api.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class SocketClient {

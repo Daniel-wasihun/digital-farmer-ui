@@ -23,7 +23,10 @@ class CropTipsTab extends StatelessWidget {
     final crossAxisCount = screenWidth < 360 ? 1 : screenWidth < 600 ? 2 : screenWidth < 900 ? 3 : 4;
     const fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
-    controller.selectedCrop.value = 'select_crop';
+    // Initialize selectedCrop only if not already set
+    if (controller.selectedCrop.value.isEmpty) {
+      controller.selectedCrop.value = 'select_crop';
+    }
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -38,8 +41,14 @@ class CropTipsTab extends StatelessWidget {
                       (Theme.of(context).brightness == Brightness.dark ? Colors.blueGrey[900] : Colors.white),
                   child: TabBar(
                     tabs: [Tab(text: 'Crop Tips'.tr), Tab(text: 'Crop Info'.tr)],
-                    labelStyle: TextStyle(fontSize: subtitleFontSize, fontWeight: FontWeight.w700, fontFamilyFallback: fontFamilyFallbacks),
-                    unselectedLabelStyle: TextStyle(fontSize: subtitleFontSize, fontWeight: FontWeight.w500, fontFamilyFallback: fontFamilyFallbacks),
+                    labelStyle: TextStyle(
+                        fontSize: subtitleFontSize,
+                        fontWeight: FontWeight.w700,
+                        fontFamilyFallback: fontFamilyFallbacks),
+                    unselectedLabelStyle: TextStyle(
+                        fontSize: subtitleFontSize,
+                        fontWeight: FontWeight.w500,
+                        fontFamilyFallback: fontFamilyFallbacks),
                     indicatorColor: Colors.green[700],
                   ),
                 ),
@@ -76,7 +85,7 @@ class CropTipsTab extends StatelessWidget {
             onPressed: () => Get.to(() => const AIChatScreen(), transition: Transition.noTransition),
             backgroundColor: Colors.green[700],
             tooltip: 'Chat'.tr,
-            shape: CircleBorder(), // Explicitly ensure circular shape
+            shape: const CircleBorder(),
             child: Icon(Icons.message, color: Colors.white, size: 24 * adjustedScaleFactor),
           ),
         ),
@@ -85,7 +94,226 @@ class CropTipsTab extends StatelessWidget {
   }
 }
 
-// Rest of the code (CropTipsView, CropInfoView, CropDetailSheet, _parsePlainTextResponse) remains unchanged
+class CropInfoView extends StatelessWidget {
+  final CropTipsController controller;
+  final double scaleFactor;
+  final double padding;
+  final double subtitleFontSize;
+  final double detailFontSize;
+  final List<String> fontFamilyFallbacks;
+
+  const CropInfoView({
+    super.key,
+    required this.controller,
+    required this.scaleFactor,
+    required this.padding,
+    required this.subtitleFontSize,
+    required this.detailFontSize,
+    required this.fontFamilyFallbacks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white);
+
+    return Container(
+      color: cardColor,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(padding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              child: Obx(() => DropdownButtonFormField<String>(
+                    value: controller.selectedCrop.value,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      hintText: 'select_crop'.tr,
+                      hintStyle: TextStyle(fontSize: detailFontSize, color: Colors.grey[500]),
+                      filled: true,
+                      fillColor: cardColor,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: 'select_crop',
+                        child: Text('select_crop'.tr,
+                            style: TextStyle(
+                                fontSize: detailFontSize, fontFamilyFallback: fontFamilyFallbacks)),
+                      ),
+                      ...cropData.keys.map((crop) => DropdownMenuItem<String>(
+                            value: crop,
+                            child: Text(crop.tr,
+                                style: TextStyle(
+                                    fontSize: detailFontSize, fontFamilyFallback: fontFamilyFallbacks)),
+                          )),
+                    ],
+                    onChanged: (value) async {
+                      if (value != null && value != 'select_crop') {
+                        controller.selectedCrop.value = value;
+                        await controller.fetchCropInfo(value);
+                      } else {
+                        controller.selectedCrop.value = 'select_crop';
+                        controller.cropInfo.value = null; // Clear info if 'select_crop' is chosen
+                      }
+                    },
+                  )),
+            ),
+            SizedBox(height: padding),
+            Obx(() {
+              if (controller.isCropInfoLoading.value) {
+                return Center(child: CircularProgressIndicator(color: Colors.green[700]));
+              }
+              if (controller.cropInfo.value == null) {
+                return Center(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 200,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.eco,
+                          color: Colors.green[700],
+                          size: 150 * scaleFactor,
+                        ),
+                        SizedBox(height: padding),
+                        Text(
+                          controller.selectedCrop.value == 'select_crop'
+                              ? 'select_crop_to_view_details'.tr
+                              : 'no_data_available'.tr,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: subtitleFontSize * 1.1,
+                            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                            fontFamilyFallback: fontFamilyFallbacks,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              final sections = _parsePlainTextResponse(controller.cropInfo.value!);
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: sections.length,
+                itemBuilder: (context, index) => Padding(
+                  padding: EdgeInsets.all(padding * 0.8),
+                  child: _buildSectionContent(
+                      sections[index], isDarkMode, scaleFactor, fontFamilyFallbacks),
+                ),
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionContent(
+      Map<String, dynamic> section, bool isDarkMode, double scaleFactor, List<String> fontFamilyFallbacks) {
+    final textColor = isDarkMode ? Colors.grey[300] : Colors.grey[700];
+    final accentColor = Colors.green[700]!;
+    final fontSize = (14.0 * scaleFactor * 0.9).clamp(10.0, 18.0);
+
+    switch (section['type']) {
+      case 'header':
+        return Row(
+          children: [
+            Icon(Icons.eco, color: accentColor, size: 24 * scaleFactor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                section['content'].tr,
+                style: TextStyle(
+                    fontSize: (32.0 * scaleFactor).clamp(22.0, 38.0),
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                    fontFamilyFallback: fontFamilyFallbacks),
+              ),
+            ),
+          ],
+        );
+      case 'subheader':
+        return Row(
+          children: [
+            Container(width: 4, height: 20, color: accentColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                section['content'],
+                style: TextStyle(
+                    fontSize: (20.0 * scaleFactor).clamp(16.0, 28.0),
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                    fontFamilyFallback: fontFamilyFallbacks),
+              ),
+            ),
+          ],
+        );
+      case 'bullet':
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Icon(Icons.circle, size: 6, color: Colors.green)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                section['content'],
+                style: TextStyle(
+                    fontSize: fontSize,
+                    color: textColor,
+                    fontFamilyFallback: fontFamilyFallbacks,
+                    height: 1.4),
+              ),
+            ),
+          ],
+        );
+      case 'paragraph':
+        return Text(
+          section['content'],
+          style: TextStyle(
+              fontSize: fontSize,
+              color: textColor,
+              fontFamilyFallback: fontFamilyFallbacks,
+              height: 1.4),
+        );
+      case 'bold':
+        return Text(
+          section['content'],
+          style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.grey[900],
+              fontFamilyFallback: fontFamilyFallbacks),
+        );
+      case 'italic':
+        return Text(
+          section['content'],
+          style: TextStyle(
+              fontSize: fontSize,
+              fontStyle: FontStyle.italic,
+              color: textColor,
+              fontFamilyFallback: fontFamilyFallbacks),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+}
+
+// CropTipsView, CropDetailSheet, and _parsePlainTextResponse remain unchanged
 class CropTipsView extends StatelessWidget {
   final CropTipsController controller;
   final double scaleFactor;
@@ -138,23 +366,38 @@ class CropTipsView extends StatelessWidget {
                       controller: controller.searchController,
                       focusNode: searchFocusNode,
                       onChanged: (value) => controller.searchQuery.value = value,
-                      style: TextStyle(fontSize: detailFontSize, color: isDarkMode ? Colors.white : Colors.grey[900], fontFamilyFallback: fontFamilyFallbacks),
+                      style: TextStyle(
+                          fontSize: detailFontSize,
+                          color: isDarkMode ? Colors.white : Colors.grey[900],
+                          fontFamilyFallback: fontFamilyFallbacks),
                       decoration: InputDecoration(
                         hintText: 'Search Crops'.tr,
-                        hintStyle: TextStyle(fontSize: detailFontSize, color: isDarkMode ? Colors.grey[400] : Colors.grey[500], fontFamilyFallback: fontFamilyFallbacks),
-                        prefixIcon: Icon(Icons.search, size: 18 * scaleFactor, color: theme.colorScheme.primary),
+                        hintStyle: TextStyle(
+                            fontSize: detailFontSize,
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                            fontFamilyFallback: fontFamilyFallbacks),
+                        prefixIcon: Icon(Icons.search,
+                            size: 18 * scaleFactor, color: theme.colorScheme.primary),
                         suffixIcon: IconButton(
-                          icon: Icon(Icons.clear, size: 18 * scaleFactor, color: theme.colorScheme.onSurface),
-                          onPressed: textValue.text.isNotEmpty || searchFocusNode.hasFocus ? clearSearch : null,
+                          icon: Icon(Icons.clear,
+                              size: 18 * scaleFactor, color: theme.colorScheme.onSurface),
+                          onPressed: textValue.text.isNotEmpty || searchFocusNode.hasFocus
+                              ? clearSearch
+                              : null,
                         ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10 * scaleFactor), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10 * scaleFactor),
+                            borderSide: BorderSide.none),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10 * scaleFactor),
-                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.2 * scaleFactor),
+                          borderSide:
+                              BorderSide(color: theme.colorScheme.primary, width: 1.2 * scaleFactor),
                         ),
                         filled: true,
-                        fillColor: theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white),
-                        contentPadding: EdgeInsets.symmetric(vertical: 10 * scaleFactor, horizontal: 10 * scaleFactor),
+                        fillColor: theme.cardTheme.color ??
+                            (isDarkMode ? Colors.blueGrey[900] : Colors.white),
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 10 * scaleFactor, horizontal: 10 * scaleFactor),
                       ),
                     ),
                   ),
@@ -178,7 +421,8 @@ class CropTipsView extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: isSelected ? Colors.green[700] : theme.cardTheme.color,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: isSelected ? Colors.green[700]! : Colors.grey[500]!),
+                                border: Border.all(
+                                    color: isSelected ? Colors.green[700]! : Colors.grey[500]!),
                               ),
                               child: Text(
                                 category.tr,
@@ -206,7 +450,10 @@ class CropTipsView extends StatelessWidget {
                 return Center(
                   child: Text(
                     'No Crops Found'.tr,
-                    style: TextStyle(fontSize: subtitleFontSize, color: isDarkMode ? Colors.grey[300] : Colors.grey[700], fontFamilyFallback: fontFamilyFallbacks),
+                    style: TextStyle(
+                        fontSize: subtitleFontSize,
+                        color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                        fontFamilyFallback: fontFamilyFallbacks),
                   ),
                 );
               }
@@ -272,7 +519,7 @@ class CropTipsView extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    'temp_label'.tr + ': ${entry.value['temp_range'][0]}${'degree_celsius'.tr} - ${entry.value['temp_range'][1]}${'degree_celsius'.tr}',
+                                    '${'temp_label'.tr}: ${entry.value['temp_range'][0]}${'degree_celsius'.tr} - ${entry.value['temp_range'][1]}${'degree_celsius'.tr}',
                                     style: TextStyle(
                                       fontSize: detailFontSize * 0.95,
                                       color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
@@ -280,7 +527,7 @@ class CropTipsView extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    'category_label'.tr + ': ${(entry.value['category'] as String).tr}',
+                                    '${'category_label'.tr}: ${(entry.value['category'] as String).tr}',
                                     style: TextStyle(
                                       fontSize: detailFontSize,
                                       color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
@@ -307,184 +554,6 @@ class CropTipsView extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class CropInfoView extends StatelessWidget {
-  final CropTipsController controller;
-  final double scaleFactor;
-  final double padding;
-  final double subtitleFontSize;
-  final double detailFontSize;
-  final List<String> fontFamilyFallbacks;
-
-  const CropInfoView({
-    super.key,
-    required this.controller,
-    required this.scaleFactor,
-    required this.padding,
-    required this.subtitleFontSize,
-    required this.detailFontSize,
-    required this.fontFamilyFallbacks,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final cardColor = theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white);
-
-    return Container(
-      color: cardColor,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              child: DropdownButtonFormField<String>(
-                value: controller.selectedCrop.value,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  hintText: 'select_crop'.tr,
-                  hintStyle: TextStyle(fontSize: detailFontSize, color: Colors.grey[500]),
-                  filled: true,
-                  fillColor: cardColor,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                items: [
-                  DropdownMenuItem<String>(
-                    value: 'select_crop',
-                    child: Text('select_crop'.tr, style: TextStyle(fontSize: detailFontSize, fontFamilyFallback: fontFamilyFallbacks)),
-                  ),
-                  ...cropData.keys.map((crop) => DropdownMenuItem<String>(
-                        value: crop,
-                        child: Text(crop.tr, style: TextStyle(fontSize: detailFontSize, fontFamilyFallback: fontFamilyFallbacks)),
-                      )),
-                ].toList(),
-                onChanged: (value) {
-                  if (value != null && value != 'select_crop') {
-                    controller.selectedCrop.value = value;
-                    controller.fetchCropInfo(value);
-                  }
-                },
-              ),
-            ),
-            SizedBox(height: padding),
-            Obx(() {
-              if (controller.isCropInfoLoading.value) {
-                return Center(child: CircularProgressIndicator(color: Colors.green[700]));
-              }
-              if (controller.cropInfo.value == null || controller.selectedCrop.value == 'select_crop') {
-                return Center(
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height - 200,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.eco,
-                          color: Colors.green[700],
-                          size: 150 * scaleFactor,
-                        ),
-                        SizedBox(height: padding),
-                        Text(
-                          'select_crop_to_view_details'.tr,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: subtitleFontSize * 1.1,
-                            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                            fontFamilyFallback: fontFamilyFallbacks,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              final sections = _parsePlainTextResponse(controller.cropInfo.value!);
-              return ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: sections.length,
-                itemBuilder: (context, index) => Padding(
-                  padding: EdgeInsets.all(padding * 0.8),
-                  child: _buildSectionContent(sections[index], isDarkMode, scaleFactor, fontFamilyFallbacks),
-                ),
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionContent(Map<String, dynamic> section, bool isDarkMode, double scaleFactor, List<String> fontFamilyFallbacks) {
-    final textColor = isDarkMode ? Colors.grey[300] : Colors.grey[700];
-    final accentColor = Colors.green[700]!;
-    final fontSize = (14.0 * scaleFactor * 0.9).clamp(10.0, 18.0);
-
-    switch (section['type']) {
-      case 'header':
-        return Row(
-          children: [
-            Icon(Icons.eco, color: accentColor, size: 24 * scaleFactor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(section['content'],
-                  style: TextStyle(
-                      fontSize: (32.0 * scaleFactor).clamp(22.0, 38.0),
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.grey[900],
-                      fontFamilyFallback: fontFamilyFallbacks)),
-            ),
-          ],
-        );
-      case 'subheader':
-        return Row(
-          children: [
-            Container(width: 4, height: 20, color: accentColor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(section['content'],
-                  style: TextStyle(
-                      fontSize: (20.0 * scaleFactor).clamp(16.0, 28.0),
-                      fontWeight: FontWeight.w600,
-                      color: isDarkMode ? Colors.white : Colors.grey[900],
-                      fontFamilyFallback: fontFamilyFallbacks)),
-            ),
-          ],
-        );
-      case 'bullet':
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(padding: EdgeInsets.only(top: 4), child: Icon(Icons.circle, size: 6, color: Colors.green)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(section['content'],
-                  style: TextStyle(fontSize: fontSize, color: textColor, fontFamilyFallback: fontFamilyFallbacks, height: 1.4)),
-            ),
-          ],
-        );
-      case 'paragraph':
-        return Text(section['content'],
-            style: TextStyle(fontSize: fontSize, color: textColor, fontFamilyFallback: fontFamilyFallbacks, height: 1.4));
-      case 'bold':
-        return Text(section['content'],
-            style: TextStyle(
-                fontSize: fontSize, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.grey[900], fontFamilyFallback: fontFamilyFallbacks));
-      case 'italic':
-        return Text(section['content'],
-            style: TextStyle(fontSize: fontSize, fontStyle: FontStyle.italic, color: textColor, fontFamilyFallback: fontFamilyFallbacks));
-      default:
-        return const SizedBox.shrink();
-    }
   }
 }
 
@@ -561,7 +630,11 @@ class CropDetailSheet extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(cropName, style: TextStyle(fontSize: headerFontSize, fontWeight: FontWeight.bold, fontFamilyFallback: fontFamilyFallbacks)),
+                                Text(cropName,
+                                    style: TextStyle(
+                                        fontSize: headerFontSize,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamilyFallback: fontFamilyFallbacks)),
                                 Icon(Icons.eco, color: Colors.green[700], size: 36),
                               ],
                             ),
@@ -574,14 +647,22 @@ class CropDetailSheet extends StatelessWidget {
                                     fontFamilyFallback: fontFamilyFallbacks)),
                             const Divider(height: 16),
                             _buildDetailRow('optimal_temp_range'.tr,
-                                '${data['temp_range'][0]}${'degree_celsius'.tr} - ${data['temp_range'][1]}${'degree_celsius'.tr}', Icons.thermostat),
+                                '${data['temp_range'][0]}${'degree_celsius'.tr} - ${data['temp_range'][1]}${'degree_celsius'.tr}',
+                                Icons.thermostat),
                             _buildDetailRow('weekly_water'.tr,
-                                '${data['weekly_water_mm'][0]}${'millimeters'.tr} - ${data['weekly_water_mm'][1]}${'millimeters'.tr}', Icons.water_drop),
-                            _buildDetailRow('optimal_humidity'.tr, '${data['humidity_range'][0]}% - ${data['humidity_range'][1]}%', Icons.opacity),
+                                '${data['weekly_water_mm'][0]}${'millimeters'.tr} - ${data['weekly_water_mm'][1]}${'millimeters'.tr}',
+                                Icons.water_drop),
+                            _buildDetailRow('optimal_humidity'.tr,
+                                '${data['humidity_range'][0]}% - ${data['humidity_range'][1]}%', Icons.opacity),
                             _buildDetailRow('altitude_range'.tr,
-                                '${data['altitude_range_m'][0]}${'meters'.tr} - ${data['altitude_range_m'][1]}${'meters'.tr}', Icons.height),
-                            _buildDetailRow('soil_type'.tr, (data['soil_type'] as List<String>).map((soil) => soil.tr).join(', '), Icons.landscape),
-                            _buildDetailRow('growing_season'.tr, (data['growing_season'] as List<String>).map((season) => season.tr).join(', '), Icons.calendar_today),
+                                '${data['altitude_range_m'][0]}${'meters'.tr} - ${data['altitude_range_m'][1]}${'meters'.tr}',
+                                Icons.height),
+                            _buildDetailRow('soil_type'.tr,
+                                (data['soil_type'] as List<String>).map((soil) => soil.tr).join(', '),
+                                Icons.landscape),
+                            _buildDetailRow('growing_season'.tr,
+                                (data['growing_season'] as List<String>).map((season) => season.tr).join(', '),
+                                Icons.calendar_today),
                           ],
                         ),
                       ),
@@ -606,13 +687,20 @@ class CropDetailSheet extends StatelessWidget {
             children: [
               Icon(icon, size: 20, color: Colors.green[700]),
               const SizedBox(width: 8),
-              Text(label, style: TextStyle(fontSize: detailFontSize, fontWeight: FontWeight.w600, fontFamilyFallback: fontFamilyFallbacks)),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: detailFontSize,
+                      fontWeight: FontWeight.w600,
+                      fontFamilyFallback: fontFamilyFallbacks)),
             ],
           ),
           Flexible(
             child: Text(
               value,
-              style: TextStyle(fontSize: detailFontSize, color: isDarkMode ? Colors.grey[300] : Colors.grey[700], fontFamilyFallback: fontFamilyFallbacks),
+              style: TextStyle(
+                  fontSize: detailFontSize,
+                  color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                  fontFamilyFallback: fontFamilyFallbacks),
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
             ),
@@ -637,7 +725,11 @@ List<Map<String, dynamic>> _parsePlainTextResponse(String response) {
   for (var line in lines) {
     line = line.trim();
     if (line.startsWith('Header: ')) {
-      sections.add({'type': 'header', 'content': line.replaceFirst('Header: ', '')});
+      var content = line.replaceFirst('Header: ', '');
+      if (headerTranslationMap.containsKey(content)) {
+        content = headerTranslationMap[content]!.tr;
+      }
+      sections.add({'type': 'header', 'content': content});
     } else if (line.startsWith('Subheader: ')) {
       var content = line.replaceFirst('Subheader: ', '');
       if (headerTranslationMap.containsKey(content)) {

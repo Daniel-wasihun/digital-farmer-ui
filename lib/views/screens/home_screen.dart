@@ -1,280 +1,336 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:flutter/material.dart' as material;
+import 'package:flutter/services.dart' as services;
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import '../../controllers/app_controller.dart';
 import '../../controllers/auth/auth_controller.dart';
 import '../../controllers/chat/chat_controller.dart';
 import '../../controllers/market_controller.dart';
 import '../../utils/constants.dart';
+import '../../controllers/app_drawer_controller.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends material.StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Initialize MarketController to ensure it's available for MarketPage
-    Get.put(MarketController());
+  material.Widget build(material.BuildContext context) {
     // Initialize controllers
-    final AppController appController = Get.put(AppController());
-    final ChatController chatController = Get.put(ChatController());
-    final AuthController authController = Get.put(AuthController());
+    Get.put(MarketController(), permanent: true);
+    Get.put(AppController(), permanent: true);
+    Get.put(ChatController(), permanent: true);
+    Get.put(AuthController(), permanent: true);
+    Get.put(AppDrawerController(), permanent: true);
 
-    // Use TweenAnimationBuilder for stateless fade animation
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
-      builder: (context, opacity, child) {
-        return Opacity(
-          opacity: opacity,
-          child: child,
-        );
-      },
-      child: _HomeScreenContent(
-        appController: appController,
-        chatController: chatController,
-        authController: authController,
-      ),
-    );
-  }
-}
+    final AppController appController = Get.find<AppController>();
+    final ChatController chatController = Get.find<ChatController>();
+    final AuthController authController = Get.find<AuthController>();
+    final AppDrawerController drawerController = Get.find<AppDrawerController>();
 
-class _HomeScreenContent extends StatelessWidget {
-  final AppController appController;
-  final ChatController chatController;
-  final AuthController authController;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  _HomeScreenContent({
-    required this.appController,
-    required this.chatController,
-    required this.authController,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = material.MediaQuery.of(context).size;
     final height = size.height;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet ? 1.2 : 1.0;
     final textScaleFactor = isTablet ? 1.0 : 0.9;
-    final appBarHeight = (height * 0.07 * scaleFactor).clamp(48.0, 64.0);
-    final drawerWidth = (size.width * 0.75).clamp(250.0, 400.0);
+    final appBarHeight = (height * 0.06 * scaleFactor).clamp(40.0, 56.0);
+    final bottomBarHeight = (height * 0.08 * scaleFactor).clamp(56.0, 72.0);
 
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(appBarHeight),
-        child: AppBar(
-          elevation: 2,
-          title: Obx(() => Text(
-                appController.pageTitles[appController.selectedIndex.value].tr,
-                style: TextStyle(
-                  fontSize: height * 0.024 * scaleFactor,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-              )),
-          leading: IconButton(
-            icon: Icon(
-              Icons.menu,
-              size: height * 0.028 * scaleFactor,
-              color: Colors.white,
-            ),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-          ),
-          actions: [
-            SizedBox(width: 6 * scaleFactor),
-          ],
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-        ),
+    // Set status bar color to dark green (green-black)
+    services.SystemChrome.setSystemUIOverlayStyle(
+      const services.SystemUiOverlayStyle(
+        statusBarColor: material.Color(0xFF1A3C34),
+        statusBarIconBrightness: material.Brightness.light,
       ),
-      drawer: Drawer(
-        width: drawerWidth,
-        elevation: 8,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
-        ),
-        child: _ProfessionalDrawer(
-          appController: appController,
-          authController: authController,
-          height: height,
-          scaleFactor: scaleFactor,
-          textScaleFactor: textScaleFactor,
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).scaffoldBackgroundColor,
-              Theme.of(context).colorScheme.surface.withOpacity(0.9),
-            ],
-          ),
-        ),
-        child: Obx(() => IndexedStack(
-              index: appController.selectedIndex.value,
-              children: appController.pageFactories.map((factory) => factory()).toList(),
-            )),
-      ),
-      bottomNavigationBar: Obx(() => Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 6,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: BottomNavigationBar(
-              items: [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.agriculture, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(
-                    Icons.agriculture,
-                    size: height * 0.028 * scaleFactor,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  label: 'cropTips'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.cloud, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(
-                    Icons.cloud,
-                    size: height * 0.028 * scaleFactor,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  label: 'weather'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.store, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(
-                    Icons.store,
-                    size: height * 0.028 * scaleFactor,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  label: 'market'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Obx(() => Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Icon(Icons.chat, size: height * 0.028 * scaleFactor),
-                          if (chatController.totalUnseenMessageCount > 0)
-                            Positioned(
-                              right: -5 * scaleFactor,
-                              top: -5 * scaleFactor,
-                              child: Container(
-                                padding: EdgeInsets.all(3 * scaleFactor),
-                                decoration: BoxDecoration(
-                                  color: AppConstants.primaryColor,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  chatController.totalUnseenMessageCount > 99
-                                      ? '99+'
-                                      : chatController.totalUnseenMessageCount.toString(),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: height * 0.012 * scaleFactor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      )),
-                  activeIcon: Obx(() => Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Icon(
-                            Icons.chat,
-                            size: height * 0.028 * scaleFactor,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          if (chatController.totalUnseenMessageCount > 0)
-                            Positioned(
-                              right: -5 * scaleFactor,
-                              top: -5 * scaleFactor,
-                              child: Container(
-                                padding: EdgeInsets.all(3 * scaleFactor),
-                                decoration: BoxDecoration(
-                                  color: AppConstants.primaryColor,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  chatController.totalUnseenMessageCount > 99
-                                      ? '99+'
-                                      : chatController.totalUnseenMessageCount.toString(),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: height * 0.012 * scaleFactor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      )),
-                  label: 'chat'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings, size: height * 0.028 * scaleFactor),
-                  activeIcon: Icon(
-                    Icons.settings,
-                    size: height * 0.028 * scaleFactor,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  label: 'settings'.tr,
-                ),
-              ],
-              currentIndex: appController.selectedIndex.value,
-              selectedItemColor: Theme.of(context).colorScheme.primary,
-              unselectedItemColor:
-                  Theme.of(context).bottomNavigationBarTheme.unselectedItemColor?.withOpacity(0.6),
-              onTap: appController.changePage,
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              selectedLabelStyle: TextStyle(
-                fontSize: height * 0.016 * scaleFactor,
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: TextStyle(
-                fontSize: height * 0.014 * scaleFactor,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          )),
     );
+
+    return material.Scaffold(
+      body: material.SafeArea(
+        top: true,
+        bottom: false,
+        child: material.Stack(
+          children: [
+            // Main content with app bar and bottom bar
+            material.AnimatedBuilder(
+              animation: drawerController.animationController,
+              builder: (context, child) {
+                final slideValue = drawerController.animationController.value;
+                return material.GestureDetector(
+                  onTap: slideValue > 0 ? drawerController.toggleDrawer : null,
+                  behavior: material.HitTestBehavior.opaque,
+                  child: material.Stack(
+                    children: [
+                      material.IgnorePointer(
+                        ignoring: slideValue > 0,
+                        child: material.Transform.translate(
+                          offset: material.Offset(slideTransform(slideValue) * 280, 0),
+                          child: material.Transform.scale(
+                            scale: 1.0 - (slideValue * 0.15),
+                            child: material.ClipRRect(
+                              borderRadius: material.BorderRadius.circular(slideValue * 20),
+                              child: material.Scaffold(
+                                extendBody: false,
+                                appBar: material.PreferredSize(
+                                  preferredSize: material.Size.fromHeight(appBarHeight),
+                                  child: material.AppBar(
+                                    elevation: 0,
+                                    title: Obx(() => material.Text(
+                                          appController.pageTitles[appController.selectedIndex.value].tr,
+                                          style: material.TextStyle(
+                                            fontSize: height * 0.024 * scaleFactor,
+                                            color: material.Colors.white,
+                                            fontWeight: material.FontWeight.w600,
+                                            letterSpacing: 0.5,
+                                          ),
+                                          textScaler: material.TextScaler.linear(textScaleFactor),
+                                        )),
+                                    leading: material.IconButton(
+                                      icon: material.Icon(
+                                        material.Icons.menu,
+                                        size: height * 0.028 * scaleFactor,
+                                        color: material.Colors.white,
+                                      ),
+                                      onPressed: drawerController.toggleDrawer,
+                                    ),
+                                    actions: [
+                                      material.SizedBox(width: 6 * scaleFactor),
+                                    ],
+                                    flexibleSpace: material.Container(
+                                      decoration: material.BoxDecoration(
+                                        gradient: material.LinearGradient(
+                                          colors: [
+                                            material.Theme.of(context).colorScheme.primary,
+                                            material.Theme.of(context).colorScheme.secondary.withOpacity(0.8),
+                                          ],
+                                          begin: material.Alignment.topLeft,
+                                          end: material.Alignment.bottomRight,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                body: material.Container(
+                                  decoration: material.BoxDecoration(
+                                    gradient: material.LinearGradient(
+                                      begin: material.Alignment.topCenter,
+                                      end: material.Alignment.bottomCenter,
+                                      colors: [
+                                        material.Theme.of(context).scaffoldBackgroundColor,
+                                        material.Theme.of(context).colorScheme.surface.withOpacity(0.95),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Obx(() => material.IndexedStack(
+                                        index: appController.selectedIndex.value,
+                                        children: appController.pageFactories.asMap().entries.map((entry) {
+                                          final factory = entry.value;
+                                          return material.SizedBox(
+                                            height: size.height -
+                                                appBarHeight -
+                                                bottomBarHeight -
+                                                material.MediaQuery.of(context).padding.top,
+                                            child: factory(),
+                                          );
+                                        }).toList(),
+                                      )),
+                                ),
+                                bottomNavigationBar: material.Container(
+                                  height: bottomBarHeight,
+                                  decoration: material.BoxDecoration(
+                                    color: material.Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+                                    boxShadow: [
+                                      material.BoxShadow(
+                                        color: material.Colors.black.withOpacity(0.1),
+                                        blurRadius: 8,
+                                        offset: const material.Offset(0, -4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: material.BottomNavigationBar(
+                                    items: [
+                                      material.BottomNavigationBarItem(
+                                        icon: material.Icon(
+                                            material.Icons.agriculture,
+                                            size: height * 0.028 * scaleFactor),
+                                        activeIcon: material.Icon(
+                                          material.Icons.agriculture,
+                                          size: height * 0.028 * scaleFactor,
+                                          color: material.Theme.of(context).colorScheme.primary,
+                                        ),
+                                        label: 'cropTips'.tr,
+                                      ),
+                                      material.BottomNavigationBarItem(
+                                        icon: material.Icon(
+                                            material.Icons.cloud,
+                                            size: height * 0.028 * scaleFactor),
+                                        activeIcon: material.Icon(
+                                          material.Icons.cloud,
+                                          size: height * 0.028 * scaleFactor,
+                                          color: material.Theme.of(context).colorScheme.primary,
+                                        ),
+                                        label: 'weather'.tr,
+                                      ),
+                                      material.BottomNavigationBarItem(
+                                        icon: material.Icon(
+                                            material.Icons.store,
+                                            size: height * 0.028 * scaleFactor),
+                                        activeIcon: material.Icon(
+                                          material.Icons.store,
+                                          size: height * 0.028 * scaleFactor,
+                                          color: material.Theme.of(context).colorScheme.primary,
+                                        ),
+                                        label: 'market'.tr,
+                                      ),
+                                      material.BottomNavigationBarItem(
+                                        icon: Obx(() => material.Stack(
+                                              clipBehavior: material.Clip.none,
+                                              children: [
+                                                material.Icon(
+                                                    material.Icons.chat,
+                                                    size: height * 0.028 * scaleFactor),
+                                                if (chatController.totalUnseenMessageCount > 0)
+                                                  material.Positioned(
+                                                    right: -5 * scaleFactor,
+                                                    top: -5 * scaleFactor,
+                                                    child: material.Container(
+                                                      padding: material.EdgeInsets.all(3 * scaleFactor),
+                                                      decoration: material.BoxDecoration(
+                                                        color: AppConstants.primaryColor,
+                                                        shape: material.BoxShape.circle,
+                                                      ),
+                                                      child: material.Text(
+                                                        chatController.totalUnseenMessageCount > 99
+                                                            ? '99+'
+                                                            : chatController.totalUnseenMessageCount.toString(),
+                                                        style: material.TextStyle(
+                                                          color: material.Colors.white,
+                                                          fontSize: height * 0.012 * scaleFactor,
+                                                          fontWeight: material.FontWeight.bold,
+                                                        ),
+                                                        textScaler: material.TextScaler.linear(textScaleFactor),
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            )),
+                                        activeIcon: Obx(() => material.Stack(
+                                              clipBehavior: material.Clip.none,
+                                              children: [
+                                                material.Icon(
+                                                  material.Icons.chat,
+                                                  size: height * 0.028 * scaleFactor,
+                                                  color: material.Theme.of(context).colorScheme.primary,
+                                                ),
+                                                if (chatController.totalUnseenMessageCount > 0)
+                                                  material.Positioned(
+                                                    right: -5 * scaleFactor,
+                                                    top: -5 * scaleFactor,
+                                                    child: material.Container(
+                                                      padding: material.EdgeInsets.all(3 * scaleFactor),
+                                                      decoration: material.BoxDecoration(
+                                                        color: AppConstants.primaryColor,
+                                                        shape: material.BoxShape.circle,
+                                                      ),
+                                                      child: material.Text(
+                                                        chatController.totalUnseenMessageCount > 99
+                                                            ? '99+'
+                                                            : chatController.totalUnseenMessageCount.toString(),
+                                                        style: material.TextStyle(
+                                                          color: material.Colors.white,
+                                                          fontSize: height * 0.012 * scaleFactor,
+                                                          fontWeight: material.FontWeight.bold,
+                                                        ),
+                                                        textScaler: material.TextScaler.linear(textScaleFactor),
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            )),
+                                        label: 'chat'.tr,
+                                      ),
+                                      material.BottomNavigationBarItem(
+                                        icon: material.Icon(
+                                            material.Icons.settings,
+                                            size: height * 0.028 * scaleFactor),
+                                        activeIcon: material.Icon(
+                                          material.Icons.settings,
+                                          size: height * 0.028 * scaleFactor,
+                                          color: material.Theme.of(context).colorScheme.primary,
+                                        ),
+                                        label: 'settings'.tr,
+                                      ),
+                                    ],
+                                    currentIndex: appController.selectedIndex.value,
+                                    selectedItemColor: material.Theme.of(context).colorScheme.primary,
+                                    unselectedItemColor: material.Theme.of(context)
+                                        .bottomNavigationBarTheme
+                                        .unselectedItemColor
+                                        ?.withOpacity(0.6),
+                                    onTap: appController.changePage,
+                                    type: material.BottomNavigationBarType.fixed,
+                                    backgroundColor: material.Colors.transparent,
+                                    elevation: 0,
+                                    selectedLabelStyle: material.TextStyle(
+                                      fontSize: height * 0.016 * scaleFactor,
+                                      fontWeight: material.FontWeight.w600,
+                                    ),
+                                    unselectedLabelStyle: material.TextStyle(
+                                      fontSize: height * 0.014 * scaleFactor,
+                                      fontWeight: material.FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (slideValue > 0)
+                        material.Positioned.fill(
+                          child: material.Container(
+                            color: material.Colors.black.withOpacity(0.3 * slideValue),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            // Drawer
+            material.AnimatedBuilder(
+              animation: drawerController.animationController,
+              builder: (context, child) {
+                final slideValue = drawerController.animationController.value;
+                return material.Transform.translate(
+                  offset: material.Offset(slideValue * 280 - 280, 0),
+                  child: child,
+                );
+              },
+              child: _ProfessionalDrawer(
+                appController: appController,
+                authController: authController,
+                chatController: chatController,
+                drawerController: drawerController,
+                height: height,
+                scaleFactor: scaleFactor,
+                textScaleFactor: textScaleFactor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double slideTransform(double slideValue) {
+    return slideValue;
   }
 }
 
-class _ProfessionalDrawer extends StatelessWidget {
+class _ProfessionalDrawer extends material.StatelessWidget {
   final AppController appController;
   final AuthController authController;
+  final ChatController chatController;
+  final AppDrawerController drawerController;
   final double height;
   final double scaleFactor;
   final double textScaleFactor;
@@ -282,44 +338,57 @@ class _ProfessionalDrawer extends StatelessWidget {
   const _ProfessionalDrawer({
     required this.appController,
     required this.authController,
+    required this.chatController,
+    required this.drawerController,
     required this.height,
     required this.scaleFactor,
     required this.textScaleFactor,
   });
 
-  // Show logout confirmation dialog
-  void _showLogoutConfirmationDialog(BuildContext context) {
+  void _showLogoutConfirmationDialog(material.BuildContext context) {
     Get.dialog(
-      AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12 * scaleFactor),
+      material.AlertDialog(
+        backgroundColor: material.Theme.of(context).colorScheme.surface,
+        shape: material.RoundedRectangleBorder(
+          borderRadius: material.BorderRadius.circular(12 * scaleFactor),
         ),
-        title: Text(
+        title: material.Text(
           'logout'.tr,
-          textScaleFactor: textScaleFactor,
-          style: Theme.of(context).textTheme.titleSmall,
+          style: material.TextStyle(
+            fontSize: 16 * scaleFactor,
+            fontWeight: material.FontWeight.w600,
+          ),
+          textScaler: material.TextScaler.linear(textScaleFactor),
         ),
-        content: Text(
+        content: material.Text(
           'are_you_sure_logout'.tr,
-          textScaleFactor: textScaleFactor,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: material.TextStyle(
+            color: material.Colors.black87,
+            fontSize: 14 * scaleFactor,
+          ),
+          textScaler: material.TextScaler.linear(textScaleFactor),
         ),
         actions: [
-          TextButton(
+          material.TextButton(
             onPressed: () => Get.back(),
-            child: Text('no'.tr, textScaleFactor: textScaleFactor),
+            child: material.Text(
+              'no'.tr,
+              textScaler: material.TextScaler.linear(textScaleFactor),
+            ),
           ),
-          TextButton(
+          material.TextButton(
             onPressed: () {
-              Get.back(); // Close dialog
-              Get.back(); // Close drawer
+              Get.back();
+              drawerController.toggleDrawer();
               authController.logout();
             },
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
+            style: material.TextButton.styleFrom(
+              foregroundColor: material.Theme.of(context).colorScheme.error,
             ),
-            child: Text('yes'.tr, textScaleFactor: textScaleFactor),
+            child: material.Text(
+              'yes'.tr,
+              textScaler: material.TextScaler.linear(textScaleFactor),
+            ),
           ),
         ],
       ),
@@ -327,249 +396,261 @@ class _ProfessionalDrawer extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
+  material.Widget build(material.BuildContext context) {
+    final theme = material.Theme.of(context);
+    final isDarkMode = theme.brightness == material.Brightness.dark;
+    return material.Container(
+      width: 280,
+      decoration: material.BoxDecoration(
         color: isDarkMode
-            ? const Color(0xFF1A252F)
-            : theme.drawerTheme.backgroundColor ?? Colors.white,
-        borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
+            ? const material.Color(0xFF1A252F)
+            : theme.drawerTheme.backgroundColor ?? material.Colors.white,
+        borderRadius: const material.BorderRadius.horizontal(right: material.Radius.circular(16)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+          material.BoxShadow(
+            color: material.Colors.black.withOpacity(0.2),
             blurRadius: 12,
-            offset: const Offset(2, 0),
+            offset: const material.Offset(2, 0),
           ),
         ],
       ),
-      child: Column(
+      child: material.Column(
         children: [
-          // Drawer Header
-          Container(
-            height: height * 0.22 * scaleFactor,
-            padding: EdgeInsets.all(16 * scaleFactor),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primary.withOpacity(0.85),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          material.Container(
+            height: height * 0.18 * scaleFactor,
+            padding: material.EdgeInsets.all(16 * scaleFactor),
+            decoration: material.BoxDecoration(
+              color: material.Theme.of(context).colorScheme.primary,
             ),
-            child: SafeArea(
-              child: Row(
+            child: material.SafeArea(
+              top: true,
+              child: material.Stack(
                 children: [
-                  // App Logo/Icon
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.2),
-                    ),
-                    padding: EdgeInsets.all(8 * scaleFactor),
-                    child: Icon(
-                      Icons.agriculture,
-                      size: 40 * scaleFactor,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(width: 12 * scaleFactor),
-                  // App Name and User Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  material.Positioned.fill(
+                    child: material.Row(
+                      crossAxisAlignment: material.CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          'Agri App'.tr,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24 * scaleFactor,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
+                        material.Container(
+                          decoration: material.BoxDecoration(
+                            shape: material.BoxShape.circle,
+                            color: material.Colors.white.withOpacity(0.2),
+                          ),
+                          padding: material.EdgeInsets.all(8 * scaleFactor),
+                          child: material.Icon(
+                            material.Icons.agriculture,
+                            size: 40 * scaleFactor,
+                            color: material.Colors.white,
                           ),
                         ),
-                        SizedBox(height: 4 * scaleFactor),
-                        Obx(() => Text(
-                              authController.userName.value.isNotEmpty
-                                  ? '${'Hello'.tr}, ${authController.userName.value}'
-                                  : 'Welcome'.tr,
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16 * scaleFactor,
-                                fontWeight: FontWeight.w400,
+                        material.SizedBox(width: 12 * scaleFactor),
+                        material.Flexible(
+                          child: material.Column(
+                            crossAxisAlignment: material.CrossAxisAlignment.start,
+                            mainAxisAlignment: material.MainAxisAlignment.center,
+                            children: [
+                              material.Text(
+                                'Agri App'.tr,
+                                style: material.TextStyle(
+                                  color: material.Colors.white,
+                                  fontSize: 18 * scaleFactor,
+                                  fontWeight: material.FontWeight.bold,
+                                ),
+                                textScaler: material.TextScaler.linear(textScaleFactor),
                               ),
-                            )),
+                              material.SizedBox(height: 4 * scaleFactor),
+                              Obx(() => material.Text(
+                                    authController.userName.value.isNotEmpty
+                                        ? '${'Hello'.tr}, ${authController.userName.value}'
+                                        : 'Welcome'.tr,
+                                    style: material.TextStyle(
+                                      color: material.Colors.white70,
+                                      fontSize: 14 * scaleFactor,
+                                    ),
+                                    textScaler: material.TextScaler.linear(textScaleFactor),
+                                  )),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                  material.Positioned(
+                    top: 0,
+                    right: 0,
+                    child: material.IconButton(
+                      icon: material.Icon(
+                        material.Icons.close_rounded,
+                        size: 28 * scaleFactor,
+                        color: material.Colors.white,
+                      ),
+                      onPressed: drawerController.toggleDrawer,
+                    ),
+                  ),
                 ],
               ),
             ),
+          ).animate(
+            effects: [
+              FadeEffect(duration: 600.ms),
+              ScaleEffect(
+                begin: const material.Offset(0.9, 0.9),
+                end: const material.Offset(1.0, 1.0),
+                duration: 600.ms,
+              ),
+            ],
           ),
-          // Drawer Items
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 8 * scaleFactor),
-              children: [
-                // Navigation Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
-                  child: Text(
-                    'Navigation'.tr,
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : theme.textTheme.bodySmall!.color?.withOpacity(0.6),
-                      fontSize: 14 * scaleFactor,
-                      fontWeight: FontWeight.w600,
+          material.Expanded(
+            child: Obx(() => material.ListView(
+                  padding: material.EdgeInsets.symmetric(vertical: 8 * scaleFactor),
+                  children: [
+                    material.Padding(
+                      padding: material.EdgeInsets.symmetric(
+                        horizontal: 16 * scaleFactor,
+                        vertical: 8 * scaleFactor,
+                      ),
+                      child: material.Text(
+                        'Navigation'.tr,
+                        style: material.TextStyle(
+                          color: isDarkMode
+                              ? material.Colors.white70
+                              : material.Theme.of(context).textTheme.bodySmall!.color?.withOpacity(0.6),
+                          fontSize: 14 * scaleFactor,
+                          fontWeight: material.FontWeight.w600,
+                        ),
+                        textScaler: material.TextScaler.linear(textScaleFactor),
+                      ),
                     ),
-                  ),
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.agriculture_outlined,
-                  title: 'Crop Tips'.tr,
-                  isSelected: appController.selectedIndex.value == 0,
-                  onTap: () {
-                    appController.changePage(0);
-                    Get.back();
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.cloud_outlined,
-                  title: 'weather'.tr,
-                  isSelected: appController.selectedIndex.value == 1,
-                  onTap: () {
-                    appController.changePage(1);
-                    Get.back();
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.store_outlined,
-                  title: 'Market'.tr,
-                  isSelected: appController.selectedIndex.value == 2,
-                  onTap: () {
-                    appController.changePage(2);
-                    Get.back();
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.chat_outlined,
-                  title: 'chat'.tr,
-                  isSelected: appController.selectedIndex.value == 3,
-                  onTap: () {
-                    appController.changePage(3);
-                    Get.back();
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.settings_outlined,
-                  title: 'settings'.tr,
-                  isSelected: appController.selectedIndex.value == 4,
-                  onTap: () {
-                    appController.changePage(4);
-                    Get.back();
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-                // Preferences Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
-                  child: Text(
-                    'Preferences'.tr,
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : theme.textTheme.bodySmall!.color?.withOpacity(0.6),
-                      fontSize: 14 * scaleFactor,
-                      fontWeight: FontWeight.w600,
+                    _buildDrawerItem(
+                      context: context,
+                      icon: material.Icons.agriculture_outlined,
+                      title: 'Crop Tips'.tr,
+                      isSelected: appController.selectedIndex.value == 0,
+                      onTap: () {
+                        appController.changePage(0);
+                        drawerController.toggleDrawer();
+                      },
+                      index: 0,
                     ),
-                  ),
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: appController.themeController.isDarkMode.value
-                      ? Icons.light_mode_outlined
-                      : Icons.dark_mode_outlined,
-                  title: appController.themeController.isDarkMode.value
-                      ? 'Light Mode'.tr
-                      : 'Dark Mode'.tr,
-                  isSelected: false,
-                  onTap: () {
-                    appController.toggleTheme();
-                    Get.back();
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.language_outlined,
-                  title: 'Toggle Language'.tr,
-                  isSelected: false,
-                  onTap: () {
-                    appController.toggleLanguage();
-                    Get.back();
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-                // Account Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor, vertical: 8 * scaleFactor),
-                  child: Text(
-                    'Account'.tr,
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : theme.textTheme.bodySmall!.color?.withOpacity(0.6),
-                      fontSize: 14 * scaleFactor,
-                      fontWeight: FontWeight.w600,
+                    _buildDrawerItem(
+                      context: context,
+                      icon: material.Icons.cloud_outlined,
+                      title: 'weather'.tr,
+                      isSelected: appController.selectedIndex.value == 1,
+                      onTap: () {
+                        appController.changePage(1);
+                        drawerController.toggleDrawer();
+                      },
+                      index: 1,
                     ),
-                  ),
-                ),
-                _buildDrawerItem(
-                  context: context,
-                  icon: Icons.logout_outlined,
-                  title: 'logout'.tr,
-                  isSelected: false,
-                  onTap: () {
-                    _showLogoutConfirmationDialog(context);
-                  },
-                  scaleFactor: scaleFactor,
-                  isDarkMode: isDarkMode,
-                ),
-              ],
-            ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: material.Icons.store_outlined,
+                      title: 'Market'.tr,
+                      isSelected: appController.selectedIndex.value == 2,
+                      onTap: () {
+                        appController.changePage(2);
+                        drawerController.toggleDrawer();
+                      },
+                      index: 2,
+                    ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: material.Icons.chat_outlined,
+                      title: 'chat'.tr,
+                      isSelected: appController.selectedIndex.value == 3,
+                      onTap: () {
+                        appController.changePage(3);
+                        drawerController.toggleDrawer();
+                      },
+                      index: 3,
+                    ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: material.Icons.settings_outlined,
+                      title: 'settings'.tr,
+                      isSelected: appController.selectedIndex.value == 4,
+                      onTap: () {
+                        appController.changePage(4);
+                        drawerController.toggleDrawer();
+                      },
+                      index: 4,
+                    ),
+                    material.Padding(
+                      padding: material.EdgeInsets.symmetric(
+                        horizontal: 16 * scaleFactor,
+                       vertical: 8 * scaleFactor,
+                      ),
+                      child: material.Text(
+                        'Preferences'.tr,
+                        style: material.TextStyle(
+                          color: isDarkMode
+                              ? material.Colors.white70
+                              : material.Theme.of(context).textTheme.bodySmall!.color?.withOpacity(0.6),
+                          fontSize: 14 * scaleFactor,
+                          fontWeight: material.FontWeight.w600,
+                        ),
+                        textScaler: material.TextScaler.linear(textScaleFactor),
+                      ),
+                    ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: appController.themeController.isDarkMode.value
+                          ? material.Icons.light_mode_outlined
+                          : material.Icons.dark_mode_outlined,
+                      title: appController.themeController.isDarkMode.value
+                          ? 'Light Mode'.tr
+                          : 'Dark Mode'.tr,
+                      isSelected: false,
+                      onTap: appController.toggleTheme,
+                      index: 5,
+                    ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: material.Icons.language_outlined,
+                      title: 'Toggle Language'.tr,
+                      isSelected: false,
+                      onTap: appController.toggleLanguage,
+                      index: 6,
+                    ),
+                    material.Padding(
+                      padding: material.EdgeInsets.symmetric(
+                        horizontal: 16 * scaleFactor,
+                        vertical: 8 * scaleFactor,
+                      ),
+                      child: material.Text(
+                        'Account'.tr,
+                        style: material.TextStyle(
+                          color: isDarkMode
+                              ? material.Colors.white70
+                              : material.Theme.of(context).textTheme.bodySmall!.color?.withOpacity(0.6),
+                          fontSize: 14 * scaleFactor,
+                          fontWeight: material.FontWeight.w600,
+                        ),
+                        textScaler: material.TextScaler.linear(textScaleFactor),
+                      ),
+                    ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: material.Icons.logout_outlined,
+                      title: 'logout'.tr,
+                      isSelected: false,
+                      onTap: () => _showLogoutConfirmationDialog(context),
+                      index: 7,
+                    ),
+                  ],
+                )),
           ),
-          // Footer
-          Container(
-            padding: EdgeInsets.all(16 * scaleFactor),
-            child: Text(
+          material.Container(
+            padding: material.EdgeInsets.all(16 * scaleFactor),
+            child: material.Text(
               'Version 1.0.0'.tr,
-              style: TextStyle(
-                color: isDarkMode ? Colors.white60 : theme.textTheme.bodySmall!.color?.withOpacity(0.5),
+              style: material.TextStyle(
+                color: isDarkMode
+                    ? material.Colors.white60
+                    : material.Theme.of(context).textTheme.bodySmall!.color?.withOpacity(0.5),
                 fontSize: 12 * scaleFactor,
               ),
+              textScaler: material.TextScaler.linear(textScaleFactor),
             ),
           ),
         ],
@@ -577,66 +658,76 @@ class _ProfessionalDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem({
-    required BuildContext context,
-    required IconData icon,
+  material.Widget _buildDrawerItem({
+    required material.BuildContext context,
+    required material.IconData icon,
     required String title,
     required bool isSelected,
-    required VoidCallback onTap,
-    required double scaleFactor,
-    required bool isDarkMode,
+    required material.VoidCallback onTap,
+    required int index,
   }) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8 * scaleFactor, vertical: 2 * scaleFactor),
-      child: AnimatedContainer(
+    final theme = material.Theme.of(context);
+    return material.Padding(
+      padding: material.EdgeInsets.symmetric(
+        horizontal: 8 * scaleFactor,
+        vertical: 2 * scaleFactor,
+      ),
+      child: material.AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
+        curve: material.Curves.easeInOut,
+        decoration: material.BoxDecoration(
           color: isSelected
               ? theme.colorScheme.primary.withOpacity(0.1)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12 * scaleFactor),
+              : material.Colors.transparent,
+          borderRadius: material.BorderRadius.circular(12 * scaleFactor),
         ),
-        child: ListTile(
-          leading: Icon(
+        child: material.ListTile(
+          leading: material.Icon(
             icon,
             size: 24 * scaleFactor,
             color: isSelected
                 ? theme.colorScheme.primary
-                : isDarkMode
-                    ? Colors.white70
-                    : theme.iconTheme.color?.withOpacity(0.7),
+                : theme.iconTheme.color?.withOpacity(0.7),
           ),
-          title: Text(
+          title: material.Text(
             title,
-            style: TextStyle(
+            style: material.TextStyle(
               fontSize: 16 * scaleFactor,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              fontWeight: isSelected ? material.FontWeight.w600 : material.FontWeight.w500,
               color: isSelected
                   ? theme.colorScheme.primary
-                  : isDarkMode
-                      ? Colors.white70
-                      : theme.textTheme.bodyMedium!.color,
+                  : theme.textTheme.bodyMedium!.color,
             ),
+            textScaler: material.TextScaler.linear(textScaleFactor),
           ),
           onTap: onTap,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12 * scaleFactor),
+          shape: material.RoundedRectangleBorder(
+            borderRadius: material.BorderRadius.circular(12 * scaleFactor),
           ),
-          tileColor: Colors.transparent,
+          tileColor: material.Colors.transparent,
           hoverColor: theme.colorScheme.primary.withOpacity(0.05),
           splashColor: theme.colorScheme.primary.withOpacity(0.1),
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: material.EdgeInsets.symmetric(
             horizontal: 16 * scaleFactor,
             vertical: 4 * scaleFactor,
           ),
-          minVerticalPadding: 8 * scaleFactor,
-          visualDensity: VisualDensity.standard,
         ),
       ),
+    ).animate(
+      delay: (100 * index).ms,
+      effects: [
+        SlideEffect(
+          begin: const material.Offset(-0.5, 0),
+          end: const material.Offset(0, 0),
+          duration: 500.ms,
+          curve: material.Curves.easeOutCubic,
+        ),
+        FadeEffect(
+          begin: 0,
+          end: 1,
+          duration: 500.ms,
+        ),
+      ],
     );
   }
 }
-
