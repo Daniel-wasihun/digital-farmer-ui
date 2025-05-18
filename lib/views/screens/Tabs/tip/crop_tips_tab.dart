@@ -23,10 +23,10 @@ class CropTipsTab extends StatelessWidget {
     final crossAxisCount = screenWidth < 360 ? 1 : screenWidth < 600 ? 2 : screenWidth < 900 ? 3 : 4;
     const fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
-    // Initialize selectedCrop only if not already set
-    if (controller.selectedCrop.value.isEmpty) {
-      controller.selectedCrop.value = 'select_crop';
-    }
+    // // Initialize selectedCrop only if not already set
+    // if (controller.selectedCrop.value.isEmpty) {
+    //   controller.selectedFillCrop.value = 'select_crop';
+    // }
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -37,8 +37,9 @@ class CropTipsTab extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  color: Theme.of(context).cardTheme.color ??
-                      (Theme.of(context).brightness == Brightness.dark ? Colors.blueGrey[900] : Colors.white),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1A252F)
+                      : Colors.white,
                   child: TabBar(
                     tabs: [Tab(text: 'Crop Tips'.tr), Tab(text: 'Crop Info'.tr)],
                     labelStyle: TextStyle(
@@ -116,7 +117,7 @@ class CropInfoView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final cardColor = theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white);
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
 
     return Container(
       color: cardColor,
@@ -128,6 +129,7 @@ class CropInfoView extends StatelessWidget {
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              color: cardColor,
               child: Obx(() => DropdownButtonFormField<String>(
                     value: controller.selectedCrop.value,
                     isExpanded: true,
@@ -313,7 +315,6 @@ class CropInfoView extends StatelessWidget {
   }
 }
 
-// CropTipsView, CropDetailSheet, and _parsePlainTextResponse remain unchanged
 class CropTipsView extends StatelessWidget {
   final CropTipsController controller;
   final double scaleFactor;
@@ -342,6 +343,7 @@ class CropTipsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
     final searchFocusNode = FocusNode();
 
     void clearSearch() {
@@ -351,7 +353,7 @@ class CropTipsView extends StatelessWidget {
     }
 
     return Container(
-      color: theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white),
+      color: cardColor,
       child: Column(
         children: [
           Padding(
@@ -394,8 +396,7 @@ class CropTipsView extends StatelessWidget {
                               BorderSide(color: theme.colorScheme.primary, width: 1.2 * scaleFactor),
                         ),
                         filled: true,
-                        fillColor: theme.cardTheme.color ??
-                            (isDarkMode ? Colors.blueGrey[900] : Colors.white),
+                        fillColor: cardColor,
                         contentPadding:
                             EdgeInsets.symmetric(vertical: 10 * scaleFactor, horizontal: 10 * scaleFactor),
                       ),
@@ -419,7 +420,7 @@ class CropTipsView extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: isSelected ? Colors.green[700] : theme.cardTheme.color,
+                                color: isSelected ? Colors.green[700] : cardColor,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                     color: isSelected ? Colors.green[700]! : Colors.grey[500]!),
@@ -469,7 +470,7 @@ class CropTipsView extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final entry = filteredCrops[index];
                   return Card(
-                    color: isDarkMode ? Colors.blueGrey[900] : Colors.white,
+                    color: cardColor,
                     elevation: 4,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: InkWell(
@@ -587,6 +588,7 @@ class CropDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
     return Stack(
       children: [
         ModalBarrier(
@@ -604,7 +606,7 @@ class CropDetailSheet extends StatelessWidget {
               onTap: () {},
               child: Container(
                 decoration: BoxDecoration(
-                  color: theme.cardTheme.color ?? (isDarkMode ? Colors.blueGrey[900] : Colors.white),
+                  color: cardColor,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(

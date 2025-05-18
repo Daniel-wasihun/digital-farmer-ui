@@ -34,6 +34,7 @@ class FeedbackScreen extends GetView<FeedbackController> {
     final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final bool isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
 
     // --- Responsive Breakpoints ---
     const double tinyPhoneMaxWidth = 300;
@@ -139,7 +140,7 @@ class FeedbackScreen extends GetView<FeedbackController> {
           children: [
             Card(
               elevation: isDarkMode ? 6.0 : 10.0,
-              color: theme.cardColor,
+              color: cardColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16 * scaleFactor)),
               clipBehavior: Clip.antiAlias,

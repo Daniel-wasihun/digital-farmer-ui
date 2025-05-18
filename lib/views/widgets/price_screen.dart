@@ -21,6 +21,7 @@ class PriceScreen extends GetView<PriceController> {
     final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
     final isTablet = size.width > 600;
     final scaleFactor = isTablet
         ? (size.width / 720).clamp(1.0, 1.2)
@@ -276,7 +277,7 @@ class PriceScreen extends GetView<PriceController> {
                           ),
                           child: Card(
                             elevation: isDarkMode ? 6.0 : 10.0,
-                            color: theme.cardColor,
+                            color: cardColor,
                             shape: RoundedRectangleBorder(
                                 borderRadius:
                                     BorderRadius.circular(16 * scaleFactor)),

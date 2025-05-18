@@ -1,52 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-// Import math for clamp and max
-
-// Import the AuthController if it's in a different path
-import '../../../../controllers/auth/auth_controller.dart'; // Adjust the path as needed
-
-// Import your CustomTextField widget
+import 'dart:math' as math;
+import '../../../../controllers/auth/auth_controller.dart';
 import '../../../widgets/custom_text_field.dart';
-
 
 class ChangePasswordScreen extends GetView<AuthController> {
   const ChangePasswordScreen({super.key});
 
-  // Static method to show the screen as a dialog
   static void show() {
     Get.dialog(
       const ChangePasswordScreen(),
-      // Make the barrier interactive to dismiss on tap outside
       barrierDismissible: true,
-      // Use a visually appealing transition
-      transitionDuration: const Duration(milliseconds: 400), // Slightly longer duration
-      transitionCurve: Curves.easeInOutCubic, // Smoother transition curve
-      // Optional: Add a custom transition builder if needed
-      // transitionBuilder: (context, animation, secondaryAnimation, child) {
-      //   return ScaleTransition(scale: animation, child: child);
-      // },
+      transitionDuration: const Duration(milliseconds: 400),
+      transitionCurve: Curves.easeInOutCubic,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Clear fields and errors using addPostFrameCallback to ensure context is ready
-    // This runs once after the build method completes.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print("ChangePasswordScreen built, resetting state.");
-      controller.resetPasswordErrors(); // Reset validation errors
-      controller.currentPasswordController.clear(); // Clear text fields
+      controller.resetPasswordErrors();
+      controller.currentPasswordController.clear();
       controller.newPasswordController.clear();
       controller.confirmPasswordController.clear();
-      controller.isPasswordChangeSuccess.value = false; // Reset success state in controller
+      controller.isPasswordChangeSuccess.value = false;
     });
-
 
     final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final bool isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
 
-    // --- Responsive Breakpoints (Consistent with previous examples) ---
     const double tinyPhoneMaxWidth = 300;
     const double verySmallPhoneMaxWidth = 360;
     const double smallPhoneMaxWidth = 480;
@@ -61,8 +46,6 @@ class ChangePasswordScreen extends GetView<AuthController> {
     final bool isLargeTablet = size.width >= largeTabletMinWidth && size.width < desktopMinWidth;
     final bool isDesktop = size.width >= desktopMinWidth;
 
-
-    // --- Responsive Scale Factor (Consistent with previous examples) ---
     final double scaleFactor = isDesktop
         ? 1.2
         : isLargeTablet
@@ -77,9 +60,6 @@ class ChangePasswordScreen extends GetView<AuthController> {
                             ? 0.6
                             : 1.0;
 
-
-    // --- Responsive Constraints ---
-    // Max width for the dialog content box
     final double maxContentWidth = isDesktop
         ? 600
         : isLargeTablet
@@ -88,109 +68,85 @@ class ChangePasswordScreen extends GetView<AuthController> {
                 ? 400
                 : size.width * (isTinyPhone ? 0.95 : isVerySmallPhone ? 0.92 : 0.9);
 
-    // Max height for the dialog content box (allowing scrolling if needed)
-    // Adjusted height based on scale factor and screen size
-     final double maxContentHeight = (size.height * 0.75 * scaleFactor).clamp(300.0, 550.0); // Increased max height and added clamping
+    final double maxContentHeight = (size.height * 0.75 * scaleFactor).clamp(300.0, 550.0);
 
-    // --- Responsive Padding (for the dialog inset and card content) ---
-    // Increased overall horizontal padding for the dialog inset
-    final double dialogHorizontalPadding = (size.width * 0.05 * scaleFactor).clamp(16.0, 40.0); // Min 16, Max 40
-    // Padding inside the card
-    final double cardContentPadding = (16.0 * scaleFactor).clamp(12.0, 24.0); // Min 12, Max 24
+    final double dialogHorizontalPadding = (size.width * 0.05 * scaleFactor).clamp(16.0, 40.0);
+    final double cardContentPadding = (16.0 * scaleFactor).clamp(12.0, 24.0);
 
-    // --- Responsive Font Sizes (Consistent with previous examples) ---
-    final double baseTitleFontSize = 20.0; // Dialog title
+    final double baseTitleFontSize = 20.0;
     final double baseFieldLabelFontSize = 12.0;
     final double baseFieldValueFontSize = 14.0;
-    final double baseButtonFontSize = 16.0; // Button text
+    final double baseButtonFontSize = 16.0;
 
-    final double titleFontSize = (baseTitleFontSize * scaleFactor).clamp(16.0, 24.0); // Clamped
+    final double titleFontSize = (baseTitleFontSize * scaleFactor).clamp(16.0, 24.0);
     final double fieldLabelFontSize = (baseFieldLabelFontSize * scaleFactor).clamp(10.0, 14.0);
     final double fieldValueFontSize = (baseFieldValueFontSize * scaleFactor).clamp(12.0, 16.0);
-    final double buttonFontSize = (baseButtonFontSize * scaleFactor).clamp(14.0, 18.0); // Clamped
+    final double buttonFontSize = (baseButtonFontSize * scaleFactor).clamp(14.0, 18.0);
 
-    // --- Responsive Icon Sizes (Consistent) ---
-    final double iconSize = (20.0 * scaleFactor).clamp(18.0, 24.0); // Standard icon size
-    final double closeIconSize = (20.0 * scaleFactor).clamp(18.0, 24.0); // Close button icon size
+    final double iconSize = (20.0 * scaleFactor).clamp(18.0, 24.0);
+    final double closeIconSize = (20.0 * scaleFactor).clamp(18.0, 24.0);
 
-    // --- Responsive Loader Size (Consistent) ---
-    final double loaderSize = (24.0 * scaleFactor).clamp(20.0, 30.0); // Loader size
+    final double loaderSize = (24.0 * scaleFactor).clamp(20.0, 30.0);
 
-
-    // --- Responsive Spacing (Consistent) ---
     final double spacingExtraSmall = (4.0 * scaleFactor).clamp(4.0, 8.0);
     final double spacingSmall = (8.0 * scaleFactor).clamp(8.0, 12.0);
     final double spacingMedium = (12.0 * scaleFactor).clamp(12.0, 16.0);
     final double spacingLarge = (16.0 * scaleFactor).clamp(16.0, 24.0);
     final double spacingExtraLarge = (24.0 * scaleFactor).clamp(24.0, 32.0);
 
-
-    // --- Consistent Vertical Padding for Text Fields (Consistent) ---
     final double consistentVerticalPadding = (12.0 * scaleFactor).clamp(10.0, 16.0);
 
-
-    // Use Dialog widget provided by Flutter for modals
     return Dialog(
-      // Dialog shape and appearance
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16 * scaleFactor)), // Increased radius
-      backgroundColor: Colors.transparent, // Make dialog background transparent
-      elevation: 0, // Rely on Card elevation
-      // Padding around the dialog content
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16 * scaleFactor)),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       insetPadding: EdgeInsets.symmetric(
           horizontal: dialogHorizontalPadding,
-          vertical: spacingLarge // Vertical padding can be fixed or responsive
+          vertical: spacingLarge
       ),
-      // The main content constraints
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: maxContentWidth,
-          maxHeight: maxContentHeight, // Apply responsive max height
+          maxHeight: maxContentHeight,
         ),
-        // Stack to position the close button over the Card
         child: Stack(
-          clipBehavior: Clip.none, // Allows positioned elements outside the stack bounds
+          clipBehavior: Clip.none,
           children: [
-            // The main content Card
             Card(
-              // Enhanced Card styling
-              elevation: isDarkMode ? 6.0 : 10.0, // Higher elevation for better shadow
-              color: theme.cardColor, // Use theme.cardColor
+              elevation: isDarkMode ? 6.0 : 10.0,
+              color: cardColor,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16 * scaleFactor)), // Match dialog shape
-              clipBehavior: Clip.antiAlias, // Clip content to rounded corners
-              // Padding inside the card
+                  borderRadius: BorderRadius.circular(16 * scaleFactor)),
+              clipBehavior: Clip.antiAlias,
               child: Padding(
-                padding: EdgeInsets.all(cardContentPadding), // Apply responsive padding
-                // SingleChildScrollView to prevent overflow on smaller screens
+                padding: EdgeInsets.all(cardContentPadding),
                 child: SingleChildScrollView(
-                  // Wrap content in Obx to react to controller state changes
                   child: Obx(
                     () => Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Title Text
                         Padding(
                           padding: EdgeInsets.only(
-                            top: spacingSmall, // Adjusted top padding
-                            left: spacingExtraLarge, // Add padding for the close button area
-                            right: spacingExtraLarge, // Add padding for the close button area
-                            bottom: spacingLarge, // Increased bottom padding
+                            top: spacingSmall,
+                            left: spacingExtraLarge,
+                            right: spacingExtraLarge,
+                            bottom: spacingLarge,
                           ),
                           child: Text(
                             'change_password'.tr,
-                            style: theme.textTheme.headlineSmall?.copyWith( // Use headlineSmall or titleLarge
-                              fontSize: titleFontSize, // Apply responsive font size
-                              fontWeight: FontWeight.bold, // Use bold for title
-                              color: theme.colorScheme.primary, // Use primary color for title
-                              shadows: isDarkMode ? null : [ // Subtle shadow for light mode
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                              shadows: isDarkMode ? null : [
                                 Shadow(
                                   blurRadius: 6.0,
                                   color: Colors.black.withOpacity(0.2),
                                   offset: const Offset(2, 2),
                                 ),
                               ],
-                            ) ?? // Fallback style
+                            ) ??
                              TextStyle(
                               fontSize: titleFontSize,
                               fontWeight: FontWeight.bold,
@@ -201,35 +157,31 @@ class ChangePasswordScreen extends GetView<AuthController> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-
-                        // Current Password Field
-                         AnimatedOpacity( // Fade effect based on loading
+                        AnimatedOpacity(
                            opacity: controller.isLoading.value ? 0.5 : 1.0,
                            duration: const Duration(milliseconds: 300),
                            child: CustomTextField(
                             label: 'current_password'.tr,
                             controller: controller.currentPasswordController,
                             obscureText: true,
-                            prefixIcon: Icons.lock_outline, // Use a slightly different icon
+                            prefixIcon: Icons.lock_outline,
                             errorText: controller.currentPasswordError.value.isEmpty ? null : controller.currentPasswordError.value,
-                            onChanged: controller.validateCurrentPassword, // Call controller validation
-                            scaleFactor: scaleFactor, // Pass scale factor
-                            fontSize: fieldValueFontSize, // Apply responsive font size
-                            labelFontSize: fieldLabelFontSize, // Apply responsive label size
-                            iconSize: iconSize, // Apply responsive icon size
+                            onChanged: controller.validateCurrentPassword,
+                            scaleFactor: scaleFactor,
+                            fontSize: fieldValueFontSize,
+                            labelFontSize: fieldLabelFontSize,
+                            iconSize: iconSize,
                             contentPadding: EdgeInsets.symmetric(
-                                horizontal: spacingSmall, // Responsive horizontal padding
-                                vertical: consistentVerticalPadding), // Apply consistent vertical padding
-                            borderRadius: 8 * scaleFactor, // Increased border radius
+                                horizontal: spacingSmall,
+                                vertical: consistentVerticalPadding),
+                            borderRadius: 8 * scaleFactor,
                             filled: true,
-                            fillColor: theme.colorScheme.onSurface.withOpacity(isDarkMode ? 0.1 : 0.05), // Subtle fill color
-                             enabled: !controller.isLoading.value, // Disable when loading
+                            fillColor: theme.colorScheme.onSurface.withOpacity(isDarkMode ? 0.1 : 0.05),
+                            enabled: !controller.isLoading.value,
                           ),
-                         ),
-                        SizedBox(height: spacingMedium), // Responsive spacing
-
-                        // New Password Field
-                         AnimatedOpacity( // Fade effect based on loading
+                        ),
+                        SizedBox(height: spacingMedium),
+                        AnimatedOpacity(
                            opacity: controller.isLoading.value ? 0.5 : 1.0,
                            duration: const Duration(milliseconds: 300),
                            child: CustomTextField(
@@ -238,7 +190,7 @@ class ChangePasswordScreen extends GetView<AuthController> {
                             obscureText: true,
                             prefixIcon: Icons.lock,
                             errorText: controller.newPasswordError.value.isEmpty ? null : controller.newPasswordError.value,
-                            onChanged: controller.validateNewPassword, // Call controller validation
+                            onChanged: controller.validateNewPassword,
                             scaleFactor: scaleFactor,
                             fontSize: fieldValueFontSize,
                             labelFontSize: fieldLabelFontSize,
@@ -247,22 +199,20 @@ class ChangePasswordScreen extends GetView<AuthController> {
                             borderRadius: 8 * scaleFactor,
                             filled: true,
                             fillColor: theme.colorScheme.onSurface.withOpacity(isDarkMode ? 0.1 : 0.05),
-                             enabled: !controller.isLoading.value, // Disable when loading
+                            enabled: !controller.isLoading.value,
                           ),
-                         ),
-                        SizedBox(height: spacingMedium), // Responsive spacing
-
-                        // Confirm Password Field
-                         AnimatedOpacity( // Fade effect based on loading
+                        ),
+                        SizedBox(height: spacingMedium),
+                        AnimatedOpacity(
                            opacity: controller.isLoading.value ? 0.5 : 1.0,
                            duration: const Duration(milliseconds: 300),
                            child: CustomTextField(
                             label: 'confirm_password'.tr,
                             controller: controller.confirmPasswordController,
                             obscureText: true,
-                            prefixIcon: Icons.lock_outline, // Use a slightly different icon
+                            prefixIcon: Icons.lock_outline,
                             errorText: controller.confirmPasswordError.value.isEmpty ? null : controller.confirmPasswordError.value,
-                            onChanged: (value) => controller.validateConfirmPassword(controller.newPasswordController.text, value), // Call controller validation
+                            onChanged: (value) => controller.validateConfirmPassword(controller.newPasswordController.text, value),
                             scaleFactor: scaleFactor,
                             fontSize: fieldValueFontSize,
                             labelFontSize: fieldLabelFontSize,
@@ -271,46 +221,39 @@ class ChangePasswordScreen extends GetView<AuthController> {
                             borderRadius: 8 * scaleFactor,
                             filled: true,
                             fillColor: theme.colorScheme.onSurface.withOpacity(isDarkMode ? 0.1 : 0.05),
-                             enabled: !controller.isLoading.value, // Disable when loading
+                            enabled: !controller.isLoading.value,
                             textInputAction: TextInputAction.done,
                             onSubmitted: (_) {
                               if (!controller.isLoading.value) {
-                                controller.changePassword(); // Trigger change password on done
+                                controller.changePassword();
                               }
                             },
                           ),
-                         ),
-                        SizedBox(height: spacingLarge), // Increased spacing before button
-
-                        // Update Password Button
-                        AnimatedScale( // Scale effect based on loading
+                        ),
+                        SizedBox(height: spacingLarge),
+                        AnimatedScale(
                            scale: controller.isLoading.value ? 0.95 : 1.0,
                            duration: const Duration(milliseconds: 200),
                            child: ElevatedButton(
-                             // Disable button when loading
-                             onPressed: controller.isLoading.value ? null : controller.changePassword, // Call controller method
+                             onPressed: controller.isLoading.value ? null : controller.changePassword,
                              style: ElevatedButton.styleFrom(
-                               // Use theme button style or define custom style
-                               // Primary button appearance
                                  backgroundColor: theme.elevatedButtonTheme.style?.backgroundColor?.resolve({WidgetState.pressed}) ?? theme.colorScheme.primary,
-                                 foregroundColor: theme.elevatedButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed}) ?? theme.colorScheme.onPrimary, // Text color
-                                //  disabledBackgroundColor: theme.elevatedButtonTheme.style?.disabledBackgroundColor?.resolve({}) ?? theme.colorScheme.primary.withOpacity(0.4), // Disabled background
-                                //  disabledForegroundColor: theme.elevatedButtonTheme.style?.disabledForegroundColor?.resolve({}) ?? theme.colorScheme.onPrimary.withOpacity(0.4), // Disabled text color
-                                 padding: EdgeInsets.symmetric(vertical: (14 * scaleFactor).clamp(12.0, 18.0), horizontal: (24 * scaleFactor).clamp(20.0, 32.0)), // Responsive padding
-                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8 * scaleFactor)), // Match text field border radius
-                                 textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.w700), // Apply responsive font size and bold weight
-                                 elevation: controller.isLoading.value ? 0 : 4.0, // Reduce elevation when loading
+                                 foregroundColor: theme.elevatedButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed}) ?? theme.colorScheme.onPrimary,
+                                 padding: EdgeInsets.symmetric(vertical: (14 * scaleFactor).clamp(12.0, 18.0), horizontal: (24 * scaleFactor).clamp(20.0, 32.0)),
+                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8 * scaleFactor)),
+                                 textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.w700),
+                                 elevation: controller.isLoading.value ? 0 : 4.0,
                              ),
                              child: controller.isLoading.value
                                  ? SizedBox(
                                      width: loaderSize,
                                      height: loaderSize,
                                      child: CircularProgressIndicator(
-                                       strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0), // Responsive stroke width
-                                       valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary), // Loader color matching text color
+                                       strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
+                                       valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
                                      ),
                                    )
-                                 : Text('update_password'.tr.toUpperCase()), // Uppercase text
+                                 : Text('update_password'.tr.toUpperCase()),
                            ),
                         ),
                       ],
@@ -319,7 +262,6 @@ class ChangePasswordScreen extends GetView<AuthController> {
                 ),
               ),
             ),
-            // Close Button (positioned outside the Card for better visual separation)
             Positioned(
               top: -spacingMedium * 0,
               right: -spacingMedium * 0,

@@ -24,6 +24,7 @@ class ClonePriceDialog extends StatelessWidget {
     final controller = Get.find<MarketController>();
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
     final screenWidth = MediaQuery.of(context).size.width;
 
     final adjustedScaleFactor = scaleFactor * 1.1;
@@ -114,7 +115,7 @@ class ClonePriceDialog extends StatelessWidget {
         ),
         child: Card(
           elevation: isDarkMode ? 6.0 : 10.0,
-          color: theme.cardColor,
+          color: cardColor,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16 * adjustedScaleFactor)),
           clipBehavior: Clip.antiAlias,
@@ -302,7 +303,7 @@ class ClonePriceDialog extends StatelessWidget {
                             Material(
                               color: Colors.transparent,
                               child: AlertDialog(
-                                backgroundColor: theme.cardColor,
+                                backgroundColor: cardColor,
                                 shape: RoundedRectangleBorder(
                                     borderRadius:
                                         BorderRadius.circular(12 * adjustedScaleFactor)),

@@ -385,6 +385,8 @@ class UserListItem extends StatelessWidget {
     final isDelivered = userData['isDelivered'] as bool;
     final isRead = userData['isRead'] as bool;
     final isOnline = user['online'] == true;
+    final bool isDarkMode = Get.theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
 
     print('UserListItem: Rendering ${user['email']}, timestamp: $timestamp');
 
@@ -395,6 +397,7 @@ class UserListItem extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
       ),
+      color: cardColor,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),

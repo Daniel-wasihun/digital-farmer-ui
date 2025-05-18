@@ -34,6 +34,9 @@ class HomeScreen extends material.StatelessWidget {
     final textScaleFactor = isTablet ? 1.0 : 0.9;
     final appBarHeight = (height * 0.06 * scaleFactor).clamp(40.0, 56.0);
     final bottomBarHeight = (height * 0.08 * scaleFactor).clamp(56.0, 72.0);
+    final isDarkMode = material.Theme.of(context).brightness == material.Brightness.dark;
+    final cardColor = isDarkMode ? const material.Color(0xFF1A252F) : material.Colors.white;
+    final backgroundColor = isDarkMode ? const material.Color(0xFF263544) : material.Colors.grey[200];
 
     // Set status bar color to dark green (green-black)
     services.SystemChrome.setSystemUIOverlayStyle(
@@ -109,16 +112,7 @@ class HomeScreen extends material.StatelessWidget {
                                   ),
                                 ),
                                 body: material.Container(
-                                  decoration: material.BoxDecoration(
-                                    gradient: material.LinearGradient(
-                                      begin: material.Alignment.topCenter,
-                                      end: material.Alignment.bottomCenter,
-                                      colors: [
-                                        material.Theme.of(context).scaffoldBackgroundColor,
-                                        material.Theme.of(context).colorScheme.surface.withOpacity(0.95),
-                                      ],
-                                    ),
-                                  ),
+                                  color: backgroundColor,
                                   child: Obx(() => material.IndexedStack(
                                         index: appController.selectedIndex.value,
                                         children: appController.pageFactories.asMap().entries.map((entry) {
@@ -133,152 +127,152 @@ class HomeScreen extends material.StatelessWidget {
                                         }).toList(),
                                       )),
                                 ),
-                                bottomNavigationBar: material.Container(
-                                  height: bottomBarHeight,
-                                  decoration: material.BoxDecoration(
-                                    color: material.Theme.of(context).bottomNavigationBarTheme.backgroundColor,
-                                    boxShadow: [
-                                      material.BoxShadow(
-                                        color: material.Colors.black.withOpacity(0.1),
-                                        blurRadius: 8,
-                                        offset: const material.Offset(0, -4),
+                                bottomNavigationBar: Obx(() => material.Container(
+                                      height: bottomBarHeight,
+                                      decoration: material.BoxDecoration(
+                                        color: cardColor,
+                                        boxShadow: [
+                                          material.BoxShadow(
+                                            color: material.Colors.black.withOpacity(0.1),
+                                            blurRadius: 8,
+                                            offset: const material.Offset(0, -4),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: material.BottomNavigationBar(
-                                    items: [
-                                      material.BottomNavigationBarItem(
-                                        icon: material.Icon(
-                                            material.Icons.agriculture,
-                                            size: height * 0.028 * scaleFactor),
-                                        activeIcon: material.Icon(
-                                          material.Icons.agriculture,
-                                          size: height * 0.028 * scaleFactor,
-                                          color: material.Theme.of(context).colorScheme.primary,
-                                        ),
-                                        label: 'cropTips'.tr,
-                                      ),
-                                      material.BottomNavigationBarItem(
-                                        icon: material.Icon(
-                                            material.Icons.cloud,
-                                            size: height * 0.028 * scaleFactor),
-                                        activeIcon: material.Icon(
-                                          material.Icons.cloud,
-                                          size: height * 0.028 * scaleFactor,
-                                          color: material.Theme.of(context).colorScheme.primary,
-                                        ),
-                                        label: 'weather'.tr,
-                                      ),
-                                      material.BottomNavigationBarItem(
-                                        icon: material.Icon(
-                                            material.Icons.store,
-                                            size: height * 0.028 * scaleFactor),
-                                        activeIcon: material.Icon(
-                                          material.Icons.store,
-                                          size: height * 0.028 * scaleFactor,
-                                          color: material.Theme.of(context).colorScheme.primary,
-                                        ),
-                                        label: 'market'.tr,
-                                      ),
-                                      material.BottomNavigationBarItem(
-                                        icon: Obx(() => material.Stack(
-                                              clipBehavior: material.Clip.none,
-                                              children: [
-                                                material.Icon(
-                                                    material.Icons.chat,
-                                                    size: height * 0.028 * scaleFactor),
-                                                if (chatController.totalUnseenMessageCount > 0)
-                                                  material.Positioned(
-                                                    right: -5 * scaleFactor,
-                                                    top: -5 * scaleFactor,
-                                                    child: material.Container(
-                                                      padding: material.EdgeInsets.all(3 * scaleFactor),
-                                                      decoration: material.BoxDecoration(
-                                                        color: AppConstants.primaryColor,
-                                                        shape: material.BoxShape.circle,
-                                                      ),
-                                                      child: material.Text(
-                                                        chatController.totalUnseenMessageCount > 99
-                                                            ? '99+'
-                                                            : chatController.totalUnseenMessageCount.toString(),
-                                                        style: material.TextStyle(
-                                                          color: material.Colors.white,
-                                                          fontSize: height * 0.012 * scaleFactor,
-                                                          fontWeight: material.FontWeight.bold,
+                                      child: material.BottomNavigationBar(
+                                        items: [
+                                          material.BottomNavigationBarItem(
+                                            icon: material.Icon(
+                                                material.Icons.agriculture,
+                                                size: height * 0.028 * scaleFactor),
+                                            activeIcon: material.Icon(
+                                              material.Icons.agriculture,
+                                              size: height * 0.028 * scaleFactor,
+                                              color: material.Theme.of(context).colorScheme.primary,
+                                            ),
+                                            label: 'cropTips'.tr,
+                                          ),
+                                          material.BottomNavigationBarItem(
+                                            icon: material.Icon(
+                                                material.Icons.cloud,
+                                                size: height * 0.028 * scaleFactor),
+                                            activeIcon: material.Icon(
+                                              material.Icons.cloud,
+                                              size: height * 0.028 * scaleFactor,
+                                              color: material.Theme.of(context).colorScheme.primary,
+                                            ),
+                                            label: 'weather'.tr,
+                                          ),
+                                          material.BottomNavigationBarItem(
+                                            icon: material.Icon(
+                                                material.Icons.store,
+                                                size: height * 0.028 * scaleFactor),
+                                            activeIcon: material.Icon(
+                                              material.Icons.store,
+                                              size: height * 0.028 * scaleFactor,
+                                              color: material.Theme.of(context).colorScheme.primary,
+                                            ),
+                                            label: 'market'.tr,
+                                          ),
+                                          material.BottomNavigationBarItem(
+                                            icon: Obx(() => material.Stack(
+                                                  clipBehavior: material.Clip.none,
+                                                  children: [
+                                                    material.Icon(
+                                                        material.Icons.chat,
+                                                        size: height * 0.028 * scaleFactor),
+                                                    if (chatController.totalUnseenMessageCount > 0)
+                                                      material.Positioned(
+                                                        right: -5 * scaleFactor,
+                                                        top: -5 * scaleFactor,
+                                                        child: material.Container(
+                                                          padding: material.EdgeInsets.all(3 * scaleFactor),
+                                                          decoration: material.BoxDecoration(
+                                                            color: AppConstants.primaryColor,
+                                                            shape: material.BoxShape.circle,
+                                                          ),
+                                                          child: material.Text(
+                                                            chatController.totalUnseenMessageCount > 99
+                                                                ? '99+'
+                                                                : chatController.totalUnseenMessageCount.toString(),
+                                                            style: material.TextStyle(
+                                                              color: material.Colors.white,
+                                                              fontSize: height * 0.012 * scaleFactor,
+                                                              fontWeight: material.FontWeight.bold,
+                                                            ),
+                                                            textScaler: material.TextScaler.linear(textScaleFactor),
+                                                          ),
                                                         ),
-                                                        textScaler: material.TextScaler.linear(textScaleFactor),
                                                       ),
+                                                  ],
+                                                )),
+                                            activeIcon: Obx(() => material.Stack(
+                                                  clipBehavior: material.Clip.none,
+                                                  children: [
+                                                    material.Icon(
+                                                      material.Icons.chat,
+                                                      size: height * 0.028 * scaleFactor,
+                                                      color: material.Theme.of(context).colorScheme.primary,
                                                     ),
-                                                  ),
-                                              ],
-                                            )),
-                                        activeIcon: Obx(() => material.Stack(
-                                              clipBehavior: material.Clip.none,
-                                              children: [
-                                                material.Icon(
-                                                  material.Icons.chat,
-                                                  size: height * 0.028 * scaleFactor,
-                                                  color: material.Theme.of(context).colorScheme.primary,
-                                                ),
-                                                if (chatController.totalUnseenMessageCount > 0)
-                                                  material.Positioned(
-                                                    right: -5 * scaleFactor,
-                                                    top: -5 * scaleFactor,
-                                                    child: material.Container(
-                                                      padding: material.EdgeInsets.all(3 * scaleFactor),
-                                                      decoration: material.BoxDecoration(
-                                                        color: AppConstants.primaryColor,
-                                                        shape: material.BoxShape.circle,
-                                                      ),
-                                                      child: material.Text(
-                                                        chatController.totalUnseenMessageCount > 99
-                                                            ? '99+'
-                                                            : chatController.totalUnseenMessageCount.toString(),
-                                                        style: material.TextStyle(
-                                                          color: material.Colors.white,
-                                                          fontSize: height * 0.012 * scaleFactor,
-                                                          fontWeight: material.FontWeight.bold,
+                                                    if (chatController.totalUnseenMessageCount > 0)
+                                                      material.Positioned(
+                                                        right: -5 * scaleFactor,
+                                                        top: -5 * scaleFactor,
+                                                        child: material.Container(
+                                                          padding: material.EdgeInsets.all(3 * scaleFactor),
+                                                          decoration: material.BoxDecoration(
+                                                            color: AppConstants.primaryColor,
+                                                            shape: material.BoxShape.circle,
+                                                          ),
+                                                          child: material.Text(
+                                                            chatController.totalUnseenMessageCount > 99
+                                                                ? '99+'
+                                                                : chatController.totalUnseenMessageCount.toString(),
+                                                            style: material.TextStyle(
+                                                              color: material.Colors.white,
+                                                              fontSize: height * 0.012 * scaleFactor,
+                                                              fontWeight: material.FontWeight.bold,
+                                                            ),
+                                                            textScaler: material.TextScaler.linear(textScaleFactor),
+                                                          ),
                                                         ),
-                                                        textScaler: material.TextScaler.linear(textScaleFactor),
                                                       ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            )),
-                                        label: 'chat'.tr,
-                                      ),
-                                      material.BottomNavigationBarItem(
-                                        icon: material.Icon(
-                                            material.Icons.settings,
-                                            size: height * 0.028 * scaleFactor),
-                                        activeIcon: material.Icon(
-                                          material.Icons.settings,
-                                          size: height * 0.028 * scaleFactor,
-                                          color: material.Theme.of(context).colorScheme.primary,
+                                                  ],
+                                                )),
+                                            label: 'chat'.tr,
+                                          ),
+                                          material.BottomNavigationBarItem(
+                                            icon: material.Icon(
+                                                material.Icons.settings,
+                                                size: height * 0.028 * scaleFactor),
+                                            activeIcon: material.Icon(
+                                              material.Icons.settings,
+                                              size: height * 0.028 * scaleFactor,
+                                              color: material.Theme.of(context).colorScheme.primary,
+                                            ),
+                                            label: 'settings'.tr,
+                                          ),
+                                        ],
+                                        currentIndex: appController.selectedIndex.value,
+                                        selectedItemColor: material.Theme.of(context).colorScheme.primary,
+                                        unselectedItemColor: material.Theme.of(context)
+                                            .bottomNavigationBarTheme
+                                            .unselectedItemColor
+                                            ?.withOpacity(0.6),
+                                        onTap: appController.changePage,
+                                        type: material.BottomNavigationBarType.fixed,
+                                        backgroundColor: material.Colors.transparent,
+                                        elevation: 0,
+                                        selectedLabelStyle: material.TextStyle(
+                                          fontSize: height * 0.016 * scaleFactor,
+                                          fontWeight: material.FontWeight.w600,
                                         ),
-                                        label: 'settings'.tr,
+                                        unselectedLabelStyle: material.TextStyle(
+                                          fontSize: height * 0.014 * scaleFactor,
+                                          fontWeight: material.FontWeight.w400,
+                                        ),
                                       ),
-                                    ],
-                                    currentIndex: appController.selectedIndex.value,
-                                    selectedItemColor: material.Theme.of(context).colorScheme.primary,
-                                    unselectedItemColor: material.Theme.of(context)
-                                        .bottomNavigationBarTheme
-                                        .unselectedItemColor
-                                        ?.withOpacity(0.6),
-                                    onTap: appController.changePage,
-                                    type: material.BottomNavigationBarType.fixed,
-                                    backgroundColor: material.Colors.transparent,
-                                    elevation: 0,
-                                    selectedLabelStyle: material.TextStyle(
-                                      fontSize: height * 0.016 * scaleFactor,
-                                      fontWeight: material.FontWeight.w600,
-                                    ),
-                                    unselectedLabelStyle: material.TextStyle(
-                                      fontSize: height * 0.014 * scaleFactor,
-                                      fontWeight: material.FontWeight.w400,
-                                    ),
-                                  ),
-                                ),
+                                    )),
                               ),
                             ),
                           ),
@@ -578,7 +572,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                     material.Padding(
                       padding: material.EdgeInsets.symmetric(
                         horizontal: 16 * scaleFactor,
-                       vertical: 8 * scaleFactor,
+                        vertical: 8 * scaleFactor,
                       ),
                       child: material.Text(
                         'Preferences'.tr,

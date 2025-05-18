@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:logger/logger.dart';
 import 'dart:math' as math;
 import '../../../../controllers/auth/auth_controller.dart';
 import '../../../widgets/custom_text_field.dart';
+
+class SecurityQuestionScreenController extends GetxController {
+  final RxString selectedQuestionKey = ''.obs;
+  final answerController = TextEditingController();
+
+  @override
+  void onClose() {
+    answerController.dispose();
+    super.onClose();
+  }
+}
 
 class SecurityQuestionScreen extends GetView<AuthController> {
   const SecurityQuestionScreen({super.key});
@@ -18,8 +30,12 @@ class SecurityQuestionScreen extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    final answerController = TextEditingController();
-    final RxString selectedQuestionKey = RxString('');
+    // Initialize controller
+    final securityController = Get.put(SecurityQuestionScreenController());
+    final answerController = securityController.answerController;
+    final selectedQuestionKey = securityController.selectedQuestionKey;
+    final logger = Logger();
+
     final List<Map<String, String>> securityQuestions = [
       {'key': 'first_pet_name', 'value': 'first_pet_name'.tr},
       {'key': 'mothers_maiden_name', 'value': 'mothers_maiden_name'.tr},
@@ -31,6 +47,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
     final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final bool isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
 
     const double tinyPhoneMaxWidth = 300;
     const double verySmallPhoneMaxWidth = 360;
@@ -119,7 +136,68 @@ class SecurityQuestionScreen extends GetView<AuthController> {
     final double spacingExtraLarge = math.max(16.0, 20 * scaleFactor);
 
     final double consistentVerticalPadding = math.max(12.0, 14 * scaleFactor);
-    final double consistentInputHeight = 56.0; // Standard height for inputs
+    final double consistentInputHeight = 56.0;
+
+    // Consolidated submission logic
+    void submitSecurityQuestion() {
+      if (!controller.isLoading.value) {
+        if (selectedQuestionKey.value.isEmpty) {
+          controller.securityQuestionError.value = 'please_select_question'.tr;
+          return;
+        }
+        final selectedQuestion = securityQuestions
+            .firstWhere((q) => q['key'] == selectedQuestionKey.value)['value']!;
+        controller.setSecurityQuestion(
+          selectedQuestion,
+          answerController.text,
+        ).then((_) {
+          logger.i('Security question submission: questionError=${controller.securityQuestionError.value}, answerError=${controller.securityAnswerError.value}');
+          if (controller.securityQuestionError.value.isEmpty &&
+              controller.securityAnswerError.value.isEmpty) {
+            Get.snackbar(
+              'success'.tr,
+              'security_question_updated'.tr,
+              backgroundColor: theme.colorScheme.secondary,
+              colorText: theme.colorScheme.onSecondary,
+              snackPosition: SnackPosition.TOP,
+              margin: const EdgeInsets.all(16),
+              borderRadius: 8,
+              duration: const Duration(milliseconds: 1500),
+            );
+            answerController.clear();
+            selectedQuestionKey.value = '';
+            Get.back();
+          } else {
+            Get.snackbar(
+              'error'.tr,
+              controller.securityQuestionError.value.isNotEmpty
+                  ? controller.securityQuestionError.value
+                  : controller.securityAnswerError.value.isNotEmpty
+                      ? controller.securityAnswerError.value
+                      : 'security_question_failed'.tr,
+              backgroundColor: theme.colorScheme.error,
+              colorText: theme.colorScheme.onError,
+              snackPosition: SnackPosition.TOP,
+              margin: const EdgeInsets.all(16),
+              borderRadius: 8,
+              duration: const Duration(milliseconds: 1500),
+            );
+          }
+        }).catchError((e) {
+          logger.e('Security question submission failed: $e');
+          Get.snackbar(
+            'error'.tr,
+            'security_question_failed'.tr,
+            backgroundColor: theme.colorScheme.error,
+            colorText: theme.colorScheme.onError,
+            snackPosition: SnackPosition.TOP,
+            margin: const EdgeInsets.all(16),
+            borderRadius: 8,
+            duration: const Duration(milliseconds: 1500),
+          );
+        });
+      }
+    }
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -140,7 +218,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
           children: [
             Card(
               elevation: isDarkMode ? 6.0 : 10.0,
-              color: theme.cardColor,
+              color: cardColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16 * scaleFactor)),
               clipBehavior: Clip.antiAlias,
@@ -175,129 +253,120 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                           ),
                         ),
                         SizedBox(height: spacingLarge),
-                        DropdownButtonFormField<String>(
-                          value: selectedQuestionKey.value.isNotEmpty
-                              ? selectedQuestionKey.value
-                              : null,
-                          isExpanded: true,
-                          decoration: InputDecoration(
+                        SizedBox(
+                          height: consistentInputHeight,
+                          child: DropdownButtonFormField<String>(
+                            value: selectedQuestionKey.value.isNotEmpty
+                                ? selectedQuestionKey.value
+                                : null,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor:
+                                  theme.colorScheme.onSurface.withOpacity(0.05),
+                              labelText: 'question'.tr,
+                              labelStyle:
+                                  TextStyle(fontSize: fieldLabelFontSize),
+                              prefixIcon: Icon(
+                                Icons.help_outline_rounded,
+                                size: iconSize,
+                                color: theme.colorScheme.primary,
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      math.max(5.0, 7 * scaleFactor)),
+                                  borderSide: BorderSide.none),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                    math.max(5.0, 7 * scaleFactor)),
+                                borderSide: BorderSide(
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.1),
+                                    width: 1.0),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                    math.max(5.0, 7 * scaleFactor)),
+                                borderSide: BorderSide(
+                                    color: theme.colorScheme.primary,
+                                    width: 1.5),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                    math.max(5.0, 7 * scaleFactor)),
+                                borderSide: BorderSide(
+                                    color: theme.colorScheme.error, width: 1.0),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                    math.max(5.0, 7 * scaleFactor)),
+                                borderSide: BorderSide(
+                                    color: theme.colorScheme.error,
+                                    width: 1.5),
+                              ),
+                              errorText: controller
+                                      .securityQuestionError.value.isNotEmpty
+                                  ? controller.securityQuestionError.value
+                                  : null,
+                              errorStyle: TextStyle(fontSize: errorFontSize),
+                            ),
+                            items: securityQuestions.map((question) {
+                              return DropdownMenuItem<String>(
+                                value: question['key'],
+                                child: Text(
+                                  question['value']!,
+                                  style: TextStyle(
+                                      fontSize: fieldValueFontSize,
+                                      fontFamily: 'NotoSansEthiopic'),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                selectedQuestionKey.value = value;
+                                controller.validateSecurityQuestion(value);
+                              }
+                            },
+                            icon: Icon(
+                              Icons.arrow_drop_down_rounded,
+                              size: dropdownIconSize,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                                math.max(5.0, 7 * scaleFactor)),
+                          ),
+                        ),
+                        SizedBox(height: spacingMedium),
+                        SizedBox(
+                          height: consistentInputHeight*1.2,
+                          child: CustomTextField(
+                            label: 'answer'.tr,
+                            controller: answerController,
+                            prefixIcon: Icons.lock_outline_rounded,
+                            errorText: controller.securityAnswerError.value,
+                            onChanged: controller.validateSecurityAnswer,
+                            scaleFactor: scaleFactor,
+                            fontSize: fieldValueFontSize*2,
+                            labelFontSize: fieldLabelFontSize,
+                            iconSize: iconSize,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            borderRadius: math.max(5.0, 7 * scaleFactor),
                             filled: true,
                             fillColor:
                                 theme.colorScheme.onSurface.withOpacity(0.05),
-                            labelText: 'question'.tr,
-                            labelStyle:
-                                TextStyle(fontSize: fieldLabelFontSize),
-                            prefixIcon: Icon(
-                              Icons.help_outline_rounded,
-                              size: iconSize,
-                              color: theme.colorScheme.primary,
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: math.max(8.0, 10 * scaleFactor),
-                              vertical: (consistentInputHeight - fieldValueFontSize - 8) / 2,
-                            ),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    math.max(5.0, 7 * scaleFactor)),
-                                borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                  math.max(5.0, 7 * scaleFactor)),
-                              borderSide: BorderSide(
-                                  color: theme.colorScheme.onSurface
-                                      .withOpacity(0.1),
-                                  width: 1.0),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                  math.max(5.0, 7 * scaleFactor)),
-                              borderSide: BorderSide(
-                                  color: theme.colorScheme.primary,
-                                  width: 1.5),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                  math.max(5.0, 7 * scaleFactor)),
-                              borderSide: BorderSide(
-                                  color: theme.colorScheme.error, width: 1.0),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                  math.max(5.0, 7 * scaleFactor)),
-                              borderSide: BorderSide(
-                                  color: theme.colorScheme.error,
-                                  width: 1.5),
-                            ),
-                            errorText:
-                                controller.securityQuestionError.value.isNotEmpty
-                                    ? controller.securityQuestionError.value
-                                    : null,
-                            errorStyle: TextStyle(fontSize: errorFontSize),
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.done,
+                            maxLines: 1,
+                            onSubmitted: (_) => submitSecurityQuestion(),
                           ),
-                          items: securityQuestions.map((question) {
-                            return DropdownMenuItem<String>(
-                              value: question['key'],
-                              child: Text(
-                                question['value']!,
-                                style: TextStyle(
-                                    fontSize: fieldValueFontSize,
-                                    fontFamily: 'NotoSansEthiopic'),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              selectedQuestionKey.value = value;
-                              controller.validateSecurityQuestion(value);
-                              // Do not reset answerController to retain answer
-                            }
-                          },
-                          icon: Icon(
-                            Icons.arrow_drop_down_rounded,
-                            size: dropdownIconSize,
-                          ),
-                          borderRadius: BorderRadius.circular(
-                              math.max(5.0, 7 * scaleFactor)),
-                        ),
-                        SizedBox(height: spacingMedium),
-                        CustomTextField(
-                          label: 'answer'.tr,
-                          controller: answerController,
-                          prefixIcon: Icons.lock_outline_rounded,
-                          errorText: controller.securityAnswerError.value,
-                          onChanged: controller.validateSecurityAnswer,
-                          scaleFactor: scaleFactor,
-                          fontSize: fieldValueFontSize,
-                          labelFontSize: fieldLabelFontSize,
-                          iconSize: iconSize,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: math.max(8.0, 10 * scaleFactor),
-                            vertical: (consistentInputHeight - fieldValueFontSize - 8) / 2,
-                          ),
-                          borderRadius: math.max(5.0, 7 * scaleFactor),
-                          filled: true,
-                          fillColor:
-                              theme.colorScheme.onSurface.withOpacity(0.05),
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) {
-                            if (!controller.isLoading.value) {
-                              if (selectedQuestionKey.value.isEmpty) {
-                                controller.securityQuestionError.value =
-                                    'please_select_question'.tr;
-                                return;
-                              }
-                              final selectedQuestion = securityQuestions
-                                  .firstWhere((q) =>
-                                      q['key'] == selectedQuestionKey.value)['value']!;
-                              controller.setSecurityQuestion(
-                                selectedQuestion,
-                                answerController.text,
-                              );
-                            }
-                          },
                         ),
                         SizedBox(height: spacingLarge + spacingSmall),
                         ElevatedButton(
@@ -317,21 +386,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                           ),
                           onPressed: controller.isLoading.value
                               ? null
-                              : () {
-                                  if (selectedQuestionKey.value.isEmpty) {
-                                    controller.securityQuestionError.value =
-                                        'please_select_question'.tr;
-                                    return;
-                                  }
-                                  final selectedQuestion = securityQuestions
-                                      .firstWhere((q) =>
-                                          q['key'] ==
-                                          selectedQuestionKey.value)['value']!;
-                                  controller.setSecurityQuestion(
-                                    selectedQuestion,
-                                    answerController.text,
-                                  );
-                                },
+                              : submitSecurityQuestion,
                           child: controller.isLoading.value
                               ? SizedBox(
                                   width: loaderSize,

@@ -36,6 +36,7 @@ class MarketPage extends StatelessWidget {
 
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
     const fontFamilyFallback = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
     final searchController = TextEditingController();
@@ -103,7 +104,7 @@ class MarketPage extends StatelessWidget {
               horizontal: 10 * adjustedScaleFactor, vertical: 6 * adjustedScaleFactor),
           margin: EdgeInsets.symmetric(horizontal: 4 * adjustedScaleFactor),
           decoration: BoxDecoration(
-            color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+            color: cardColor,
             borderRadius: BorderRadius.circular(10 * adjustedScaleFactor),
             border: Border.all(
               color: isSelected
@@ -138,7 +139,7 @@ class MarketPage extends StatelessWidget {
       return Container(
         margin: EdgeInsets.symmetric(horizontal: 4 * adjustedScaleFactor),
         decoration: BoxDecoration(
-          color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+          color: cardColor,
           borderRadius: BorderRadius.circular(10 * adjustedScaleFactor),
           border: Border.all(
             color: isDarkMode ? Colors.grey[600]! : Colors.grey[400]!,
@@ -328,8 +329,7 @@ class MarketPage extends StatelessWidget {
                                                 width: 1.2 * adjustedScaleFactor),
                                           ),
                                           filled: true,
-                                          fillColor: theme.cardTheme.color ??
-                                              (isDarkMode ? Colors.grey[850] : Colors.white),
+                                          fillColor: cardColor,
                                           contentPadding: EdgeInsets.symmetric(
                                             vertical: 10 * adjustedScaleFactor,
                                             horizontal: 10 * adjustedScaleFactor,

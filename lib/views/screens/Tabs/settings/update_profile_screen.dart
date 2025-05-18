@@ -24,6 +24,7 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
     final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final bool isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
 
     const double tinyPhoneMaxWidth = 300;
     const double verySmallPhoneMaxWidth = 360;
@@ -129,7 +130,7 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
           children: [
             Card(
               elevation: isDarkMode ? 6.0 : 10.0,
-              color: theme.cardColor,
+              color: cardColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16 * scaleFactor)),
               clipBehavior: Clip.antiAlias,
@@ -184,7 +185,6 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                   backgroundColor: theme.colorScheme.surface,
                                   child: ClipOval(
                                     child: Obx(() {
-                                      // Case 1: Display locally picked image for mobile
                                       if (controller.selectedImageFile.value != null) {
                                         return Image.file(
                                           controller.selectedImageFile.value!,
@@ -199,7 +199,6 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                           },
                                         );
                                       }
-                                      // Case 2: Display locally picked image for web
                                       else if (controller
                                               .selectedImageBytes.value !=
                                           null) {
@@ -216,7 +215,6 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                           },
                                         );
                                       }
-                                      // Case 3: Display network image or placeholder
                                       final profilePictureUrl =
                                           controller.profilePictureUrl.value;
                                       final hasProfilePicture =
@@ -236,7 +234,6 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                           errorWidget: (context, url, error) {
                                             print(
                                                 'Network image error: $error, URL: $url');
-                                            // Defer clearing profilePictureUrl to avoid build phase conflict
                                             WidgetsBinding.instance
                                                 .addPostFrameCallback((_) {
                                               controller.profilePictureUrl
@@ -248,7 +245,6 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                         );
                                       }
 
-                                      // Case 4: Fallback to placeholder
                                       return _buildAvatarPlaceholder(
                                           theme, avatarIconSize);
                                     }),
@@ -370,7 +366,7 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                         ),
                         SizedBox(height: spacingLarge),
                         AnimatedScale(
-                          scale: controller.isLoading.value ? 0.95 : 1.0,
+                          scale : controller.isLoading.value ? 0.95 : 1.0,
                           duration: const Duration(milliseconds: 200),
                           child: ElevatedButton(
                             onPressed: controller.isLoading.value

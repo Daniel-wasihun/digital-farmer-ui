@@ -22,6 +22,8 @@ class SettingsTab extends StatelessWidget {
     final appController = Get.find<AppController>();
     final storageService = Get.find<StorageService>();
     final size = MediaQuery.of(context).size;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
     final isTablet = size.width > 600;
 
     // Adjusted scale factor for slightly larger content
@@ -112,7 +114,7 @@ class SettingsTab extends StatelessWidget {
           children: [
             Padding(
               padding: EdgeInsets.all(16 * scaleFactor),
-              child: _buildProfileCard(context, storageService, scaleFactor, textScaleFactor),
+              child: _buildProfileCard(context, storageService, scaleFactor, textScaleFactor, cardColor),
             ),
             Expanded(
               child: Stack(
@@ -135,6 +137,7 @@ class SettingsTab extends StatelessWidget {
                                 scaleFactor: scaleFactor,
                                 textScaleFactor: textScaleFactor,
                                 trailing: option['trailing'] as Widget?,
+                                cardColor: cardColor,
                               ),
                             )),
                         SizedBox(height: 80 * scaleFactor),
@@ -145,7 +148,7 @@ class SettingsTab extends StatelessWidget {
                     left: 16 * scaleFactor,
                     right: 16 * scaleFactor,
                     bottom: 16 * scaleFactor,
-                    child: _buildLogoutButton(context, authController, scaleFactor, textScaleFactor),
+                    child: _buildLogoutButton(context, authController, scaleFactor, textScaleFactor, cardColor),
                   ),
                 ],
               ),
@@ -157,7 +160,7 @@ class SettingsTab extends StatelessWidget {
   }
 
   Widget _buildProfileCard(
-      BuildContext context, StorageService storageService, double scaleFactor, double textScaleFactor) {
+      BuildContext context, StorageService storageService, double scaleFactor, double textScaleFactor, Color cardColor) {
     return Obx(() {
       final user = storageService.user.value ?? storageService.getUser() ?? {};
       final username = user['username']?.toString() ?? 'User';
@@ -171,7 +174,7 @@ class SettingsTab extends StatelessWidget {
 
       return Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: cardColor,
           borderRadius: BorderRadius.circular(12 * scaleFactor),
           boxShadow: [
             BoxShadow(
@@ -244,9 +247,10 @@ class SettingsTab extends StatelessWidget {
     required double scaleFactor,
     required double textScaleFactor,
     Widget? trailing,
+    required Color cardColor,
   }) {
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: cardColor,
       borderRadius: BorderRadius.circular(12 * scaleFactor),
       child: InkWell(
         onTap: onTap,
@@ -296,6 +300,7 @@ class SettingsTab extends StatelessWidget {
     AuthController authController,
     double scaleFactor,
     double textScaleFactor,
+    Color cardColor,
   ) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16 * scaleFactor),
@@ -303,7 +308,7 @@ class SettingsTab extends StatelessWidget {
         onPressed: () {
           Get.dialog(
             AlertDialog(
-              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundColor: cardColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12 * scaleFactor),
               ),

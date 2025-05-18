@@ -14,6 +14,7 @@ class PriceList extends StatelessWidget {
     final controller = Get.find<MarketController>();
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1A252F) : Colors.white;
     final size = MediaQuery.of(context).size;
     final screenWidth = size.width;
 
@@ -65,9 +66,7 @@ class PriceList extends StatelessWidget {
                 padding: EdgeInsets.all(padding * 0.8),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isDarkMode
-                      ? Colors.grey[900]!.withOpacity(0.6)
-                      : Colors.white.withOpacity(0.8),
+                  color: cardColor.withOpacity(0.6),
                   boxShadow: [
                     BoxShadow(
                       color: isDarkMode ? Colors.black26 : Colors.grey[200]!,
@@ -100,8 +99,8 @@ class PriceList extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         colors: [
-                          isDarkMode ? Colors.green[600]! : Colors.green[500]!,
-                          isDarkMode ? Colors.green[900]! : Colors.green[800]!,
+                          isDarkMode ? cardColor.withOpacity(0.8) : Colors.green[500]!,
+                          isDarkMode ? cardColor : Colors.green[800]!,
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -163,6 +162,7 @@ class PriceList extends StatelessWidget {
                     subtitleFontSize: subtitleFontSize,
                     detailFontSize: detailFontSize,
                     fontFamilyFallback: fontFamilyFallback,
+                    cardColor: cardColor,
                   ),
                 )
               : ListView.builder(
@@ -184,6 +184,7 @@ class PriceList extends StatelessWidget {
                     subtitleFontSize: subtitleFontSize,
                     detailFontSize: detailFontSize,
                     fontFamilyFallback: fontFamilyFallback,
+                    cardColor: cardColor,
                   ),
                 );
         });
@@ -204,11 +205,10 @@ class PriceList extends StatelessWidget {
     required double subtitleFontSize,
     required double detailFontSize,
     required List<String> fontFamilyFallback,
+    required Color cardColor,
   }) {
     final controller = Get.find<MarketController>(); // Access MarketController
     final dayLabel = AppUtils.formatDate(price.date, 'EEE, dd MMM');
-    final cardColor =
-        theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white);
     final accentColor = isDarkMode ? Colors.green[400]! : Colors.green[600]!;
     final actionIconColor = isDarkMode ? Colors.green[300]! : Colors.green[700]!;
     final errorIconColor = theme.colorScheme.error;
