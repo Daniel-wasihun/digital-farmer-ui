@@ -746,7 +746,8 @@ class AppTranslations extends Translations {
         "password_change_failed": "Password change failed. Please try again.",
         "security_question_failed": "Failed to set security question. Please try again.",
         "user_email_not_found": "User email not found.",
-        "please_enter_answer": "Please enter an answer."
+        "please_enter_answer": "Please enter an answer.",
+        "password_reset_request_failed": "Password reset request failed"
 
 
 
@@ -1502,7 +1503,7 @@ class AppTranslations extends Translations {
           "password_change_failed": "የይለፍ ቃል መቀየር አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
           "security_question_failed": "የደህንነት ጥያቄ ማዘጋጀት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
           "user_email_not_found": "የተጠቃሚ ኢሜል አልተገኘም።",
-          "please_enter_answer": "እባክዎ መልስ ያስገቡ።"
+          "please_enter_answer": "እባክዎ መልስ ያስገቡ።","password_reset_request_failed": "የይለፍ ቃል ዳግም ማስጀመሪያ ጥያቄ አልተሳካም"
           
 
 

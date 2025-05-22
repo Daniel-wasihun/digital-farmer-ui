@@ -13,8 +13,24 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    // Retrieve email from arguments
-    final email = Get.arguments['email'] as String;
+    // Retrieve email from arguments with null check
+    final email = Get.arguments != null ? Get.arguments['email'] as String? : null;
+    if (email == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar(
+          'error'.tr,
+          'email_required'.tr,
+          backgroundColor: Theme.of(context).colorScheme.error,
+          colorText: Theme.of(context).colorScheme.onError,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 8,
+          duration: const Duration(milliseconds: 1500),
+        );
+        Get.back();
+      });
+      return const SizedBox.shrink();
+    }
 
     // Ensure controllers are initialized
     final ThemeController themeController = Get.find<ThemeController>();
@@ -28,17 +44,6 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
       {'key': 'favorite_book', 'value': 'favorite_book'.tr},
       {'key': 'birth_city', 'value': 'birth_city'.tr},
     ];
-
-    // Initialize selected question
-    final RxString selectedQuestionKey = RxString('');
-
-    // Clear fields and errors after build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      selectedQuestionKey.value = '';
-      controller.securityQuestionError.value = '';
-      controller.securityAnswerTextController.clear();
-      controller.securityAnswerError.value = '';
-    });
 
     // Sync controllers with validation
     controller.securityAnswerTextController.addListener(() {
@@ -57,7 +62,7 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
     return AnimatedBackground(
       behaviour: RandomParticleBehaviour(
         options: ParticleOptions(
-          baseColor: theme.colorScheme.secondary.withOpacity(0.3),
+          baseColor: const Color(0xFF1A6B47).withOpacity(0.3),
           spawnMinSpeed: 6.0,
           spawnMaxSpeed: 30.0,
           particleCount: 50,
@@ -77,6 +82,15 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
               fontSize: 18 * scaleFactor,
               fontWeight: FontWeight.w600,
             ),
+          ),
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              size: 20 * scaleFactor,
+              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
+            ),
+            onPressed: () => Get.back(),
+            tooltip: 'back'.tr,
           ),
           actions: [
             Row(
@@ -99,15 +113,6 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                   ),
                   onPressed: () => appController.toggleLanguage(),
                   tooltip: 'toggle_language'.tr,
-                ),
-                IconButton(
-                  icon: Icon(
-                    themeController.isDarkMode.value ? Icons.light_mode : Icons.dark_mode,
-                    size: 20 * scaleFactor,
-                    color: theme.iconTheme.color,
-                  ),
-                  onPressed: () => themeController.toggleTheme(),
-                  tooltip: themeController.isDarkMode.value ? 'switch_to_light_mode'.tr : 'switch_to_dark_mode'.tr,
                 ),
                 SizedBox(width: 8 * scaleFactor),
               ],
@@ -144,7 +149,7 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                           ? Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                                valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF1A6B47)),
                               ),
                             )
                           : ConstrainedBox(
@@ -169,7 +174,7 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                                         style: theme.textTheme.headlineSmall?.copyWith(
                                               fontSize: (22 * scaleFactor).clamp(18.0, 24.0),
                                               fontWeight: FontWeight.bold,
-                                              color: theme.colorScheme.primary,
+                                              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
                                               shadows: isDarkMode
                                                   ? null
                                                   : [
@@ -200,14 +205,16 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                                             ),
                                         textAlign: TextAlign.center,
                                       ),
-                                      SizedBox(height: (14 * scaleFactor).clamp(12.0, 16.0)),
+                                      SizedBox(height: (14 * scaleFactor).clamp(14.0, 16.0)),
                                       AnimatedOpacity(
                                         opacity: controller.isLoading.value ? 0.5 : 1.0,
                                         duration: const Duration(milliseconds: 300),
                                         child: SizedBox(
                                           width: (maxFormWidth - 32 * scaleFactor).clamp(240.0, 360.0),
                                           child: DropdownButtonFormField<String>(
-                                            value: selectedQuestionKey.value.isNotEmpty ? selectedQuestionKey.value : null,
+                                            value: controller.selectedQuestionKey.value.isNotEmpty
+                                                ? controller.selectedQuestionKey.value
+                                                : null,
                                             decoration: InputDecoration(
                                               labelText: 'question'.tr,
                                               labelStyle: TextStyle(
@@ -259,7 +266,7 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                                                 ? null
                                                 : (value) {
                                                     if (value != null) {
-                                                      selectedQuestionKey.value = value;
+                                                      controller.selectedQuestionKey.value = value;
                                                       controller.validateSecurityQuestion(value);
                                                     }
                                                   },
@@ -297,9 +304,11 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                                           enabled: !controller.isLoading.value,
                                           textInputAction: TextInputAction.done,
                                           onSubmitted: (_) {
-                                            if (!controller.isLoading.value && selectedQuestionKey.value.isNotEmpty) {
+                                            if (!controller.isLoading.value &&
+                                                controller.selectedQuestionKey.value.isNotEmpty) {
                                               final selectedQuestion = securityQuestions
-                                                  .firstWhere((q) => q['key'] == selectedQuestionKey.value)['value']!;
+                                                  .firstWhere((q) => q['key'] == controller.selectedQuestionKey.value)[
+                                                  'value']!;
                                               controller.verifySecurityAnswer(
                                                 email,
                                                 selectedQuestion,
@@ -326,12 +335,13 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                                           onPressed: controller.isLoading.value
                                               ? null
                                               : () {
-                                                  if (selectedQuestionKey.value.isEmpty) {
+                                                  if (controller.selectedQuestionKey.value.isEmpty) {
                                                     controller.securityQuestionError.value = 'please_select_question'.tr;
                                                     return;
                                                   }
                                                   final selectedQuestion = securityQuestions
-                                                      .firstWhere((q) => q['key'] == selectedQuestionKey.value)['value']!;
+                                                      .firstWhere((q) => q['key'] == controller.selectedQuestionKey.value)[
+                                                      'value']!;
                                                   controller.verifySecurityAnswer(
                                                     email,
                                                     selectedQuestion,
@@ -348,8 +358,8 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                                                   );
                                                 },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: theme.colorScheme.primary,
-                                            foregroundColor: theme.colorScheme.onPrimary,
+                                            backgroundColor: const Color(0xFF1A6B47),
+                                            foregroundColor: Colors.white,
                                             padding: EdgeInsets.symmetric(
                                               vertical: (14 * scaleFactor).clamp(12.0, 18.0),
                                               horizontal: (24 * scaleFactor).clamp(20.0, 32.0),
@@ -367,7 +377,7 @@ class SecurityQuestionVerificationScreen extends GetView<AuthController> {
                                                   height: (24 * scaleFactor).clamp(20.0, 30.0),
                                                   child: CircularProgressIndicator(
                                                     strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                                   ),
                                                 )
                                               : Text('verify_answer'.tr.toUpperCase()),

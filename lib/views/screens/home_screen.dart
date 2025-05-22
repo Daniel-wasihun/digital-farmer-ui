@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart' as services;
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,11 +7,79 @@ import '../../controllers/app_controller.dart';
 import '../../controllers/auth/auth_controller.dart';
 import '../../controllers/chat/chat_controller.dart';
 import '../../controllers/market_controller.dart';
-import '../../utils/constants.dart';
 import '../../controllers/app_drawer_controller.dart';
+import '../../utils/constants.dart';
 
-class HomeScreen extends material.StatelessWidget {
+// Custom Navigator Observer to enforce status bar color on HomeScreen navigation
+class StatusBarNavigatorObserver extends material.NavigatorObserver {
+  void _setStatusBarColor() {
+    // Critical: Ensure status bar is always dark green (0xFF0A3D2A) on Android
+    if (Platform.isAndroid) {
+      material.WidgetsBinding.instance.addPostFrameCallback((_) {
+        services.SystemChrome.setSystemUIOverlayStyle(
+          const services.SystemUiOverlayStyle(
+            statusBarColor: material.Color(0xFF0A3D2A), // Always dark green, no exceptions
+            statusBarIconBrightness: material.Brightness.light, // White icons for contrast
+          ),
+        );
+      });
+    }
+  }
+
+  @override
+  void didPush(material.Route<dynamic> route, material.Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    if (route.settings.name == '/home') {
+      _setStatusBarColor();
+    }
+  }
+
+  @override
+  void didPop(material.Route<dynamic> route, material.Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (previousRoute?.settings.name == '/home') {
+      _setStatusBarColor();
+    }
+  }
+}
+
+class HomeScreen extends material.StatefulWidget {
+  static const routeName = '/home';
+
   const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends material.State<HomeScreen> {
+  void _setStatusBarColor() {
+    // Critical: Ensure status bar is always dark green (0xFF0A3D2A) on Android
+    if (Platform.isAndroid) {
+      material.WidgetsBinding.instance.addPostFrameCallback((_) {
+        services.SystemChrome.setSystemUIOverlayStyle(
+          const services.SystemUiOverlayStyle(
+            statusBarColor: material.Color(0xFF0A3D2A), // Always dark green, no exceptions
+            statusBarIconBrightness: material.Brightness.light, // White icons for contrast
+          ),
+        );
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Set status bar color when HomeScreen is first initialized
+    _setStatusBarColor();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-apply status bar color on dependency changes (e.g., theme or context updates)
+    _setStatusBarColor();
+  }
 
   @override
   material.Widget build(material.BuildContext context) {
@@ -38,13 +106,8 @@ class HomeScreen extends material.StatelessWidget {
     final cardColor = isDarkMode ? const material.Color(0xFF1A252F) : material.Colors.white;
     final backgroundColor = isDarkMode ? const material.Color(0xFF263544) : material.Colors.grey[200];
 
-    // Set status bar color to dark green (green-black)
-    services.SystemChrome.setSystemUIOverlayStyle(
-      const services.SystemUiOverlayStyle(
-        statusBarColor: material.Color(0xFF1A3C34),
-        statusBarIconBrightness: material.Brightness.light,
-      ),
-    );
+    // Re-apply status bar color in build to ensure it’s always dark green
+    _setStatusBarColor();
 
     return material.Scaffold(
       body: material.SafeArea(
@@ -75,7 +138,8 @@ class HomeScreen extends material.StatelessWidget {
                                 appBar: material.PreferredSize(
                                   preferredSize: material.Size.fromHeight(appBarHeight),
                                   child: material.AppBar(
-                                    elevation: 0,
+                                    elevation: 4, // Add elevation for shadow effect
+                                    shadowColor: material.Colors.black.withOpacity(0.3), // Darker shadow
                                     title: Obx(() => material.Text(
                                           appController.pageTitles[appController.selectedIndex.value].tr,
                                           style: material.TextStyle(
@@ -101,8 +165,8 @@ class HomeScreen extends material.StatelessWidget {
                                       decoration: material.BoxDecoration(
                                         gradient: material.LinearGradient(
                                           colors: [
-                                            material.Theme.of(context).colorScheme.primary,
-                                            material.Theme.of(context).colorScheme.secondary.withOpacity(0.8),
+                                            material.Color(0xFF0A3D2A), // Darker green (matches status bar)
+                                            material.Color(0xFF145C3F).withOpacity(0.8), // Slightly lighter dark green for gradient
                                           ],
                                           begin: material.Alignment.topLeft,
                                           end: material.Alignment.bottomRight,
@@ -307,6 +371,7 @@ class HomeScreen extends material.StatelessWidget {
                 height: height,
                 scaleFactor: scaleFactor,
                 textScaleFactor: textScaleFactor,
+                setStatusBarColor: _setStatusBarColor,
               ),
             ),
           ],
@@ -328,6 +393,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
   final double height;
   final double scaleFactor;
   final double textScaleFactor;
+  final void Function() setStatusBarColor;
 
   const _ProfessionalDrawer({
     required this.appController,
@@ -337,6 +403,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
     required this.height,
     required this.scaleFactor,
     required this.textScaleFactor,
+    required this.setStatusBarColor,
   });
 
   void _showLogoutConfirmationDialog(material.BuildContext context) {
@@ -375,6 +442,8 @@ class _ProfessionalDrawer extends material.StatelessWidget {
               Get.back();
               drawerController.toggleDrawer();
               authController.logout();
+              // Ensure status bar remains dark green after logout
+              setStatusBarColor();
             },
             style: material.TextButton.styleFrom(
               foregroundColor: material.Theme.of(context).colorScheme.error,
@@ -414,7 +483,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
             height: height * 0.18 * scaleFactor,
             padding: material.EdgeInsets.all(16 * scaleFactor),
             decoration: material.BoxDecoration(
-              color: material.Theme.of(context).colorScheme.primary,
+              color: material.Color(0xFF0A3D2A), // Darker green for drawer header, matching app bar and status bar
             ),
             child: material.SafeArea(
               top: true,
@@ -485,11 +554,11 @@ class _ProfessionalDrawer extends material.StatelessWidget {
             ),
           ).animate(
             effects: [
-              FadeEffect(duration: 600.ms),
+              FadeEffect(duration: 50.ms), // Very fast animation for drawer header
               ScaleEffect(
                 begin: const material.Offset(0.9, 0.9),
                 end: const material.Offset(1.0, 1.0),
-                duration: 600.ms,
+                duration: 50.ms, // Very fast animation
               ),
             ],
           ),
@@ -522,6 +591,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                       onTap: () {
                         appController.changePage(0);
                         drawerController.toggleDrawer();
+                        setStatusBarColor();
                       },
                       index: 0,
                     ),
@@ -533,6 +603,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                       onTap: () {
                         appController.changePage(1);
                         drawerController.toggleDrawer();
+                        setStatusBarColor();
                       },
                       index: 1,
                     ),
@@ -544,6 +615,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                       onTap: () {
                         appController.changePage(2);
                         drawerController.toggleDrawer();
+                        setStatusBarColor();
                       },
                       index: 2,
                     ),
@@ -555,6 +627,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                       onTap: () {
                         appController.changePage(3);
                         drawerController.toggleDrawer();
+                        setStatusBarColor();
                       },
                       index: 3,
                     ),
@@ -566,6 +639,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                       onTap: () {
                         appController.changePage(4);
                         drawerController.toggleDrawer();
+                        setStatusBarColor();
                       },
                       index: 4,
                     ),
@@ -595,7 +669,10 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                           ? 'Light Mode'.tr
                           : 'Dark Mode'.tr,
                       isSelected: false,
-                      onTap: appController.toggleTheme,
+                      onTap: () {
+                        appController.toggleTheme();
+                        setStatusBarColor();
+                      },
                       index: 5,
                     ),
                     _buildDrawerItem(
@@ -603,7 +680,10 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                       icon: material.Icons.language_outlined,
                       title: 'Toggle Language'.tr,
                       isSelected: false,
-                      onTap: appController.toggleLanguage,
+                      onTap: () {
+                        appController.toggleLanguage();
+                        setStatusBarColor();
+                      },
                       index: 6,
                     ),
                     material.Padding(
@@ -667,7 +747,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
         vertical: 2 * scaleFactor,
       ),
       child: material.AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 50), // Very fast container animation
         curve: material.Curves.easeInOut,
         decoration: material.BoxDecoration(
           color: isSelected
@@ -708,18 +788,18 @@ class _ProfessionalDrawer extends material.StatelessWidget {
         ),
       ),
     ).animate(
-      delay: (100 * index).ms,
+      delay: 0.ms, // No delay for instant item animation
       effects: [
         SlideEffect(
-          begin: const material.Offset(-0.5, 0),
+          begin: const material.Offset(-0.2, 0), // Minimal slide distance for speed
           end: const material.Offset(0, 0),
-          duration: 500.ms,
-          curve: material.Curves.easeOutCubic,
+          duration: 50.ms, // Very fast animation
+          curve: material.Curves.easeOutQuad, // Smooth and quick curve
         ),
         FadeEffect(
           begin: 0,
           end: 1,
-          duration: 500.ms,
+          duration: 50.ms, // Very fast animation
         ),
       ],
     );

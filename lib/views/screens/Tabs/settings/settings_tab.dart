@@ -264,8 +264,8 @@ class SettingsTab extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 28 * scaleFactor, // Increased icon size from 24 to 28
-                color: Theme.of(context).colorScheme.primary,
+                size: 28 * scaleFactor,
+                color: const Color(0xFF2A6F4E),
               ),
               SizedBox(width: 16 * scaleFactor),
               Expanded(
@@ -274,7 +274,7 @@ class SettingsTab extends StatelessWidget {
                   textScaleFactor: textScaleFactor,
                   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         fontWeight: FontWeight.w500,
-                        fontSize: 14 * textScaleFactor, // Reduced font size from 16 to 14
+                        fontSize: 14 * textScaleFactor,
                       ),
                 ),
               ),
@@ -285,7 +285,7 @@ class SettingsTab extends StatelessWidget {
                 ),
               Icon(
                 Icons.arrow_forward_ios_rounded,
-                size: 18 * scaleFactor, // Increased icon size from 16 to 18
+                size: 18 * scaleFactor,
                 color: Theme.of(context).colorScheme.secondary,
               ),
             ],
@@ -342,7 +342,7 @@ class SettingsTab extends StatelessWidget {
           );
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.primary,
+          backgroundColor: const Color(0xFF2A6F4E),
           foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
           padding: EdgeInsets.symmetric(vertical: 12 * scaleFactor),
           shape: RoundedRectangleBorder(

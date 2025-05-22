@@ -40,7 +40,7 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
     return AnimatedBackground(
       behaviour: RandomParticleBehaviour(
         options: ParticleOptions(
-          baseColor: theme.colorScheme.secondary.withOpacity(0.3),
+          baseColor: const Color(0xFF1A6B47).withOpacity(0.3), // Updated to lighter green
           spawnMinSpeed: 6.0,
           spawnMaxSpeed: 30.0,
           particleCount: 50,
@@ -56,7 +56,7 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
             onPressed: () => Get.back(),
             icon: Icon(
               Icons.arrow_back,
-              color: Colors.green[900], // Set green color for back button
+              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
             ),
           ),
           backgroundColor: Colors.transparent,
@@ -99,7 +99,7 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
                           ? Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                                valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF1A6B47)), // Updated to lighter green
                               ),
                             )
                           : ConstrainedBox(
@@ -124,7 +124,7 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
                                         style: theme.textTheme.headlineSmall?.copyWith(
                                               fontSize: (22 * scaleFactor).clamp(18.0, 24.0),
                                               fontWeight: FontWeight.bold,
-                                              color: theme.colorScheme.primary,
+                                              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
                                               shadows: isDarkMode
                                                   ? null
                                                   : [
@@ -195,8 +195,8 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
                                               ? null
                                               : () => controller.requestPasswordReset(controller.emailController.text),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: theme.colorScheme.primary,
-                                            foregroundColor: theme.colorScheme.onPrimary,
+                                            backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+                                            foregroundColor: Colors.white, // Updated for contrast
                                             padding: EdgeInsets.symmetric(
                                               vertical: (14 * scaleFactor).clamp(12.0, 18.0),
                                               horizontal: (24 * scaleFactor).clamp(20.0, 32.0),
@@ -214,7 +214,7 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
                                                   height: (24 * scaleFactor).clamp(20.0, 30.0),
                                                   child: CircularProgressIndicator(
                                                     strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white), // Updated for contrast
                                                   ),
                                                 )
                                               : Text('send_otp'.tr.toUpperCase()),
@@ -240,11 +240,11 @@ class RequestPasswordResetScreen extends GetView<AuthController> {
                                             child: Text(
                                               'use_another_method'.tr,
                                               style: theme.textButtonTheme.style?.textStyle?.resolve({})?.copyWith(
-                                                        color: theme.colorScheme.secondary,
+                                                        color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
                                                         fontSize: (14 * scaleFactor).clamp(12.0, 16.0),
                                                       ) ??
                                                   TextStyle(
-                                                    color: theme.colorScheme.secondary,
+                                                    color: const Color(0xFF1A6B47), // Updated to lighter green
                                                     fontSize: (14 * scaleFactor).clamp(12.0, 16.0),
                                                   ),
                                             ),

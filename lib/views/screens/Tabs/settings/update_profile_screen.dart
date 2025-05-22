@@ -283,16 +283,16 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                   child: Container(
                                     padding: EdgeInsets.all(4 * scaleFactor),
                                     decoration: BoxDecoration(
-                                      color: theme.colorScheme.secondary,
+                                      color: const Color(0xFF1A6B47), // Updated to lighter green
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                          color: theme.colorScheme.onSecondary,
+                                          color: Colors.white, // Updated for contrast
                                           width: 2),
                                     ),
                                     child: Icon(
                                       Icons.edit,
                                       size: editIconSize,
-                                      color: theme.colorScheme.onSecondary,
+                                      color: Colors.white, // Updated for contrast
                                     ),
                                   ),
                                 ),
@@ -366,7 +366,7 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                         ),
                         SizedBox(height: spacingLarge),
                         AnimatedScale(
-                          scale : controller.isLoading.value ? 0.95 : 1.0,
+                          scale: controller.isLoading.value ? 0.95 : 1.0,
                           duration: const Duration(milliseconds: 200),
                           child: ElevatedButton(
                             onPressed: controller.isLoading.value
@@ -376,6 +376,8 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                     controller.updateProfile();
                                   },
                             style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+                              foregroundColor: Colors.white, // Updated for text contrast
                               padding: EdgeInsets.symmetric(
                                   vertical: math.max(10.0, 14 * scaleFactor)),
                               shape: RoundedRectangleBorder(
@@ -395,7 +397,7 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                                       strokeWidth:
                                           math.max(1.5, 2.0 * scaleFactor),
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          theme.colorScheme.onPrimary),
+                                          Colors.white), // Updated for contrast
                                     ),
                                   )
                                 : Text(
@@ -417,7 +419,7 @@ class UpdateProfileModal extends GetView<UpdateProfileController> {
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium / 2),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
+                    color: const Color(0xFF1A6B47), // Updated to lighter green
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(

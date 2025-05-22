@@ -34,7 +34,7 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 3000),
       );
       _callbacks.navigateTo(AppRoutes.getVerifyOTPPage(), arguments: {
         'email': email.toLowerCase(),
@@ -50,7 +50,7 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 3000),
       );
     } finally {
       _callbacks.setIsLoading(false);
@@ -78,7 +78,7 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 3000),
       );
       return resetToken;
     } catch (e) {
@@ -91,7 +91,7 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 3000),
       );
       return null;
     } finally {
@@ -120,7 +120,7 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 3000),
       );
       await Future.delayed(const Duration(seconds: 1));
       _callbacks.navigateOffAll(AppRoutes.getSignInPage());
@@ -134,7 +134,7 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 3000),
       );
     } finally {
       _callbacks.setIsLoading(false);
@@ -165,7 +165,7 @@ class AuthPasswordManager {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 3000),
       );
       await Future.delayed(const Duration(seconds: 1));
       _callbacks.navigateOffAll(AppRoutes.getHomePage());
@@ -194,7 +194,7 @@ class AuthPasswordManager {
           snackPosition: SnackPosition.TOP,
           margin: const EdgeInsets.all(16),
           borderRadius: 8,
-          duration: const Duration(milliseconds: 1500),
+          duration: const Duration(milliseconds: 3000),
         );
       }
       rethrow;

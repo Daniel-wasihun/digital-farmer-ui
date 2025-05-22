@@ -58,7 +58,7 @@ class SignUpScreen extends GetView<SignUpController> {
     return AnimatedBackground(
       behaviour: RandomParticleBehaviour(
         options: ParticleOptions(
-          baseColor: theme.colorScheme.secondary.withOpacity(0.3),
+          baseColor: const Color(0xFF1A6B47).withOpacity(0.3),
           spawnMinSpeed: 6.0,
           spawnMaxSpeed: 30.0,
           particleCount: 50,
@@ -138,7 +138,7 @@ class SignUpScreen extends GetView<SignUpController> {
                           ? Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                                valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF1A6B47)),
                               ),
                             )
                           : ConstrainedBox(
@@ -163,7 +163,7 @@ class SignUpScreen extends GetView<SignUpController> {
                                         style: theme.textTheme.headlineSmall?.copyWith(
                                               fontSize: (22 * scaleFactor).clamp(18.0, 24.0),
                                               fontWeight: FontWeight.bold,
-                                              color: theme.colorScheme.primary,
+                                              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
                                               shadows: isDarkMode
                                                   ? null
                                                   : [
@@ -301,8 +301,8 @@ class SignUpScreen extends GetView<SignUpController> {
                                         child: ElevatedButton(
                                           onPressed: controller.authController.isLoading.value ? null : controller.signUp,
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: theme.colorScheme.primary,
-                                            foregroundColor: theme.colorScheme.onPrimary,
+                                            backgroundColor: const Color(0xFF1A6B47),
+                                            foregroundColor: Colors.white,
                                             padding: EdgeInsets.symmetric(
                                               vertical: (14 * scaleFactor).clamp(12.0, 18.0),
                                               horizontal: (24 * scaleFactor).clamp(20.0, 32.0),
@@ -320,7 +320,7 @@ class SignUpScreen extends GetView<SignUpController> {
                                                   height: (24 * scaleFactor).clamp(20.0, 30.0),
                                                   child: CircularProgressIndicator(
                                                     strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                                   ),
                                                 )
                                               : Text('create_account'.tr.toUpperCase()),
@@ -335,12 +335,14 @@ class SignUpScreen extends GetView<SignUpController> {
                                                 ? null
                                                 : () {
                                                     controller.reset();
-                                                    Get.offNamed(AppRoutes.getSignInPage());
+                                                    Get.toNamed(AppRoutes.getSignInPage());
                                                   },
                                             child: Text(
                                               'already_have_account'.tr,
-                                              style: theme.textButtonTheme.style?.textStyle?.resolve({}) ??
-                                                  TextStyle(fontSize: (14 * scaleFactor).clamp(12.0, 16.0)),
+                                              style: TextStyle(
+                                                fontSize: (14 * scaleFactor).clamp(12.0, 16.0),
+                                                color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
+                                              ),
                                             ),
                                           ),
                                         ],

@@ -23,11 +23,6 @@ class CropTipsTab extends StatelessWidget {
     final crossAxisCount = screenWidth < 360 ? 1 : screenWidth < 600 ? 2 : screenWidth < 900 ? 3 : 4;
     const fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
 
-    // // Initialize selectedCrop only if not already set
-    // if (controller.selectedCrop.value.isEmpty) {
-    //   controller.selectedFillCrop.value = 'select_crop';
-    // }
-
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: DefaultTabController(
@@ -50,7 +45,7 @@ class CropTipsTab extends StatelessWidget {
                         fontSize: subtitleFontSize,
                         fontWeight: FontWeight.w500,
                         fontFamilyFallback: fontFamilyFallbacks),
-                    indicatorColor: Colors.green[700],
+                    indicatorColor: const Color(0xFF2A6F4E),
                   ),
                 ),
                 Expanded(
@@ -84,7 +79,7 @@ class CropTipsTab extends StatelessWidget {
           floatingActionButton: FloatingActionButton(
             heroTag: 'ai_chat_page',
             onPressed: () => Get.to(() => const AIChatScreen(), transition: Transition.noTransition),
-            backgroundColor: Colors.green[700],
+            backgroundColor: const Color(0xFF2A6F4E),
             tooltip: 'Chat'.tr,
             shape: const CircleBorder(),
             child: Icon(Icons.message, color: Colors.white, size: 24 * adjustedScaleFactor),
@@ -162,7 +157,7 @@ class CropInfoView extends StatelessWidget {
                         await controller.fetchCropInfo(value);
                       } else {
                         controller.selectedCrop.value = 'select_crop';
-                        controller.cropInfo.value = null; // Clear info if 'select_crop' is chosen
+                        controller.cropInfo.value = null;
                       }
                     },
                   )),
@@ -170,7 +165,7 @@ class CropInfoView extends StatelessWidget {
             SizedBox(height: padding),
             Obx(() {
               if (controller.isCropInfoLoading.value) {
-                return Center(child: CircularProgressIndicator(color: Colors.green[700]));
+                return Center(child: CircularProgressIndicator(color: const Color(0xFF2A6F4E)));
               }
               if (controller.cropInfo.value == null) {
                 return Center(
@@ -182,7 +177,7 @@ class CropInfoView extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.eco,
-                          color: Colors.green[700],
+                          color: const Color(0xFF2A6F4E),
                           size: 150 * scaleFactor,
                         ),
                         SizedBox(height: padding),
@@ -224,7 +219,7 @@ class CropInfoView extends StatelessWidget {
   Widget _buildSectionContent(
       Map<String, dynamic> section, bool isDarkMode, double scaleFactor, List<String> fontFamilyFallbacks) {
     final textColor = isDarkMode ? Colors.grey[300] : Colors.grey[700];
-    final accentColor = Colors.green[700]!;
+    final accentColor = const Color(0xFF2A6F4E);
     final fontSize = (14.0 * scaleFactor * 0.9).clamp(10.0, 18.0);
 
     switch (section['type']) {
@@ -268,7 +263,7 @@ class CropInfoView extends StatelessWidget {
           children: [
             Padding(
                 padding: EdgeInsets.only(top: 4),
-                child: Icon(Icons.circle, size: 6, color: Colors.green)),
+                child: Icon(Icons.circle, size: 6, color: const Color(0xFF2A6F4E))),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -379,7 +374,7 @@ class CropTipsView extends StatelessWidget {
                             color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
                             fontFamilyFallback: fontFamilyFallbacks),
                         prefixIcon: Icon(Icons.search,
-                            size: 18 * scaleFactor, color: theme.colorScheme.primary),
+                            size: 18 * scaleFactor, color: const Color(0xFF2A6F4E)),
                         suffixIcon: IconButton(
                           icon: Icon(Icons.clear,
                               size: 18 * scaleFactor, color: theme.colorScheme.onSurface),
@@ -393,7 +388,7 @@ class CropTipsView extends StatelessWidget {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10 * scaleFactor),
                           borderSide:
-                              BorderSide(color: theme.colorScheme.primary, width: 1.2 * scaleFactor),
+                              BorderSide(color: const Color(0xFF2A6F4E), width: 1.2 * scaleFactor),
                         ),
                         filled: true,
                         fillColor: cardColor,
@@ -420,10 +415,10 @@ class CropTipsView extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: isSelected ? Colors.green[700] : cardColor,
+                                color: isSelected ? const Color(0xFF2A6F4E) : cardColor,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: isSelected ? Colors.green[700]! : Colors.grey[500]!),
+                                    color: isSelected ? const Color(0xFF2A6F4E) : Colors.grey[500]!),
                               ),
                               child: Text(
                                 category.tr,
@@ -503,7 +498,7 @@ class CropTipsView extends StatelessWidget {
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.eco, color: Colors.green[700], size: 20 * scaleFactor),
+                                      Icon(Icons.eco, color: const Color(0xFF2A6F4E), size: 20 * scaleFactor),
                                       const SizedBox(width: 6),
                                       Expanded(
                                         child: Text(
@@ -637,7 +632,7 @@ class CropDetailSheet extends StatelessWidget {
                                         fontSize: headerFontSize,
                                         fontWeight: FontWeight.bold,
                                         fontFamilyFallback: fontFamilyFallbacks)),
-                                Icon(Icons.eco, color: Colors.green[700], size: 36),
+                                Icon(Icons.eco, color: const Color(0xFF2A6F4E), size: 36),
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -687,7 +682,7 @@ class CropDetailSheet extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: Colors.green[700]),
+              Icon(icon, size: 20, color: const Color(0xFF2A6F4E)),
               const SizedBox(width: 8),
               Text(label,
                   style: TextStyle(

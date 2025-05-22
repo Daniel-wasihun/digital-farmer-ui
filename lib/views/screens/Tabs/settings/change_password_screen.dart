@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:math' as math;
 import '../../../../controllers/auth/auth_controller.dart';
 import '../../../widgets/custom_text_field.dart';
 
@@ -237,8 +236,8 @@ class ChangePasswordScreen extends GetView<AuthController> {
                            child: ElevatedButton(
                              onPressed: controller.isLoading.value ? null : controller.changePassword,
                              style: ElevatedButton.styleFrom(
-                                 backgroundColor: theme.elevatedButtonTheme.style?.backgroundColor?.resolve({WidgetState.pressed}) ?? theme.colorScheme.primary,
-                                 foregroundColor: theme.elevatedButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed}) ?? theme.colorScheme.onPrimary,
+                                 backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+                                 foregroundColor: Colors.white, // Updated for text contrast
                                  padding: EdgeInsets.symmetric(vertical: (14 * scaleFactor).clamp(12.0, 18.0), horizontal: (24 * scaleFactor).clamp(20.0, 32.0)),
                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8 * scaleFactor)),
                                  textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.w700),
@@ -250,7 +249,7 @@ class ChangePasswordScreen extends GetView<AuthController> {
                                      height: loaderSize,
                                      child: CircularProgressIndicator(
                                        strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                       valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white), // Updated for contrast
                                      ),
                                    )
                                  : Text('update_password'.tr.toUpperCase()),
@@ -270,7 +269,7 @@ class ChangePasswordScreen extends GetView<AuthController> {
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium / 2),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
+                    color: const Color(0xFF1A6B47), // Updated to lighter green
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(

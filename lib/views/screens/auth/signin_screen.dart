@@ -47,7 +47,7 @@ class SignInScreen extends GetView<SignInController> {
     return AnimatedBackground(
       behaviour: RandomParticleBehaviour(
         options: ParticleOptions(
-          baseColor: theme.colorScheme.secondary.withOpacity(0.3),
+          baseColor: const Color(0xFF1A6B47).withOpacity(0.3), // Updated to lighter green
           spawnMinSpeed: 6.0,
           spawnMaxSpeed: 30.0,
           particleCount: 50,
@@ -149,13 +149,14 @@ class SignInScreen extends GetView<SignInController> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 mainAxisSize: MainAxisSize.min,
+                                        
                                 children: [
                                   Text(
                                     'signin'.tr,
                                     style: theme.textTheme.headlineSmall?.copyWith(
                                           fontSize: (22 * scaleFactor).clamp(18.0, 24.0),
                                           fontWeight: FontWeight.bold,
-                                          color: theme.colorScheme.primary,
+                                          color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
                                           shadows: isDarkMode
                                               ? null
                                               : [
@@ -232,8 +233,8 @@ class SignInScreen extends GetView<SignInController> {
                                     child: ElevatedButton(
                                       onPressed: controller.authController.isLoading.value ? null : controller.signIn,
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: theme.colorScheme.primary,
-                                        foregroundColor: theme.colorScheme.onPrimary,
+                                        backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+                                        foregroundColor: Colors.white, // Updated for text contrast
                                         padding: EdgeInsets.symmetric(
                                           vertical: (14 * scaleFactor).clamp(12.0, 18.0),
                                           horizontal: (24 * scaleFactor).clamp(20.0, 32.0),
@@ -251,7 +252,7 @@ class SignInScreen extends GetView<SignInController> {
                                               height: (24 * scaleFactor).clamp(20.0, 30.0),
                                               child: CircularProgressIndicator(
                                                 strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white), // Updated for contrast
                                               ),
                                             )
                                           : Text('login'.tr.toUpperCase()),
@@ -270,8 +271,8 @@ class SignInScreen extends GetView<SignInController> {
                                               },
                                         child: Text(
                                           'dont_have_account'.tr,
-                                          style: theme.textButtonTheme.style?.textStyle?.resolve({}) ??
-                                              TextStyle(fontSize: (12 * scaleFactor).clamp(10.0, 14.0)),
+                                           style: TextStyle( fontSize: (14 * scaleFactor ).clamp(12.0, 16.0),
+                                                color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47)),
                                         ),
                                       ),
                                       SizedBox(height: (2 * scaleFactor).clamp(2.0, 3.0)),
@@ -284,8 +285,9 @@ class SignInScreen extends GetView<SignInController> {
                                               },
                                         child: Text(
                                           'forgot_password'.tr,
-                                          style: theme.textButtonTheme.style?.textStyle?.resolve({}) ??
-                                              TextStyle(fontSize: (12 * scaleFactor).clamp(10.0, 14.0)),
+                                          style: TextStyle(
+                                            fontSize: (14 * scaleFactor ).clamp(12.0, 16.0),
+                                                color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47)),
                                         ),
                                       ),
                                     ],

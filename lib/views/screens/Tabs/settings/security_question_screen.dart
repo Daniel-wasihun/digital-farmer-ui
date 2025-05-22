@@ -157,8 +157,8 @@ class SecurityQuestionScreen extends GetView<AuthController> {
             Get.snackbar(
               'success'.tr,
               'security_question_updated'.tr,
-              backgroundColor: theme.colorScheme.secondary,
-              colorText: theme.colorScheme.onSecondary,
+              backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+              colorText: Colors.white, // Updated for contrast
               snackPosition: SnackPosition.TOP,
               margin: const EdgeInsets.all(16),
               borderRadius: 8,
@@ -371,6 +371,8 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                         SizedBox(height: spacingLarge + spacingSmall),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+                            foregroundColor: Colors.white, // Updated for text contrast
                             padding: EdgeInsets.symmetric(
                                 vertical: math.max(10.0, 12 * scaleFactor),
                                 horizontal: math.max(16.0, 20 * scaleFactor)),
@@ -395,7 +397,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                                     strokeWidth:
                                         math.max(1.5, 2.0 * scaleFactor),
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                        theme.colorScheme.onPrimary),
+                                        Colors.white), // Updated for contrast
                                   ),
                                 )
                               : Text('update_security_question'.tr.toUpperCase()),
@@ -415,7 +417,7 @@ class SecurityQuestionScreen extends GetView<AuthController> {
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium / 2),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
+                    color: const Color(0xFF1A6B47), // Updated to lighter green
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(

@@ -8,6 +8,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? errorText;
   final IconData? prefixIcon;
+  final Color? iconColor; // Added to support custom icon color
   final Function(String)? onChanged;
   final double scaleFactor;
   final bool enabled;
@@ -23,7 +24,7 @@ class CustomTextField extends StatelessWidget {
   final Color? cursorColor;
   final int? minLines;
   final int? maxLines;
-  final List<TextInputFormatter>? inputFormatters; // Optional inputFormatters
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -33,6 +34,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.errorText,
     this.prefixIcon,
+    this.iconColor, // Added to constructor
     this.onChanged,
     this.scaleFactor = 1.0,
     this.enabled = true,
@@ -48,7 +50,7 @@ class CustomTextField extends StatelessWidget {
     this.cursorColor,
     this.minLines,
     this.maxLines,
-    this.inputFormatters, // Include in constructor
+    this.inputFormatters,
   });
 
   @override
@@ -99,7 +101,7 @@ class CustomTextField extends StatelessWidget {
             onSubmitted: onSubmitted,
             minLines: minLines,
             maxLines: maxLines ?? 1,
-            inputFormatters: inputFormatters, // Pass to TextField
+            inputFormatters: inputFormatters,
             style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                   fontSize: effectiveFontSize,
                 ),
@@ -113,7 +115,7 @@ class CustomTextField extends StatelessWidget {
                   ? Icon(
                       prefixIcon,
                       size: effectiveIconSize,
-                      color: Theme.of(context).inputDecorationTheme.prefixIconColor,
+                      color: iconColor ?? const Color(0xFF1A6B47), // Use provided iconColor or default to dark green
                     )
                   : null,
               border: standardBorder,

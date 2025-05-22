@@ -32,9 +32,10 @@ class AuthOtpManager {
         'account_created_successfully'.tr, // Fixed typo in translation key
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 3000)
       );
       await Future.delayed(const Duration(seconds: 1));
       _callbacks.navigateOffAll(AppRoutes.getHomePage());
@@ -45,9 +46,10 @@ class AuthOtpManager {
         e.toString().replaceFirst('Exception: ', '').tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 3000)
       );
     } finally {
       _callbacks.setIsLoading(false);
@@ -72,9 +74,10 @@ class AuthOtpManager {
         'otp_sent_to_email'.tr,
         backgroundColor: Get.theme.colorScheme.secondary,
         colorText: Get.theme.colorScheme.onSecondary,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 3000)
       );
     } catch (e) {
       print('Resend OTP failed: $e');
@@ -83,9 +86,11 @@ class AuthOtpManager {
         e.toString().replaceFirst('Exception: ', '').tr,
         backgroundColor: Get.theme.colorScheme.error,
         colorText: Get.theme.colorScheme.onError,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
         borderRadius: 8,
+        duration: const Duration(milliseconds: 3000)
+        
       );
     } finally {
       _callbacks.setIsLoading(false);

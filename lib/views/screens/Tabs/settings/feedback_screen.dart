@@ -226,14 +226,8 @@ class FeedbackScreen extends GetView<FeedbackController> {
                                 ? null
                                 : controller.submitFeedback,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.elevatedButtonTheme.style
-                                      ?.backgroundColor
-                                      ?.resolve({WidgetState.pressed}) ??
-                                  theme.colorScheme.primary,
-                              foregroundColor: theme.elevatedButtonTheme.style
-                                      ?.foregroundColor
-                                      ?.resolve({WidgetState.pressed}) ??
-                                  theme.colorScheme.onPrimary,
+                              backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+                              foregroundColor: Colors.white, // Updated for text contrast
                               padding: EdgeInsets.symmetric(
                                   vertical: math.max(10.0, 14 * scaleFactor)),
                               shape: RoundedRectangleBorder(
@@ -253,7 +247,7 @@ class FeedbackScreen extends GetView<FeedbackController> {
                                       strokeWidth:
                                           math.max(1.5, 2.0 * scaleFactor),
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          theme.colorScheme.onPrimary),
+                                          Colors.white), // Updated for contrast
                                     ),
                                   )
                                 : Text(
@@ -277,7 +271,7 @@ class FeedbackScreen extends GetView<FeedbackController> {
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium / 2),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
+                    color: const Color(0xFF1A6B47), // Updated to lighter green
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(

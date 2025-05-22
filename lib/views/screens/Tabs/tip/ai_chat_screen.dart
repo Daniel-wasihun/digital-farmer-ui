@@ -1,8 +1,12 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../controllers/chat/ai_chat_controller.dart';
 import '../../../../controllers/theme_controller.dart';
+import '../../../../routes/app_routes.dart'; // Added for navigation
 import 'message_list.dart';
 
 class AIChatScreen extends GetView<AIChatController> {
@@ -25,8 +29,29 @@ class AIChatScreen extends GetView<AIChatController> {
     final double titleFontSize = (20.0 * adjustedScaleFactor).clamp(16.0, 28.0);
     final double detailFontSize = (14.0 * adjustedScaleFactor * 0.9).clamp(10.0, 18.0);
 
-    // Font fallbacks for Amharic
-    const List<String> fontFamilyFallbacks = ['NotoSansEthiopic', 'AbyssinicaSIL'];
+    // Set status bar color to dark green (0xFF0A3D2A)
+    void setStatusBarColor() {
+      if (Platform.isAndroid) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          SystemChrome.setSystemUIOverlayStyle(
+            const SystemUiOverlayStyle(
+              statusBarColor: Color(0xFF0A3D2A), // Dark green, matching AppBar
+              statusBarIconBrightness: Brightness.light, // White icons
+            ),
+          );
+        });
+      }
+    }
+
+    // Navigate to HomeScreen with controller cleanup and status bar color enforcement
+    void navigateToHome() {
+      Get.delete<AIChatController>(); // Clean up AIChatController
+      Get.offNamed(AppRoutes.getHomePage()); // Navigate to HomeScreen
+      setStatusBarColor(); // Ensure status bar is dark green
+    }
+
+    // Apply status bar color on initial build
+    setStatusBarColor();
 
     return Obx(() => Theme(
           data: themeController.getTheme(),
@@ -36,20 +61,19 @@ class AIChatScreen extends GetView<AIChatController> {
                     title: Text(
                       '${controller.selectedIndices.length} selected',
                       style: TextStyle(
-                        fontFamily: GoogleFonts.poppins().fontFamily,
-                        fontFamilyFallback: fontFamilyFallbacks,
                         fontSize: titleFontSize,
                         fontWeight: FontWeight.w600,
-                        color: themeController.isDarkMode.value ? Colors.white : Colors.black87,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     centerTitle: false,
-                    elevation: 0.8,
+                    elevation: 4.0,
                     leading: IconButton(
                       icon: Icon(
-                        Icons.close,
+                        Icons.menu,
                         size: 20 * adjustedScaleFactor,
-                        color: themeController.isDarkMode.value ? Colors.white : Colors.black87,
+                        color: Colors.white,
                       ),
                       onPressed: controller.clearSelection,
                     ),
@@ -59,10 +83,8 @@ class AIChatScreen extends GetView<AIChatController> {
                         child: Text(
                           'Copy',
                           style: TextStyle(
-                            fontFamily: GoogleFonts.poppins().fontFamily,
-                            fontFamilyFallback: fontFamilyFallbacks,
                             fontSize: detailFontSize,
-                            color: themeController.isDarkMode.value ? Colors.white : Colors.black87,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -71,25 +93,30 @@ class AIChatScreen extends GetView<AIChatController> {
                         child: Text(
                           'Delete',
                           style: TextStyle(
-                            fontFamily: GoogleFonts.poppins().fontFamily,
-                            fontFamilyFallback: fontFamilyFallbacks,
                             fontSize: detailFontSize,
-                            color: themeController.isDarkMode.value ? Colors.white : Colors.black87,
+                            color: Colors.white,
                           ),
                         ),
                       ),
                       SizedBox(width: 6 * adjustedScaleFactor),
                     ],
                     flexibleSpace: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            themeController.getTheme().colorScheme.primary.withOpacity(0.6),
-                            themeController.getTheme().colorScheme.secondary.withOpacity(0.6),
+                            Color(0xFF0A3D2A), // Dark green
+                            Color(0xFF145C3F), // Slightly lighter green
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 8.0,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                     ),
                   )
@@ -110,11 +137,10 @@ class AIChatScreen extends GetView<AIChatController> {
                           child: Text(
                             'ask_ai'.tr,
                             style: TextStyle(
-                              fontFamily: GoogleFonts.poppins().fontFamily,
-                              fontFamilyFallback: fontFamilyFallbacks,
                               fontSize: titleFontSize,
                               fontWeight: FontWeight.w600,
-                              color: themeController.isDarkMode.value ? Colors.white : Colors.black87,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -122,28 +148,35 @@ class AIChatScreen extends GetView<AIChatController> {
                       ],
                     ),
                     centerTitle: false,
-                    elevation: 0.8,
-                    actions: [
-                      IconButton(
-                        icon: Icon(
-                          themeController.isDarkMode.value ? Icons.brightness_high_rounded : Icons.brightness_2_rounded,
-                          size: 16 * adjustedScaleFactor,
-                        ),
-                        onPressed: themeController.toggleTheme,
-                        tooltip: 'toggle_theme',
+                    elevation: 4.0,
+                    leading: IconButton(
+                      icon: Icon(
+                        Icons.arrow_back,
+                        size: 20 * adjustedScaleFactor,
+                        color: Colors.white,
                       ),
+                      onPressed: navigateToHome, // Updated navigation
+                    ),
+                    actions: [
                       SizedBox(width: 6 * adjustedScaleFactor),
                     ],
                     flexibleSpace: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            themeController.getTheme().colorScheme.primary.withOpacity(0.6),
-                            themeController.getTheme().colorScheme.secondary.withOpacity(0.6),
+                            Color(0xFF0A3D2A), // Dark green
+                            Color(0xFF145C3F), // Slightly lighter green
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 8.0,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -155,7 +188,7 @@ class AIChatScreen extends GetView<AIChatController> {
                     child: MessageList(
                       adjustedScaleFactor: adjustedScaleFactor,
                       padding: padding,
-                      fontFamilyFallbacks: fontFamilyFallbacks,
+                      fontFamilyFallbacks: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
                     ),
                   ),
                   Obx(() => controller.isLoading.value
@@ -166,7 +199,7 @@ class AIChatScreen extends GetView<AIChatController> {
                             height: 18 * adjustedScaleFactor,
                             child: CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                themeController.getTheme().colorScheme.secondary,
+                                Color(0xFF0A3D2A), // Updated to AppBar dark green
                               ),
                               strokeWidth: 1.2 * adjustedScaleFactor,
                             ),
@@ -203,7 +236,7 @@ class AIChatScreen extends GetView<AIChatController> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
                                 borderSide: BorderSide(
-                                  color: themeController.getTheme().colorScheme.secondary.withOpacity(0.6),
+                                  color: Color(0xFF0A3D2A).withOpacity(0.6), // Updated to AppBar dark green
                                   width: 0.6 * adjustedScaleFactor,
                                 ),
                               ),
@@ -213,14 +246,14 @@ class AIChatScreen extends GetView<AIChatController> {
                               ),
                               prefixIcon: Icon(
                                 Icons.message_rounded,
-                                color: themeController.getTheme().colorScheme.secondary.withOpacity(0.5),
+                                color: Color(0xFF0A3D2A).withOpacity(0.5), // Updated to AppBar dark green
                                 size: 18 * adjustedScaleFactor,
                               ),
                               suffixIcon: controller.textController.text.isNotEmpty
                                   ? IconButton(
                                       icon: Icon(
                                         Icons.clear_rounded,
-                                        color: themeController.getTheme().colorScheme.secondary.withOpacity(0.35),
+                                        color: Color(0xFF0A3D2A).withOpacity(0.35), // Updated to AppBar dark green
                                         size: 18 * adjustedScaleFactor,
                                       ),
                                       onPressed: () => controller.textController.clear(),
@@ -230,14 +263,14 @@ class AIChatScreen extends GetView<AIChatController> {
                               fillColor: themeController.getTheme().inputDecorationTheme.fillColor?.withOpacity(0.7),
                               hintStyle: TextStyle(
                                 fontFamily: GoogleFonts.poppins().fontFamily,
-                                fontFamilyFallback: fontFamilyFallbacks,
+                                fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
                                 fontSize: detailFontSize,
                                 color: themeController.getTheme().textTheme.bodyMedium!.color!.withOpacity(0.25),
                               ),
                             ),
                             style: TextStyle(
                               fontFamily: GoogleFonts.poppins().fontFamily,
-                              fontFamilyFallback: fontFamilyFallbacks,
+                              fontFamilyFallback: const ['NotoSansEthiopic', 'AbyssinicaSIL'],
                               fontSize: detailFontSize,
                               color: themeController.isDarkMode.value ? Colors.white.withOpacity(0.85) : Colors.black87.withOpacity(0.85),
                             ),
@@ -257,7 +290,7 @@ class AIChatScreen extends GetView<AIChatController> {
                                 borderRadius: BorderRadius.circular(12 * adjustedScaleFactor),
                               ),
                               padding: EdgeInsets.zero,
-                              backgroundColor: themeController.getTheme().colorScheme.secondary,
+                              backgroundColor: Color(0xFF0A3D2A), // Updated to AppBar dark green
                             ),
                             child: Icon(
                               Icons.send_rounded,

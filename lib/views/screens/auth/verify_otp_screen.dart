@@ -79,7 +79,7 @@ class _VerifyOTPScreenState extends State<VerifyOTPScreen> {
             onPressed: () => Get.back(),
             icon: Icon(
               Icons.arrow_back,
-              color: Colors.green[900], // Green back button
+              color: const Color(0xFF1A6B47), // Updated to lighter green
             ),
           ),
           flexibleSpace: Container(
@@ -129,7 +129,7 @@ class _VerifyOTPScreenState extends State<VerifyOTPScreen> {
                       () => controller.isLoading.value
                           ? Center(
                               child: SpinKitFadingCube(
-                                color: theme.colorScheme.secondary,
+                                color: const Color(0xFF1A6B47), // Updated to lighter green
                                 size: 32 * scaleFactor,
                               ),
                             )

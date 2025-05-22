@@ -69,7 +69,7 @@ class WeatherTab extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.green[300]! : Colors.green[500]!),
+                        valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF2A6F4E)),
                         strokeWidth: 3 * adjustedScaleFactor,
                       ),
                       SizedBox(height: padding),
@@ -116,7 +116,7 @@ class WeatherTab extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () => controller.fetchDeviceWeatherData(),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+                          backgroundColor: const Color(0xFF2A6F4E),
                           padding: EdgeInsets.symmetric(horizontal: 24 * adjustedScaleFactor, vertical: 12 * adjustedScaleFactor),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * adjustedScaleFactor)),
                           elevation: 6,
@@ -161,7 +161,7 @@ class WeatherTab extends StatelessWidget {
                                 Icon(
                                   Icons.location_on,
                                   size: 26 * adjustedScaleFactor,
-                                  color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                  color: const Color(0xFF2A6F4E),
                                 ),
                                 SizedBox(width: 6 * adjustedScaleFactor),
                                 Text(
@@ -217,7 +217,7 @@ class WeatherTab extends StatelessWidget {
                           icon: Icon(
                             Icons.refresh,
                             size: 26 * adjustedScaleFactor,
-                            color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                            color: const Color(0xFF2A6F4E),
                           ),
                           onPressed: () => controller.fetchDeviceWeatherData(),
                           padding: EdgeInsets.zero,
@@ -230,8 +230,8 @@ class WeatherTab extends StatelessWidget {
                   SizedBox(
                     height: (size.height * 0.12).clamp(80, 130),
                     child: Card(
-                      elevation: 6,
-                      color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                      elevation: 0, // Remove shadow
+                      color: isDarkMode ? const Color(0xFF1A252F) : (theme.cardTheme.color ?? Colors.white),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * adjustedScaleFactor)),
                       margin: EdgeInsets.symmetric(vertical: 4 * adjustedScaleFactor, horizontal: 12 * adjustedScaleFactor),
                       child: Padding(
@@ -248,7 +248,7 @@ class WeatherTab extends StatelessWidget {
                                   child: Icon(
                                     _getWeatherIcon(weatherData['current']?['condition']?.toString() ?? 'sunny'),
                                     key: ValueKey(weatherData['current']?['condition'] ?? 'sunny'),
-                                    color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                    color: const Color(0xFF2A6F4E),
                                     size: 40 * adjustedScaleFactor,
                                   ),
                                 ),
@@ -310,8 +310,8 @@ class WeatherTab extends StatelessWidget {
                       opacity: 1.0,
                       duration: const Duration(milliseconds: 300),
                       child: Card(
-                        elevation: 6,
-                        color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                        elevation: 0, // Remove shadow
+                        color: isDarkMode ? const Color(0xFF1A252F) : (theme.cardTheme.color ?? Colors.white),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * adjustedScaleFactor)),
                         margin: EdgeInsets.symmetric(vertical: 4 * adjustedScaleFactor, horizontal: 12 * adjustedScaleFactor),
                         child: Padding(
@@ -324,7 +324,7 @@ class WeatherTab extends StatelessWidget {
                                   Icon(
                                     Icons.question_answer,
                                     size: 18 * adjustedScaleFactor,
-                                    color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                    color: const Color(0xFF2A6F4E),
                                   ),
                                   SizedBox(width: 6 * adjustedScaleFactor),
                                   Text(
@@ -337,7 +337,7 @@ class WeatherTab extends StatelessWidget {
                                       color: isDarkMode ? Colors.white : Colors.grey[900],
                                     ),
                                   ),
-                                ],
+                              ],
                               ),
                               SizedBox(height: 6 * adjustedScaleFactor),
                               SizedBox(
@@ -357,12 +357,12 @@ class WeatherTab extends StatelessWidget {
                                       borderSide: BorderSide.none,
                                     ),
                                     filled: true,
-                                    fillColor: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                                    fillColor: isDarkMode ? const Color(0xFF1A252F) : (theme.cardTheme.color ?? Colors.white),
                                     suffixIcon: IconButton(
                                       icon: Icon(
                                         Icons.send,
                                         size: 18 * adjustedScaleFactor,
-                                        color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                        color: const Color(0xFF2A6F4E),
                                       ),
                                       onPressed: () => controller.askWeatherQuestion(),
                                       padding: EdgeInsets.zero,
@@ -387,7 +387,7 @@ class WeatherTab extends StatelessWidget {
                                 Center(
                                   child: CircularProgressIndicator(
                                     strokeWidth: 3 * adjustedScaleFactor,
-                                    valueColor: AlwaysStoppedAnimation<Color>(isDarkMode ? Colors.green[300]! : Colors.green[500]!),
+                                    valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF2A6F4E)),
                                   ),
                                 ),
                               if (hasAnswer)
@@ -420,7 +420,7 @@ class WeatherTab extends StatelessWidget {
                                             });
                                           },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                            backgroundColor: const Color(0xFF2A6F4E),
                                             padding: EdgeInsets.symmetric(
                                               horizontal: 16 * adjustedScaleFactor,
                                               vertical: 8 * adjustedScaleFactor,
@@ -462,7 +462,7 @@ class WeatherTab extends StatelessWidget {
                             Icon(
                               Icons.calendar_today,
                               size: 18 * adjustedScaleFactor,
-                              color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                              color: const Color(0xFF2A6F4E),
                             ),
                             SizedBox(width: 6 * adjustedScaleFactor),
                             Text(
@@ -524,8 +524,8 @@ class WeatherTab extends StatelessWidget {
                                       width: cardWidth,
                                       height: cardHeight,
                                       child: Card(
-                                        elevation: 6,
-                                        color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                                        elevation: 0, // Remove shadow
+                                        color: isDarkMode ? const Color(0xFF1A252F) : (theme.cardTheme.color ?? Colors.white),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * adjustedScaleFactor)),
                                         child: Stack(
                                           children: [
@@ -535,7 +535,7 @@ class WeatherTab extends StatelessWidget {
                                               child: Icon(
                                                 Icons.chevron_right,
                                                 size: iconSize,
-                                                color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                                color: const Color(0xFF2A6F4E),
                                               ),
                                             ),
                                             Column(
@@ -570,7 +570,7 @@ class WeatherTab extends StatelessWidget {
                                                       child: Icon(
                                                         _getWeatherIcon(dayData?['condition']?.toString() ?? 'sunny'),
                                                         key: ValueKey(dayData?['condition'] ?? 'sunny'),
-                                                        color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                                        color: const Color(0xFF2A6F4E),
                                                         size: 32 * adjustedScaleFactor,
                                                       ),
                                                     ),
@@ -622,8 +622,8 @@ class WeatherTab extends StatelessWidget {
                     opacity: 1.0,
                     duration: const Duration(milliseconds: 300),
                     child: Card(
-                      elevation: 6,
-                      color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+                      elevation: 0, // Remove shadow
+                      color: isDarkMode ? const Color(0xFF1A252F) : (theme.cardTheme.color ?? Colors.white),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * adjustedScaleFactor)),
                       margin: EdgeInsets.symmetric(vertical: 4 * adjustedScaleFactor, horizontal: 12 * adjustedScaleFactor),
                       child: Padding(
@@ -636,7 +636,7 @@ class WeatherTab extends StatelessWidget {
                                 Icon(
                                   Icons.history,
                                   size: 18 * adjustedScaleFactor,
-                                  color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                  color: const Color(0xFF2A6F4E),
                                 ),
                                 SizedBox(width: 6 * adjustedScaleFactor),
                                 Text(
@@ -665,7 +665,7 @@ class WeatherTab extends StatelessWidget {
                                         Icon(
                                           _getHistoricalIcon(precip),
                                           size: 16 * adjustedScaleFactor,
-                                          color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                                          color: const Color(0xFF2A6F4E),
                                         ),
                                         SizedBox(width: 6 * adjustedScaleFactor),
                                         Expanded(
@@ -819,8 +819,8 @@ class ForecastDetailSheet extends StatelessWidget {
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.8,
       child: Card(
-        elevation: 6,
-        color: theme.cardTheme.color ?? (isDarkMode ? Colors.grey[850] : Colors.white),
+        elevation: 0, // Remove shadow
+        color: isDarkMode ? const Color(0xFF1A252F) : (theme.cardTheme.color ?? Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20 * scaleFactor)),
         child: Column(
           children: [
@@ -864,7 +864,7 @@ class ForecastDetailSheet extends StatelessWidget {
                             child: Icon(
                               _getWeatherIcon(dayData?['condition']?.toString() ?? 'sunny'),
                               key: ValueKey(dayData?['condition'] ?? 'sunny'),
-                              color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                              color: const Color(0xFF2A6F4E),
                               size: 44 * scaleFactor,
                             ),
                           ),
@@ -1070,7 +1070,7 @@ class ForecastDetailSheet extends StatelessWidget {
                   child: Icon(
                     icon,
                     size: 18 * scaleFactor,
-                    color: isDarkMode ? Colors.green[300] : Colors.green[500],
+                    color: const Color(0xFF2A6F4E),
                   ),
                 ),
               Text(

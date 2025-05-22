@@ -209,7 +209,7 @@ class ChatScreen extends StatelessWidget {
     return PreferredSize(
       preferredSize: Size.fromHeight(80 * scaleFactor),
       child: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Color(0xFF006400), // Dark green
         elevation: 2,
         shadowColor: Colors.black26,
         title: Obx(() => Text(
@@ -218,7 +218,7 @@ class ChatScreen extends StatelessWidget {
                 fontFamily: GoogleFonts.poppins().fontFamily,
                 fontFamilyFallback: fontFamilyFallbacks,
                 color: Theme.of(context).colorScheme.onPrimary,
-                fontSize: 18 * scaleFactor, // Reduced from 20 to 18
+                fontSize: 18 * scaleFactor,
                 fontWeight: FontWeight.w600,
               ),
             )),
@@ -243,8 +243,8 @@ class ChatScreen extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Theme.of(context).colorScheme.primary.withOpacity(0.6),
-                Theme.of(context).colorScheme.secondary.withOpacity(0.6),
+                Color(0xFF006400).withOpacity(0.6), // Dark green with opacity
+                Color(0xFF228B22).withOpacity(0.6), // Forest green for gradient
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -260,7 +260,7 @@ class ChatScreen extends StatelessWidget {
     return PreferredSize(
       preferredSize: Size.fromHeight(80 * scaleFactor),
       child: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Color(0xFF0A3D2A), // Dark green
         elevation: 2,
         shadowColor: Colors.black26,
         titleSpacing: 0,
@@ -281,7 +281,7 @@ class ChatScreen extends StatelessWidget {
                 Stack(
                   children: [
                     CircleAvatar(
-                      radius: 24 * scaleFactor, // Reduced size for better fit
+                      radius: 24 * scaleFactor,
                       backgroundColor: AppConstants.primaryColor.withOpacity(0.8),
                       backgroundImage: user != null && user['profilePicture']?.isNotEmpty == true
                           ? CachedNetworkImageProvider('${BaseApi.imageBaseUrl}${user['profilePicture']}')
@@ -391,8 +391,8 @@ class ChatScreen extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Theme.of(context).colorScheme.primary.withOpacity(0.6),
-                Theme.of(context).colorScheme.secondary.withOpacity(0.6),
+                Color(0xFF006400).withOpacity(0.6), // Dark green with opacity
+                Color(0xFF228B22).withOpacity(0.6), // Forest green for gradient
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -566,12 +566,12 @@ class _MessageBubble extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(right: 8 * scaleFactor),
                   child: Container(
-                    padding: EdgeInsets.all(3 * scaleFactor), // Reduced from 4 to 3
+                    padding: EdgeInsets.all(3 * scaleFactor),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary), // Reduced from 12 to 10
+                    child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
                   ),
                 ),
               ConstrainedBox(
@@ -609,12 +609,12 @@ class _MessageBubble extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(left: 8 * scaleFactor),
                   child: Container(
-                    padding: EdgeInsets.all(3 * scaleFactor), // Reduced from 4 to 3
+                    padding: EdgeInsets.all(3 * scaleFactor),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary), // Reduced from 12 to 10
+                    child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
                   ),
                 ),
             ],

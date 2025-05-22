@@ -25,6 +25,7 @@ class AuthController extends GetxController with AuthValidationMixin {
   final isLoading = false.obs;
   final isPasswordChangeSuccess = false.obs;
   final userName = ''.obs;
+  final selectedQuestionKey = ''.obs; // Added to manage selected question state
 
   @override
   var usernameError = ''.obs;
@@ -94,6 +95,7 @@ class AuthController extends GetxController with AuthValidationMixin {
     _securityManager = AuthSecurityManager(_apiService, _storageService, callbacks);
 
     _loadUserName();
+    clearSecurityFields(); // Initialize security fields
   }
 
   @override
@@ -126,6 +128,14 @@ class AuthController extends GetxController with AuthValidationMixin {
     confirmPasswordController.clear();
     securityQuestionTextController.clear();
     securityAnswerTextController.clear();
+    selectedQuestionKey.value = ''; // Clear selected question
+  }
+
+  void clearSecurityFields() {
+    selectedQuestionKey.value = '';
+    securityQuestionError.value = '';
+    securityAnswerTextController.clear();
+    securityAnswerError.value = '';
   }
 
   void resetErrors() {
@@ -144,6 +154,11 @@ class AuthController extends GetxController with AuthValidationMixin {
     currentPasswordError.value = '';
     newPasswordError.value = '';
     confirmPasswordError.value = '';
+  }
+
+  @override
+  void validateSecurityQuestion(String? value) {
+    securityQuestionError.value = value == null || value.isEmpty ? 'please_select_question'.tr : '';
   }
 
   @override
@@ -465,6 +480,7 @@ class AuthController extends GetxController with AuthValidationMixin {
       if (resetToken != null) {
         logger.i('AuthController: Security answer verified for email: $email');
         onSuccess(resetToken);
+        clearSecurityFields(); // Clear fields after successful verification
       }
     } catch (e) {
       logger.e('AuthController: Security answer verification failed: $e');
@@ -472,4 +488,3 @@ class AuthController extends GetxController with AuthValidationMixin {
     }
   }
 }
-

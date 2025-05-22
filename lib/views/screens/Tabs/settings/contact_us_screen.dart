@@ -267,7 +267,7 @@ class ContactUsScreen extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.all(cardPadding / 2),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
+                    color: const Color(0xFF1A6B47), // Updated to lighter green
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -325,14 +325,13 @@ class ContactUsScreen extends StatelessWidget {
           color: cardColor,
           borderRadius: BorderRadius.circular(iconBorderRadius),
           border: Border.all(
-            color: theme.colorScheme.secondary
-                .withOpacity(isDarkMode ? 0.4 : 0.25),
+            color: const Color(0xFF1A6B47).withOpacity(isDarkMode ? 0.4 : 0.25), // Updated to lighter green
             width: 0.8,
           ),
         ),
         child: Icon(
           icon,
-          color: theme.colorScheme.secondary,
+          color: const Color(0xFF1A6B47), // Updated to lighter green
           size: iconSize,
         ),
       ),
@@ -380,9 +379,9 @@ class ContactUsScreen extends StatelessWidget {
         child: InkWell(
           onTap: () => _launchURL(url, context),
           borderRadius: BorderRadius.circular(iconBorderRadius),
-          hoverColor: theme.colorScheme.secondary.withOpacity(0.1),
-          splashColor: theme.colorScheme.secondary.withOpacity(0.15),
-          highlightColor: theme.colorScheme.secondary.withOpacity(0.15),
+          hoverColor: const Color(0xFF1A6B47).withOpacity(0.1), // Updated to lighter green
+          splashColor: const Color(0xFF1A6B47).withOpacity(0.15), // Updated to lighter green
+          highlightColor: const Color(0xFF1A6B47).withOpacity(0.15), // Updated to lighter green
           child: Padding(
             padding: axis == Axis.horizontal
                 ? EdgeInsets.symmetric(

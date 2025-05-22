@@ -99,7 +99,7 @@ class ResetPasswordScreen extends GetView<AuthController> {
                     () => controller.isLoading.value
                         ? Center(
                             child: SpinKitFadingCube(
-                              color: theme.colorScheme.secondary,
+                              color: const Color(0xFF1A6B47), // Updated to lighter green
                               size: 32 * scaleFactor,
                             ),
                           )
@@ -125,7 +125,7 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                       style: theme.textTheme.titleLarge?.copyWith(
                                             fontSize: (22 * scaleFactor).clamp(18.0, 24.0),
                                             fontWeight: FontWeight.bold,
-                                            color: theme.colorScheme.primary,
+                                            color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF1A6B47),
                                             shadows: isDarkMode
                                                 ? null
                                                 : [
@@ -287,8 +287,8 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                                 });
                                               },
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: theme.colorScheme.primary,
-                                          foregroundColor: theme.colorScheme.onPrimary,
+                                          backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
+                                          foregroundColor: Colors.white, // Updated for contrast
                                           padding: EdgeInsets.symmetric(
                                             vertical: (14 * scaleFactor).clamp(12.0, 18.0),
                                             horizontal: (24 * scaleFactor).clamp(20.0, 32.0),
@@ -308,7 +308,7 @@ class ResetPasswordScreen extends GetView<AuthController> {
                                                 height: (24 * scaleFactor).clamp(20.0, 30.0),
                                                 child: CircularProgressIndicator(
                                                   strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                                  valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white), // Updated for contrast
                                                 ),
                                               )
                                             : Text(

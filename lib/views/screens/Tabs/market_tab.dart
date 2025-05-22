@@ -108,7 +108,7 @@ class MarketPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(10 * adjustedScaleFactor),
             border: Border.all(
               color: isSelected
-                  ? (isDarkMode ? Colors.green[300]! : Colors.green[500]!)
+                  ? const Color(0xFF2A6F4E)
                   : (isDarkMode ? Colors.grey[600]! : Colors.grey[400]!),
               width: 1.2 * adjustedScaleFactor,
             ),
@@ -498,7 +498,7 @@ class MarketPage extends StatelessWidget {
                     child: FloatingActionButton(
                       heroTag: "add_price",
                       onPressed: () => Get.toNamed(AppRoutes.price),
-                      backgroundColor: isDarkMode ? Colors.green[300] : Colors.green[500],
+                      backgroundColor: const Color(0xFF2A6F4E),
                       tooltip: 'Add Price'.tr,
                       child: Icon(
                         Icons.add,
