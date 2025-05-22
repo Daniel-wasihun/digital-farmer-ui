@@ -41,7 +41,7 @@ class ChatScreen extends StatelessWidget {
                       child: Obx(() {
                         controller.textScaleFactor.value;
                         if (controller.chatController.isLoadingMessages.value) {
-                          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                          return Center(child: CircularProgressIndicator(color: const Color(0xFF0A3D2A))); // Changed to AppBar color
                         }
                         if (controller.messageItems.isEmpty) {
                           return Center(
@@ -103,7 +103,7 @@ class ChatScreen extends StatelessWidget {
                                       curve: Curves.easeInOut,
                                       padding: EdgeInsets.symmetric(vertical: 3.5 * scaleFactor),
                                       decoration: BoxDecoration(
-                                        color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.25) : Colors.transparent,
+                                        color: isSelected ? const Color(0xFF0A3D2A).withOpacity(0.25) : Colors.transparent, // Changed to AppBar color
                                         borderRadius: BorderRadius.circular(12 * scaleFactor),
                                       ),
                                       child: isNew
@@ -144,7 +144,7 @@ class ChatScreen extends StatelessWidget {
                                   child: FloatingActionButton(
                                     heroTag: 'scroll_to_bottom_chat',
                                     mini: true,
-                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.85),
+                                    backgroundColor: const Color(0xFF0A3D2A).withOpacity(0.85), // Changed to AppBar color
                                     elevation: 2,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * scaleFactor)),
                                     onPressed: controller.scrollToBottom,
@@ -173,7 +173,7 @@ class ChatScreen extends StatelessWidget {
                             child: Container(
                               padding: EdgeInsets.all(10 * scaleFactor),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondary.withOpacity(0.9),
+                                color: const Color(0xFF0A3D2A).withOpacity(0.9), // Changed to AppBar color
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
@@ -209,7 +209,7 @@ class ChatScreen extends StatelessWidget {
     return PreferredSize(
       preferredSize: Size.fromHeight(80 * scaleFactor),
       child: AppBar(
-        backgroundColor: Color(0xFF006400), // Dark green
+        backgroundColor: const Color(0xFF0A3D2A), // Changed to AppBar color
         elevation: 2,
         shadowColor: Colors.black26,
         title: Obx(() => Text(
@@ -243,8 +243,8 @@ class ChatScreen extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFF006400).withOpacity(0.6), // Dark green with opacity
-                Color(0xFF228B22).withOpacity(0.6), // Forest green for gradient
+                const Color(0xFF0A3D2A).withOpacity(0.6), // Changed to AppBar color
+                const Color(0xFF0A3D2A).withOpacity(0.6), // Changed to AppBar color
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -260,7 +260,7 @@ class ChatScreen extends StatelessWidget {
     return PreferredSize(
       preferredSize: Size.fromHeight(80 * scaleFactor),
       child: AppBar(
-        backgroundColor: Color(0xFF0A3D2A), // Dark green
+        backgroundColor: const Color(0xFF0A3D2A), // Unchanged AppBar color
         elevation: 2,
         shadowColor: Colors.black26,
         titleSpacing: 0,
@@ -307,7 +307,7 @@ class ChatScreen extends StatelessWidget {
                           width: 10 * scaleFactor,
                           height: 10 * scaleFactor,
                           decoration: BoxDecoration(
-                            color: Colors.green,
+                            color: const Color(0xFF0A3D2A), // Changed to AppBar color
                             shape: BoxShape.circle,
                             border: Border.all(color: Theme.of(context).colorScheme.onPrimary, width: 1.2 * scaleFactor),
                           ),
@@ -391,8 +391,8 @@ class ChatScreen extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFF006400).withOpacity(0.6), // Dark green with opacity
-                Color(0xFF228B22).withOpacity(0.6), // Forest green for gradient
+                const Color(0xFF0A3D2A).withOpacity(0.6), // Unchanged AppBar color
+                const Color(0xFF0A3D2A).withOpacity(0.6), // Unchanged AppBar color
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -471,13 +471,13 @@ class ChatScreen extends StatelessWidget {
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12 * scaleFactor), borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12 * scaleFactor),
-                  borderSide: BorderSide(color: Theme.of(context).colorScheme.secondary.withOpacity(0.6), width: 0.8 * scaleFactor),
+                  borderSide: BorderSide(color: const Color(0xFF0A3D2A).withOpacity(0.6), width: 0.8 * scaleFactor), // Changed to AppBar color
                 ),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor, vertical: 10 * scaleFactor),
-                prefixIcon: Icon(Icons.message_rounded, color: Theme.of(context).colorScheme.secondary.withOpacity(0.5), size: 18 * scaleFactor),
+                prefixIcon: Icon(Icons.message_rounded, color: const Color(0xFF0A3D2A).withOpacity(0.5), size: 18 * scaleFactor), // Changed to AppBar color
                 suffixIcon: controller.messageController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear_rounded, color: Theme.of(context).colorScheme.secondary.withOpacity(0.35), size: 18 * scaleFactor),
+                        icon: Icon(Icons.clear_rounded, color: const Color(0xFF0A3D2A).withOpacity(0.35), size: 18 * scaleFactor), // Changed to AppBar color
                         onPressed: () => controller.messageController.clear(),
                       )
                     : null,
@@ -512,7 +512,7 @@ class ChatScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12 * scaleFactor)),
                 padding: EdgeInsets.zero,
-                backgroundColor: Theme.of(context).colorScheme.secondary,
+                backgroundColor: const Color(0xFF0A3D2A), // Changed to AppBar color
                 elevation: 1,
               ),
               child: Icon(Icons.send_rounded, color: Theme.of(context).colorScheme.onSecondary, size: 20 * scaleFactor),
@@ -568,7 +568,7 @@ class _MessageBubble extends StatelessWidget {
                   child: Container(
                     padding: EdgeInsets.all(3 * scaleFactor),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      color: const Color(0xFF0A3D2A).withOpacity(0.8), // Changed to AppBar color
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
@@ -583,7 +583,7 @@ class _MessageBubble extends StatelessWidget {
                     bottomLeft: isSent ? Radius.circular(12 * scaleFactor) : Radius.zero,
                   ),
                   color: isSent
-                      ? Theme.of(context).colorScheme.secondary.withOpacity(0.7)
+                      ? const Color(0xFF0A3D2A).withOpacity(0.7) // Changed to AppBar color
                       : Theme.of(context).cardTheme.color?.withOpacity(0.95) ?? (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
                   child: Padding(
                     padding: EdgeInsets.all(12 * scaleFactor),
@@ -611,7 +611,7 @@ class _MessageBubble extends StatelessWidget {
                   child: Container(
                     padding: EdgeInsets.all(3 * scaleFactor),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      color: const Color(0xFF0A3D2A).withOpacity(0.8), // Changed to AppBar color
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.check, size: 10 * scaleFactor, color: Theme.of(context).colorScheme.onPrimary),
