@@ -189,6 +189,8 @@ class WeatherController extends GetxController {
       }
     }
   
+  
+
     Future<String?> _getCityFromCoordinates(double latitude, double longitude) async {
       try {
         final apiKey = dotenv.env['OPEN_CAGE_API_KEY'];
@@ -216,31 +218,31 @@ class WeatherController extends GetxController {
                 components['_normalized_city']?.toString() ??
                 'Unknown';
           } else {
-            Get.snackbar(
-              'Error'.tr,
-              'No city found for the given coordinates.'.tr,
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-            );
+            // Get.snackbar(
+            //   'Error'.tr,
+            //   'No city found for the given coordinates.'.tr,
+            //   backgroundColor: Colors.red,
+            //   colorText: Colors.white,
+            // );
             return null;
           }
         } else {
-          Get.snackbar(
-            'Error'.tr,
-            'Failed to fetch city name.'.tr,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
+          // Get.snackbar(
+          //   'Error'.tr,
+          //   'Failed to fetch city name.'.tr,
+          //   backgroundColor: Colors.red,
+          //   colorText: Colors.white,
+          // );
           print('City fetch error: ${response.statusCode}');
           return null;
         }
       } catch (e) {
-        Get.snackbar(
-          'Error'.tr,
-          'Failed to fetch city name.'.tr,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        // Get.snackbar(
+        //   'Error'.tr,
+        //   'Failed to fetch city name.'.tr,
+        //   backgroundColor: Colors.red,
+        //   colorText: Colors.white,
+        // );
         print('City fetch exception: $e');
         return null;
       }

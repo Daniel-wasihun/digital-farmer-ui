@@ -15,6 +15,7 @@ class SignUpController extends GetxController {
     super.onInit();
     reset();
   }
+  
 
   void reset() {
     username.value = '';

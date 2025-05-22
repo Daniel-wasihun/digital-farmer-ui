@@ -5,7 +5,6 @@ import '../../services/storage_service.dart';
 import '../../routes/app_routes.dart';
 import 'auth_controller_callbacks.dart';
 
-/// Manages password-related authentication flows (reset, change).
 class AuthPasswordManager {
   final ApiService _apiService;
   final StorageService _storageService;
@@ -13,19 +12,16 @@ class AuthPasswordManager {
 
   AuthPasswordManager(this._apiService, this._storageService, this._callbacks);
 
-  /// Requests an OTP for password reset to the user's email.
   Future<void> requestPasswordReset(String email) async {
     try {
       _callbacks.setIsLoading(true);
       print('Requesting password reset for: $email');
 
-      // Call API service to request reset
       final response = await _apiService.auth.requestPasswordReset(email.toLowerCase());
       if (response['status'] != 'success') {
         throw Exception(response['message'] ?? 'password_reset_request_failed'.tr);
       }
 
-      // Show success feedback and navigate to Verify OTP page
       _callbacks.showSnackbar(
         'success'.tr,
         'otp_sent_to_email'.tr,
@@ -57,13 +53,11 @@ class AuthPasswordManager {
     }
   }
 
-  /// Verifies the OTP for password reset and returns a reset token.
   Future<String?> verifyPasswordResetOTP(String email, String otp) async {
     try {
       _callbacks.setIsLoading(true);
       print('Verifying password reset OTP for: $email, OTP: $otp');
 
-      // Call API service to verify password reset OTP
       final response = await _apiService.auth.verifyPasswordResetOTP(email.toLowerCase(), otp);
       final resetToken = response['resetToken'] as String?;
       if (resetToken == null) {
@@ -99,19 +93,16 @@ class AuthPasswordManager {
     }
   }
 
-  /// Resets the user's password using a reset token.
   Future<void> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
     try {
       _callbacks.setIsLoading(true);
       print('Resetting password with resetToken: [REDACTED]');
 
-      // Call API service to reset password
       final response = await _apiService.auth.resetPassword(resetToken, newPassword, confirmPassword);
       if (response['status'] != 'success') {
         throw Exception(response['message'] ?? 'password_reset_failed'.tr);
       }
 
-      // Show success feedback and navigate to Sign In page
       _callbacks.showSnackbar(
         'success'.tr,
         'password_reset_success'.tr,
@@ -141,13 +132,11 @@ class AuthPasswordManager {
     }
   }
 
-  /// Allows a logged-in user to change their password.
   Future<void> changePassword(String currentPassword, String newPassword, String userEmail) async {
     try {
       _callbacks.setIsLoading(true);
       print('Calling ApiService.changePassword for $userEmail');
 
-      // Call API service to change password
       final response = await _apiService.auth.changePassword(userEmail.toLowerCase(), currentPassword, newPassword);
       if (response['status'] != 'success') {
         throw Exception(response['message'] ?? 'password_change_failed'.tr);
@@ -156,7 +145,6 @@ class AuthPasswordManager {
       _callbacks.resetPasswordErrors();
       _callbacks.updatePasswordChangeSuccess(true);
 
-      // Show success feedback
       _callbacks.showSnackbar(
         'success'.tr,
         'password_changed_successfully'.tr,
@@ -167,14 +155,12 @@ class AuthPasswordManager {
         borderRadius: 8,
         duration: const Duration(milliseconds: 3000),
       );
-      await Future.delayed(const Duration(seconds: 1));
-      _callbacks.navigateOffAll(AppRoutes.getHomePage());
     } catch (e) {
       print('Change password error: $e');
       String errorMessage = 'password_change_failed'.tr;
 
       if (e.toString().contains('Current password is incorrect') || e.toString().contains('401')) {
-        _callbacks.updateCurrentPasswordError('current_password_incorrect'.tr);
+        _callbacks.setCurrentPasswordError('current_password_incorrect'.tr);
       } else if (e.toString().contains('User not found') || e.toString().contains('user_email_not_found') || e.toString().contains('404')) {
         errorMessage = 'user_not_found'.tr;
       } else if (e.toString().contains('Server error') || e.toString().contains('500')) {
@@ -199,7 +185,6 @@ class AuthPasswordManager {
       }
       rethrow;
     } finally {
-      print('Setting isLoading to false');
       _callbacks.setIsLoading(false);
     }
   }

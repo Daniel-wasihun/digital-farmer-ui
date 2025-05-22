@@ -58,7 +58,6 @@ class AuthApi extends BaseApi {
     final data = await handleResponse(response, 'Signin') as Map<String, dynamic>;
     print('Signin response: $data');
 
-    // Flatten _id in user object
     final userData = Map<String, dynamic>.from(data['user']);
     if (userData['_id'] is Map && userData['_id']['\$oid'] != null) {
       userData['_id'] = userData['_id']['\$oid'];
@@ -131,6 +130,7 @@ class AuthApi extends BaseApi {
         'email': email.toLowerCase(),
         'currentPassword': currentPassword,
         'newPassword': newPassword,
+        'confirmPassword': newPassword, // Ensure confirmPassword matches newPassword
       },
       'Change password',
     );

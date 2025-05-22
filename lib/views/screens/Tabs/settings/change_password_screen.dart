@@ -156,6 +156,19 @@ class ChangePasswordScreen extends GetView<AuthController> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (controller.isPasswordChangeSuccess.value)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: spacingMedium),
+                            child: Text(
+                              'password_changed_successfully'.tr,
+                              style: TextStyle(
+                                color: theme.colorScheme.secondary,
+                                fontSize: fieldValueFontSize,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         AnimatedOpacity(
                            opacity: controller.isLoading.value ? 0.5 : 1.0,
                            duration: const Duration(milliseconds: 300),
@@ -234,10 +247,10 @@ class ChangePasswordScreen extends GetView<AuthController> {
                            scale: controller.isLoading.value ? 0.95 : 1.0,
                            duration: const Duration(milliseconds: 200),
                            child: ElevatedButton(
-                             onPressed: controller.isLoading.value ? null : controller.changePassword,
+                             onPressed: controller.isLoading.value || controller.isPasswordChangeSuccess.value ? null : controller.changePassword,
                              style: ElevatedButton.styleFrom(
-                                 backgroundColor: const Color(0xFF1A6B47), // Updated to lighter green
-                                 foregroundColor: Colors.white, // Updated for text contrast
+                                 backgroundColor: const Color(0xFF1A6B47),
+                                 foregroundColor: Colors.white,
                                  padding: EdgeInsets.symmetric(vertical: (14 * scaleFactor).clamp(12.0, 18.0), horizontal: (24 * scaleFactor).clamp(20.0, 32.0)),
                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8 * scaleFactor)),
                                  textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.w700),
@@ -249,7 +262,7 @@ class ChangePasswordScreen extends GetView<AuthController> {
                                      height: loaderSize,
                                      child: CircularProgressIndicator(
                                        strokeWidth: (2.0 * scaleFactor).clamp(1.5, 3.0),
-                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white), // Updated for contrast
+                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                      ),
                                    )
                                  : Text('update_password'.tr.toUpperCase()),
@@ -269,7 +282,7 @@ class ChangePasswordScreen extends GetView<AuthController> {
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium / 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A6B47), // Updated to lighter green
+                    color: const Color(0xFF1A6B47),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(

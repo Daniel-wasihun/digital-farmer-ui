@@ -25,7 +25,7 @@ class AuthController extends GetxController with AuthValidationMixin {
   final isLoading = false.obs;
   final isPasswordChangeSuccess = false.obs;
   final userName = ''.obs;
-  final selectedQuestionKey = ''.obs; // Added to manage selected question state
+  final selectedQuestionKey = ''.obs;
 
   @override
   var usernameError = ''.obs;
@@ -95,7 +95,7 @@ class AuthController extends GetxController with AuthValidationMixin {
     _securityManager = AuthSecurityManager(_apiService, _storageService, callbacks);
 
     _loadUserName();
-    clearSecurityFields(); // Initialize security fields
+    clearSecurityFields();
   }
 
   @override
@@ -128,7 +128,7 @@ class AuthController extends GetxController with AuthValidationMixin {
     confirmPasswordController.clear();
     securityQuestionTextController.clear();
     securityAnswerTextController.clear();
-    selectedQuestionKey.value = ''; // Clear selected question
+    selectedQuestionKey.value = '';
   }
 
   void clearSecurityFields() {
@@ -241,15 +241,13 @@ class AuthController extends GetxController with AuthValidationMixin {
       final userData = Map<String, dynamic>.from(response['user']);
       logger.i('AuthController: Signin userData: $userData');
 
-      // Check admin status from role field
       final isAdmin = userData['role'] == 'admin';
       logger.i('AuthController: isAdmin: $isAdmin (role: ${userData['role']})');
       await _storageService.saveIsAdmin(isAdmin);
 
-      // Save user data including role
       final userToSave = <String, dynamic>{
         ...userData,
-        'role': userData['role'] ?? 'user', // Ensure role is included
+        'role': userData['role'] ?? 'user',
       };
       await _storageService.saveUser(userToSave);
       logger.i('AuthController: Saved user: $userToSave');
@@ -263,13 +261,12 @@ class AuthController extends GetxController with AuthValidationMixin {
       resetAllFields();
       resetErrors();
 
-      // Navigate all users to home page, bypass middleware checks
       logger.i('AuthController: Navigating to home page for user: ${userName.value}, isAdmin: $isAdmin');
       Get.offAllNamed(
         AppRoutes.getHomePage(),
         arguments: {
           'fromSignIn': true,
-          'bypassMiddleware': true, // Flag to skip admin checks
+          'bypassMiddleware': true,
         },
       );
 
@@ -290,24 +287,20 @@ class AuthController extends GetxController with AuthValidationMixin {
 
   Future<void> logout() async {
     try {
-      // Reset controller state
       userName.value = '';
       resetAllFields();
       resetErrors();
       logger.i('AuthController: Reset controller state (userName, fields, errors)');
 
-      // Clear all storage data
       await _storageService.clear();
       logger.i('AuthController: Cleared all storage data');
 
-      // Verify storage is empty
       if (_storageService.getUser() == null && _storageService.getToken() == null && !_storageService.getIsAdmin()) {
         logger.i('AuthController: Verified storage is empty (user, token, isAdmin)');
       } else {
         logger.w('AuthController: Storage not fully cleared: user=${_storageService.getUser()}, token=${_storageService.getToken()}, isAdmin=${_storageService.getIsAdmin()}');
       }
 
-      // Navigate to sign-in page
       logger.i('AuthController: Navigating to sign-in page');
       Get.offAllNamed(AppRoutes.getSignInPage());
     } catch (e) {
@@ -405,10 +398,6 @@ class AuthController extends GetxController with AuthValidationMixin {
     validateNewPassword(newPassword);
     validateConfirmPassword(newPassword, confirmNewPassword);
 
-    if (newPassword.isNotEmpty && currentPassword == newPassword && newPasswordError.value.isEmpty) {
-      newPasswordError.value = 'new_password_same_as_current'.tr;
-    }
-
     if (currentPasswordError.value.isNotEmpty ||
         newPasswordError.value.isNotEmpty ||
         confirmPasswordError.value.isNotEmpty) {
@@ -418,24 +407,46 @@ class AuthController extends GetxController with AuthValidationMixin {
     try {
       final user = _storageService.getUser();
       if (user == null || user['email'] == null) {
-        throw Exception('user_email_not_found');
+        throw Exception('user_email_not_found'.tr);
       }
       final userEmail = user['email'].toString().trim();
+      isLoading.value = true;
       await _passwordManager.changePassword(currentPassword, newPassword, userEmail);
       logger.i('AuthController: Password changed successfully for email: $userEmail');
 
+      isPasswordChangeSuccess.value = true;
       currentPasswordController.clear();
       newPasswordController.clear();
       confirmPasswordController.clear();
+
+      // Close the dialog after a short delay to show success message
+      await Future.delayed(const Duration(seconds: 2));
+      Get.back();
     } catch (e) {
       logger.e('AuthController: Password change failed: $e');
-      Get.snackbar('error'.tr, 'password_change_failed'.tr,
+      String errorMessage = 'password_change_failed'.tr;
+
+      if (e.toString().contains('Current password is incorrect') || e.toString().contains('401')) {
+        currentPasswordError.value = 'current_password_incorrect'.tr;
+      } else if (e.toString().contains('User not found') || e.toString().contains('user_email_not_found') || e.toString().contains('404')) {
+        errorMessage = 'user_not_found'.tr;
+      } else if (e.toString().contains('Server error') || e.toString().contains('500')) {
+        errorMessage = 'server_error'.tr;
+      } else if (e.toString().contains('Invalid request') || e.toString().contains('400')) {
+        errorMessage = 'invalid_request'.tr;
+      } else if (e.toString().contains('Network error')) {
+        errorMessage = 'network_error'.tr;
+      }
+
+      Get.snackbar('error'.tr, errorMessage,
           backgroundColor: Get.theme.colorScheme.error,
           colorText: Get.theme.colorScheme.onError,
           snackPosition: SnackPosition.TOP,
           margin: const EdgeInsets.all(16),
           borderRadius: 8,
-          duration: const Duration(milliseconds: 1500));
+          duration: const Duration(milliseconds: 3000));
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -480,7 +491,7 @@ class AuthController extends GetxController with AuthValidationMixin {
       if (resetToken != null) {
         logger.i('AuthController: Security answer verified for email: $email');
         onSuccess(resetToken);
-        clearSecurityFields(); // Clear fields after successful verification
+        clearSecurityFields();
       }
     } catch (e) {
       logger.e('AuthController: Security answer verification failed: $e');

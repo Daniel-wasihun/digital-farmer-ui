@@ -12,6 +12,7 @@ class SignInController extends GetxController {
     super.onInit();
     reset();
   }
+  
 
   void reset() {
     email.value = authController.emailController.text;
