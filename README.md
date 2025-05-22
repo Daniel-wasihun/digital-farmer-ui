@@ -9,7 +9,7 @@ Say goodbye to guesswork and hello to informed decisions! The Digital Farmer App
 ---
 
 ## ✨ Why You'll Love the Digital Farmer App:
-
+* **AI-Powered Farming Insights 🤖:** Harness the power of artificial intelligence to receive personalized crop recommendations, pest detection, soil health analysis, and yield predictions tailored to your farm’s unique conditions.
 * **Secure & Seamless Access 🔒:** Sign up or sign in with ease using email and a secure OTP verification. Your data, your farm – protected.
 * **Hyper-Local Insights 📍:** Grant location access on first install to unlock tailored agricultural tips and precise, real-time weather data relevant to your specific location.
 * **Effortless Profile Management 🧑‍🌾:** Update your picture and personal details via the intuitive **Settings** tab. Make the app truly yours!
@@ -78,29 +78,6 @@ New to Flutter or mobile development? No problem! Here are some excellent resour
 
 ---
 
-## 📂 Project Structure:
-
-Curious about the codebase? Here’s a high-level overview of the project's organized structure:
-
-
-
-digital-farmer-app/
-├── lib/                             # 🚀 The heart of the application: all Dart source code
-│   ├── service/                     # ⚙️ Integrations with backend APIs
-│   │   └── api/                     # 🔗 API client configurations
-│   │       └── base_api.dart        #    - Defines base URLs for FastAPI and Express
-│   ├── screens/                     # 📱 All user-facing screens and features
-│   │   ├── auth/                    #    - Authentication flows (Login, Register, OTP verification)
-│   │   ├── settings/                #    - User profile management and app settings
-│   │   ├── chat/                    #    - Community chat interface for farmer interactions
-│   │   └── home/                    #    - Main dashboard, content display, and core features
-├── assets/                          # 🖼️ All static assets (images, icons, fonts)
-├── pubspec.yaml                     # 📦 Project dependencies, metadata, and asset declarations
-└── README.md                        # 📄 You're reading this! (Project overview and guide)
-
-
----
-
 ## 🤝 Contribute: Help Us Grow!
 
 We believe in the power of open source and warmly welcome contributions from the community! Your ideas and code can help us make the Digital Farmer App even better.
@@ -115,16 +92,11 @@ We believe in the power of open source and warmly welcome contributions from the
 
 ---
 
-## 📜 License:
-
-This project is open source and licensed under the **MIT License**. For more details, see the `LICENSE` file in the repository.
-
----
 
 ## 📧 Contact:
 
 For support, inquiries, or just to share your feedback, feel free to reach out to us at:
-**support@digitalfarmerapp.com**
+**ethiopianfarmers@gmail.com**
 
 ---
 
