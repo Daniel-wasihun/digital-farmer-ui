@@ -46,39 +46,45 @@ Before you begin, ensure you have:
     ```
     This command fetches all the necessary packages for the project.
 3.  **Configure Backend APIs:**
-    You'll need to update the API endpoints to connect with your FastAPI and Express backends. Open `lib/service/api/base_api.dart` and modify the base URLs:
-##### 🔗 API Base URLs Example Configuration
+        You'll need to update the API endpoints to connect with your FastAPI and Express backends. Open `lib/service/api/base_api.dart` and modify the base URLs:
+    ##### 🔗 API Base URLs Example Configuration
+    
+    
+    
+    ```dart
+    static const String aiBaseUrl = kIsWeb 
+        ? 'https://your-fastapi-ip/api' 
+        : 'https://your-fastapi-ip/api';
+    
+    static const String imageBaseUrl = kIsWeb 
+        ? 'https://your-express-ip' 
+        : 'https://your-express-ip';
+    
+    static const String apiBaseUrl = kIsWeb 
+        ? 'https://your-express-ip/api' 
+        : 'https://your-express-ip/api';
+    
+    ```
+    
+    For Example:
+    
+    ```dart
+    static const String apiBaseUrl = kIsWeb ?                    
+    'http://localhost:8000/api':'http://10.175.28.72:8000/api';
+    static const String imageBaseUrl =kIsWeb ? 'http://localhost:8000':'http://10.175.28.72:8000';
+    static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://10.175.28.72:7000';  
+    
+    ```
+    *Ensure these URLs point to your running backend services.*
+    
+    
+4.  **🔑Setup Environment Variables (.env)**
+    Create a `.env` file in your project root and add your API keys like this:
+    ```bash
+    OPEN_CAGE_API_KEY=your_opencage_api_key
+    ```
 
-
-
-```dart
-static const String aiBaseUrl = kIsWeb 
-    ? 'https://your-fastapi-ip/api' 
-    : 'https://your-fastapi-ip/api';
-
-static const String imageBaseUrl = kIsWeb 
-    ? 'https://your-express-ip' 
-    : 'https://your-express-ip';
-
-static const String apiBaseUrl = kIsWeb 
-    ? 'https://your-express-ip/api' 
-    : 'https://your-express-ip/api';
-
-```
-
-For Example:
-
-```dart
-static const String apiBaseUrl = kIsWeb ?                    
-'http://localhost:8000/api':'http://10.175.28.72:8000/api';
-static const String imageBaseUrl =kIsWeb ? 'http://localhost:8000':'http://10.175.28.72:8000';
-static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://10.175.28.72:7000';  
-
-```
-*Ensure these URLs point to your running backend services.*
-
-------
-4.  **Run the App:**
+5.  **Run the App:**
     Connect a physical device or launch an emulator. Then, run the application using:
     ```bash
     flutter run
