@@ -47,11 +47,37 @@ Before you begin, ensure you have:
     This command fetches all the necessary packages for the project.
 3.  **Configure Backend APIs:**
     You'll need to update the API endpoints to connect with your FastAPI and Express backends. Open `lib/service/api/base_api.dart` and modify the base URLs:
-    ```dart
-    const String fastApiBaseUrl = '[https://your-fastapi-url.com/api](https://your-fastapi-url.com/api)'; // Replace with your FastAPI backend URL
-    const String expressApiBaseUrl = '[https://your-express-url.com/api](https://your-express-url.com/api)'; // Replace with your Express backend URL
-    ```
-    *Ensure these URLs point to your running backend services.*
+##### 🔗 API Base URLs Example Configuration
+
+
+
+```dart
+static const String aiBaseUrl = kIsWeb 
+    ? 'https://your-fastapi-ip/api' 
+    : 'https://your-fastapi-ip/api';
+
+static const String imageBaseUrl = kIsWeb 
+    ? 'https://your-express-ip' 
+    : 'https://your-express-ip';
+
+static const String apiBaseUrl = kIsWeb 
+    ? 'https://your-express-ip/api' 
+    : 'https://your-express-ip/api';
+
+```
+
+For Example:
+
+```dart
+static const String apiBaseUrl = kIsWeb ?                    
+'http://localhost:8000/api':'http://10.175.28.72:8000/api';
+static const String imageBaseUrl =kIsWeb ? 'http://localhost:8000':'http://10.175.28.72:8000';
+static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://10.175.28.72:7000';  
+
+```
+*Ensure these URLs point to your running backend services.*
+
+------
 4.  **Run the App:**
     Connect a physical device or launch an emulator. Then, run the application using:
     ```bash
