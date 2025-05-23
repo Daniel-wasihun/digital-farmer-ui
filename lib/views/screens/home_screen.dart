@@ -7,7 +7,6 @@ import '../../controllers/app_controller.dart';
 import '../../controllers/auth/auth_controller.dart';
 import '../../controllers/chat/chat_controller.dart';
 import '../../controllers/market_controller.dart';
-import '../../controllers/app_drawer_controller.dart';
 import '../../utils/constants.dart';
 
 // Placeholder AppDrawerController with slightly slower, comfortable animation duration

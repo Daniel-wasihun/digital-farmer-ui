@@ -75,6 +75,23 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_native_splash: ^2.4.1
+  flutter_launcher_icons: ^0.13.1
+
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
+  adaptive_icon_background: "#0A3D2A"
+  adaptive_icon_foreground: "assets/logo.png"
+  remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#0A3D2A"
+  image: assets/logo.png
+  android: true
+  ios: true
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
