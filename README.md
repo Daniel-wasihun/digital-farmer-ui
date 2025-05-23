@@ -37,8 +37,8 @@ Before you begin, ensure you have:
 
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/username/digital-farmer-app.git](https://github.com/username/digital-farmer-app.git)
-    cd digital-farmer-app
+    git clone https://github.com/Daniel-wasihun/digital-farmer-ui
+    cd digital-farmer-ui
     ```
 2.  **Install Dependencies:**
     ```bash
