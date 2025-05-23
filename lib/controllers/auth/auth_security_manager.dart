@@ -1,4 +1,4 @@
-import 'package:agri/controllers/auth/auth_controller_callbacks.dart';
+import 'package:digital_farmers/controllers/auth/auth_controller_callbacks.dart';
 // Import for Colors or theme
 import 'package:get/get.dart';
 import '../../services/api_service.dart';

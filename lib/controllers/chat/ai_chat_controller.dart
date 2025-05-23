@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:agri/services/api/base_api.dart';
+import 'package:digital_farmers/services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -20,7 +20,7 @@ class AIChatController extends GetxController {
   final RxSet<int> selectedIndices = <int>{}.obs;
   final GetStorage _storage = GetStorage();
   static const String _chatHistoryKey = 'ai_chat_history';
-  static const String _apiUrl = '${BaseApi.aiBaseUrl}/ask/agriculture';
+  static const String _apiUrl = '${BaseApi.aiBaseUrl}/ask/digital_farmersculture';
   static const int _maxQueryLength = 1000;
   static const int _maxRetries = 2;
   static const Duration _baseRetryDelay = Duration(milliseconds: 500);

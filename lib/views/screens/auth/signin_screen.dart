@@ -62,7 +62,7 @@ class SignInScreen extends GetView<SignInController> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            'app_title'.tr,
+            'Digital Farmers',
             style: theme.textTheme.titleLarge!.copyWith(
               fontSize: 18 * scaleFactor,
               fontWeight: FontWeight.w600,

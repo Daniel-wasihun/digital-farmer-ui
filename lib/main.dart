@@ -1,6 +1,6 @@
-import 'package:agri/controllers/auth/signin_controller.dart';
-import 'package:agri/controllers/auth/signup_controller.dart';
-import 'package:agri/controllers/price_controller.dart';
+import 'package:digital_farmers/controllers/auth/signin_controller.dart';
+import 'package:digital_farmers/controllers/auth/signup_controller.dart';
+import 'package:digital_farmers/controllers/price_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';

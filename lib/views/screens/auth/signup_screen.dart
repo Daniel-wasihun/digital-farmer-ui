@@ -72,6 +72,13 @@ class SignUpScreen extends GetView<SignUpController> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          title: Text(
+            'Digital Farmers',
+            style: theme.textTheme.titleLarge!.copyWith(
+              fontSize: 18 * scaleFactor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           actions: [
             Row(
               children: [

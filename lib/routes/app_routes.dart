@@ -1,4 +1,4 @@
-import 'package:agri/views/widgets/price_screen.dart';
+import 'package:digital_farmers/views/widgets/price_screen.dart';
 import 'package:get/get.dart';
 import '../services/storage_service.dart';
 import '../views/screens/Tabs/settings/settings_tab.dart';

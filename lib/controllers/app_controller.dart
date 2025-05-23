@@ -1,9 +1,9 @@
-import 'package:agri/services/storage_service.dart';
-import 'package:agri/views/screens/Tabs/chat/chat_tab.dart';
-import 'package:agri/views/screens/Tabs/market_tab.dart';
-import 'package:agri/views/screens/Tabs/settings/settings_tab.dart';
-import 'package:agri/views/screens/Tabs/tip/crop_tips_tab.dart';
-import 'package:agri/views/screens/Tabs/weather/weather_tab.dart';
+import 'package:digital_farmers/services/storage_service.dart';
+import 'package:digital_farmers/views/screens/Tabs/chat/chat_tab.dart';
+import 'package:digital_farmers/views/screens/Tabs/market_tab.dart';
+import 'package:digital_farmers/views/screens/Tabs/settings/settings_tab.dart';
+import 'package:digital_farmers/views/screens/Tabs/tip/crop_tips_tab.dart';
+import 'package:digital_farmers/views/screens/Tabs/weather/weather_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

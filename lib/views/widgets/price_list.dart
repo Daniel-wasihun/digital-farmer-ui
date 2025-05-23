@@ -1,8 +1,8 @@
-import 'package:agri/controllers/market_controller.dart';
-import 'package:agri/controllers/price_controller.dart';
-import 'package:agri/models/crop_price.dart';
-import 'package:agri/utils/app_utils.dart';
-import 'package:agri/views/widgets/price_screen.dart';
+import 'package:digital_farmers/controllers/market_controller.dart';
+import 'package:digital_farmers/controllers/price_controller.dart';
+import 'package:digital_farmers/models/crop_price.dart';
+import 'package:digital_farmers/utils/app_utils.dart';
+import 'package:digital_farmers/views/widgets/price_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

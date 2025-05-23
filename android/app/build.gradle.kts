@@ -28,13 +28,19 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            applicationVariants.configureEach {
+                outputs.configureEach {
+                    this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+                    outputFileName = "Digital Farmers-v${versionName}.apk"
+                }
+            }
         }
-        debug {
+        getByName("debug") {
             isMinifyEnabled = false
             isShrinkResources = false
         }

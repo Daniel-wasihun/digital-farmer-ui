@@ -1,4 +1,4 @@
-name: agri
+name: digital_farmers
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -69,6 +69,8 @@ dependencies:
   geolocator: ^14.0.0
   flutter_dotenv: ^5.2.1
   flutter_animate: ^4.5.2
+  rename_app: ^1.6.3
+  
 
 dev_dependencies:
   flutter_test:
@@ -93,6 +95,7 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/logo.png
   fonts:
     - family: NotoSansEthiopic
       fonts:
@@ -109,6 +112,7 @@ flutter:
       fonts:
         - asset: fonts/Poppins-Medium.ttf
           weight: 500
+
         
   # To add assets to your application, add an assets section, like this:
   # assets:

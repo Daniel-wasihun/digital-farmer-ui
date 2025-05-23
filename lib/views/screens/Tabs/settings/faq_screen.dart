@@ -1,6 +1,6 @@
 import 'dart:io' show Platform;
-import 'package:agri/controllers/theme_controller.dart';
-import 'package:agri/routes/app_routes.dart'; // Added for navigation
+import 'package:digital_farmers/controllers/theme_controller.dart';
+import 'package:digital_farmers/routes/app_routes.dart'; // Added for navigation
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';

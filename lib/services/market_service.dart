@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:agri/models/crop_price.dart';
-import 'package:agri/services/api/base_api.dart';
-import 'package:agri/utils/app_utils.dart';
+import 'package:digital_farmers/models/crop_price.dart';
+import 'package:digital_farmers/services/api/base_api.dart';
+import 'package:digital_farmers/utils/app_utils.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';

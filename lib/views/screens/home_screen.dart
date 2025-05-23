@@ -10,6 +10,35 @@ import '../../controllers/market_controller.dart';
 import '../../controllers/app_drawer_controller.dart';
 import '../../utils/constants.dart';
 
+// Placeholder AppDrawerController with slightly slower, comfortable animation duration
+class AppDrawerController extends GetxController with SingleGetTickerProviderMixin {
+  late material.AnimationController animationController;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Slightly slower, comfortable animation duration: 250ms for drawer open/close
+    animationController = material.AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  void toggleDrawer() {
+    if (animationController.isDismissed) {
+      animationController.forward();
+    } else {
+      animationController.reverse();
+    }
+  }
+
+  @override
+  void onClose() {
+    animationController.dispose();
+    super.onClose();
+  }
+}
+
 // Custom Navigator Observer to enforce status bar color on HomeScreen navigation
 class StatusBarNavigatorObserver extends material.NavigatorObserver {
   void _setStatusBarColor() {
@@ -494,15 +523,14 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                       crossAxisAlignment: material.CrossAxisAlignment.center,
                       children: [
                         material.Container(
-                          decoration: material.BoxDecoration(
-                            shape: material.BoxShape.circle,
-                            color: material.Colors.white.withOpacity(0.2),
-                          ),
                           padding: material.EdgeInsets.all(8 * scaleFactor),
-                          child: material.Icon(
-                            material.Icons.agriculture,
-                            size: 40 * scaleFactor,
-                            color: material.Colors.white,
+                          child: material.ClipOval(
+                            child: material.Image.asset(
+                              'assets/logo.png', // Using logo.png from assets folder
+                              width: 78 * scaleFactor, // Increased size
+                              height: 78 * scaleFactor, // Increased size
+                              fit: material.BoxFit.cover,
+                            ),
                           ),
                         ),
                         material.SizedBox(width: 12 * scaleFactor),
@@ -512,7 +540,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                             mainAxisAlignment: material.MainAxisAlignment.center,
                             children: [
                               material.Text(
-                                'Agri App'.tr,
+                                'Digital Farmers',
                                 style: material.TextStyle(
                                   color: material.Colors.white,
                                   fontSize: 18 * scaleFactor,
@@ -554,11 +582,11 @@ class _ProfessionalDrawer extends material.StatelessWidget {
             ),
           ).animate(
             effects: [
-              FadeEffect(duration: 50.ms), // Very fast animation for drawer header
+              FadeEffect(duration: 45.ms), // Slightly slower, comfortable animation for drawer header
               ScaleEffect(
                 begin: const material.Offset(0.9, 0.9),
                 end: const material.Offset(1.0, 1.0),
-                duration: 50.ms, // Very fast animation
+                duration: 45.ms, // Slightly slower, comfortable animation
               ),
             ],
           ),
@@ -747,7 +775,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
         vertical: 2 * scaleFactor,
       ),
       child: material.AnimatedContainer(
-        duration: const Duration(milliseconds: 50), // Very fast container animation
+        duration: const Duration(milliseconds: 45), // Slightly slower, comfortable container animation
         curve: material.Curves.easeInOut,
         decoration: material.BoxDecoration(
           color: isSelected
@@ -793,13 +821,13 @@ class _ProfessionalDrawer extends material.StatelessWidget {
         SlideEffect(
           begin: const material.Offset(-0.2, 0), // Minimal slide distance for speed
           end: const material.Offset(0, 0),
-          duration: 50.ms, // Very fast animation
+          duration: 45.ms, // Slightly slower, comfortable animation
           curve: material.Curves.easeOutQuad, // Smooth and quick curve
         ),
         FadeEffect(
           begin: 0,
           end: 1,
-          duration: 50.ms, // Very fast animation
+          duration: 45.ms, // Slightly slower, comfortable animation
         ),
       ],
     );

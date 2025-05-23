@@ -1,4 +1,4 @@
-import 'package:agri/controllers/app_controller.dart';
+import 'package:digital_farmers/controllers/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';

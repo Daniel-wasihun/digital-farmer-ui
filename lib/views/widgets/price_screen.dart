@@ -1,7 +1,7 @@
 import 'dart:io' show Platform;
-import 'package:agri/controllers/price_controller.dart';
-import 'package:agri/utils/app_utils.dart';
-import 'package:agri/views/widgets/custom_text_field.dart';
+import 'package:digital_farmers/controllers/price_controller.dart';
+import 'package:digital_farmers/utils/app_utils.dart';
+import 'package:digital_farmers/views/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';

@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:agri/models/crop_price.dart';
-import 'package:agri/services/market_service.dart';
-import 'package:agri/utils/app_utils.dart';
+import 'package:digital_farmers/models/crop_price.dart';
+import 'package:digital_farmers/services/market_service.dart';
+import 'package:digital_farmers/utils/app_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';

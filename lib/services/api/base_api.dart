@@ -7,9 +7,9 @@ import 'package:flutter/foundation.dart';
 abstract class BaseApi {
 
 
-  static const String apiBaseUrl = kIsWeb ? 'http://localhost:8000/api':'http://10.175.28.72:8000/api';
-  static const String imageBaseUrl =kIsWeb ? 'http://localhost:8000':'http://10.175.28.72:8000';
-  static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://10.175.28.72:7000';  
+  static const String apiBaseUrl = kIsWeb ? 'http://localhost:8000/api':'http://192.168.251.76:8000/api';
+  static const String imageBaseUrl =kIsWeb ? 'http://localhost:8000':'http://192.168.251.76:8000';
+  static const String aiBaseUrl = kIsWeb ? 'http://localhost:8000': 'http://192.168.251.76:7000';  
 
 
   // Private StorageService instance
