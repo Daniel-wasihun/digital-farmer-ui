@@ -61,18 +61,17 @@ class UpdateProfileController extends GetxController {
           backgroundColor: Colors.redAccent, colorText: Colors.white);
     }
   }
-
-  void validateUsername(String value) {
-    print('Validating username: ${value.isEmpty ? "empty" : value}');
+    void validateUsername(String value) {
+    print('Validating username: $value');
     if (value.isEmpty) {
-      usernameError.value = 'Username is required.';
-    } else if (value.length < 3) {
-      usernameError.value = 'Username must be at least 3 characters.';
+      usernameError.value = 'username_required'.tr;
+    } else if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
+      usernameError.value = 'username_invalid'.tr;
     } else {
       usernameError.value = '';
     }
   }
-
+ 
   void validateBio(String value) {
     print('Validating bio: ${value.isEmpty ? "empty" : "non-empty"}');
     if (value.length > 200) {
