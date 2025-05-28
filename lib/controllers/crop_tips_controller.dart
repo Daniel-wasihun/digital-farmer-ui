@@ -3,10 +3,10 @@ import 'package:digital_farmers/services/api/base_api.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:get_storage/get_storage.dart';
+import 'package:logger/logger.dart';
 import '../../../../utils/crop_data.dart';
+import '../services/location_service.dart';
 
 class CropTipsController extends GetxController {
   // For search functionality
@@ -22,11 +22,12 @@ class CropTipsController extends GetxController {
   var isCropInfoLoading = false.obs;
   var cropInfo = Rxn<String>();
 
-  // Storage for caching location
-  final storage = GetStorage();
+  // Location service for handling location data
+  final LocationService locationService = LocationService();
 
   static const String aiBaseUrl = BaseApi.aiBaseUrl;
-  static const String openCageBaseUrl = 'https://api.opencagedata.com/geocode/v1/json';
+
+  final Logger _logger = Logger();
 
   @override
   void onInit() async {
@@ -43,8 +44,6 @@ class CropTipsController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
-      // Load cached location if available
-      loadCachedLocation();
     }
     // Do NOT fetch crop info automatically
   }
@@ -97,140 +96,6 @@ class CropTipsController extends GetxController {
     return hasAmharic;
   }
 
-  // Load cached location data
-  void loadCachedLocation() {
-    final cachedLatitude = storage.read('latitude');
-    final cachedLongitude = storage.read('longitude');
-    final cachedCity = storage.read('city');
-    if (cachedLatitude != null && cachedLongitude != null && cachedCity != null) {
-      print('Loaded cached location: $cachedCity ($cachedLatitude, $cachedLongitude)');
-    }
-  }
-
-  // Get device location
-  Future<Position?> _getDeviceLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        Get.snackbar(
-          'Error'.tr,
-          'Location services are disabled.'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return null;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          Get.snackbar(
-            'Error'.tr,
-            'Location permissions are denied.'.tr,
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-          return null;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        Get.snackbar(
-          'Error'.tr,
-          'Location permissions are permanently denied.'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return null;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      storage.write('latitude', position.latitude);
-      storage.write('longitude', position.longitude);
-      return position;
-    } catch (e) {
-      Get.snackbar(
-        'Error'.tr,
-        'Failed to get device location.'.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      print('Location fetch exception: $e');
-      return null;
-    }
-  }
-
-  // Get city from coordinates using OpenCageData API
-  Future<String?> _getCityFromCoordinates(double latitude, double longitude) async {
-    try {
-      final apiKey = dotenv.env['OPEN_CAGE_API_KEY'];
-      if (apiKey == null || apiKey.isEmpty) {
-        Get.snackbar(
-          'Error'.tr,
-          'API key is missing or invalid.'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return null;
-      }
-
-      final response = await http.get(
-        Uri.parse('$openCageBaseUrl?q=$latitude,+$longitude&key=$apiKey'),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
-        final results = data['results'] as List;
-        if (results.isNotEmpty) {
-          final components = results[0]['components'] as Map<String, dynamic>;
-          final city = components['town']?.toString() ??
-              components['_normalized_city']?.toString() ??
-              'Unknown';
-          storage.write('city', city);
-          return city;
-        } else {
-          Get.snackbar(
-            'Error'.tr,
-            'No city found for the given coordinates.'.tr,
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-          return null;
-        }
-      } else {
-        Get.snackbar(
-          'Error'.tr,
-          'Failed to fetch city name.'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        print('City fetch error: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      Get.snackbar(
-        'Error'.tr,
-        'Failed to fetch city name.'.tr,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      print('City fetch exception: $e');
-      return null;
-    }
-  }
-
   Future<void> fetchCropInfo(String cropType) async {
     // Prevent fetching if cropType is 'select_crop'
     if (cropType == 'select_crop') {
@@ -247,24 +112,24 @@ class CropTipsController extends GetxController {
     double longitude = 39.6;
     String city = 'weldiya';
 
-    final cachedLatitude = storage.read('latitude');
-    final cachedLongitude = storage.read('longitude');
-    final cachedCity = storage.read('city');
-
-    if (cachedLatitude != null && cachedLongitude != null && cachedCity != null) {
-      latitude = cachedLatitude;
-      longitude = cachedLongitude;
-      city = cachedCity;
-      print('Using cached location: $city ($latitude, $longitude)');
+    // Check for cached location
+    final location = await locationService.getStoredLocation();
+    if (location != null) {
+      latitude = location['latitude'];
+      longitude = location['longitude'];
+      city = location['city'];
+      print('Loaded cached location: $city ($latitude, $longitude)');
     } else {
-      final position = await _getDeviceLocation();
-      if (position != null) {
-        latitude = position.latitude;
-        longitude = position.longitude;
-        final fetchedCity = await _getCityFromCoordinates(latitude, longitude);
-        if (fetchedCity != null) {
-          city = fetchedCity;
-        }
+      // Fetch and store new location
+      await locationService.storeUserLocation();
+      final newLocation = await locationService.getStoredLocation();
+      if (newLocation != null) {
+        latitude = newLocation['latitude'];
+        longitude = newLocation['longitude'];
+        city = newLocation['city'];
+        print('Using newly fetched location: $city ($latitude, $longitude)');
+      } else {
+        print('No location fetched, using default: $city ($latitude, $longitude)');
       }
     }
 

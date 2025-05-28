@@ -72,7 +72,7 @@ class AuthOtpManager {
       _callbacks.showSnackbar(
         'success'.tr,
         'otp_sent_to_email'.tr,
-        backgroundColor: Get.theme.colorScheme.secondary,
+        backgroundColor: Colors.green,
         colorText: Get.theme.colorScheme.onSecondary,
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),

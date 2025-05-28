@@ -7,6 +7,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:logger/logger.dart';
+import '../../services/location_service.dart';
 
 class AIChatController extends GetxController {
   final TextEditingController textController = TextEditingController();
@@ -19,15 +22,29 @@ class AIChatController extends GetxController {
   final RxBool isSelectionMode = false.obs;
   final RxSet<int> selectedIndices = <int>{}.obs;
   final GetStorage _storage = GetStorage();
+  final LocationService locationService = LocationService();
   static const String _chatHistoryKey = 'ai_chat_history';
-  static const String _apiUrl = '${BaseApi.aiBaseUrl}/ask/digital_farmersculture';
+  static const String _apiUrl = '${BaseApi.aiBaseUrl}/ask/agriculture';
   static const int _maxQueryLength = 1000;
   static const int _maxRetries = 2;
   static const Duration _baseRetryDelay = Duration(milliseconds: 500);
+  final Logger _logger = Logger();
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e) {
+      _logger.e('Failed to load .env file: $e');
+      Get.snackbar(
+        'Error'.tr,
+        'Failed to load configuration.'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
     _loadChatHistory();
     scrollController.addListener(scrollListener);
   }
@@ -226,13 +243,41 @@ class AIChatController extends GetxController {
       scrollToBottom(animated: true);
     });
 
+    // Fetch location
+    double latitude = 11.7833; // Default fallback
+    double longitude = 39.6;
+    String city = 'weldiya';
+
+    final cachedLocation = await locationService.getStoredLocation();
+    if (cachedLocation != null) {
+      latitude = cachedLocation['latitude'];
+      longitude = cachedLocation['longitude'];
+      city = cachedLocation['city'];
+      _logger.i('Using cached location: $city ($latitude, $longitude)');
+    } else {
+      await locationService.storeUserLocation();
+      final newLocation = await locationService.getStoredLocation();
+      if (newLocation != null) {
+        latitude = newLocation['latitude'];
+        longitude = newLocation['longitude'];
+        city = newLocation['city'];
+        _logger.i('Using newly fetched location: $city ($latitude, $longitude)');
+      } else {
+        _logger.i('No location fetched, using default: $city ($latitude, $longitude)');
+      }
+    }
+
     http.Client? client;
     try {
       client = http.Client();
       final payload = {
         'query': query,
         'language': Get.locale?.languageCode ?? 'en',
+        'latitude': latitude,
+        'longitude': longitude,
+        'city': city,
       };
+      _logger.i('Sending request to $_apiUrl: $payload');
       final response = await client.post(
         Uri.parse(_apiUrl),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},

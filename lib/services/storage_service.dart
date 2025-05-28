@@ -14,7 +14,7 @@ class StorageService {
     user.value = getUser();
   }
 
-  T? _read<T>(String key) {
+  T? read<T>(String key) {
     try {
       return box.read<T>(key);
     } catch (e) {
@@ -23,7 +23,7 @@ class StorageService {
     }
   }
 
-  Future<void> _write<T>(String key, T value) async {
+  Future<void> write<T>(String key, T value) async {
     try {
       await box.write(key, value);
     } catch (e) {
@@ -64,13 +64,13 @@ class StorageService {
       );
     }
 
-    await _write('user', Map<String, dynamic>.from(userData));
+    await write('user', Map<String, dynamic>.from(userData));
     user.value = Map<String, dynamic>.from(userData);
     logger.i('StorageService: User data saved: ${user.value}, role: ${userData['role']}');
   }
 
   Map<String, dynamic>? getUser() {
-    final stored = _read<Map<String, dynamic>>('user');
+    final stored = read<Map<String, dynamic>>('user');
     if (stored == null) {
       logger.w('StorageService: No user data found in storage');
       return null;
@@ -87,12 +87,12 @@ class StorageService {
   }
 
   Future<void> saveToken(String token) async {
-    await _write('token', token);
+    await write('token', token);
     logger.i('StorageService: Token saved');
   }
 
   String? getToken() {
-    final token = _read<String>('token');
+    final token = read<String>('token');
     if (token == null) {
       logger.w('StorageService: No token found in storage');
     }
@@ -101,12 +101,12 @@ class StorageService {
   }
 
   Future<void> saveRefreshToken(String refreshToken) async {
-    await _write('refreshToken', refreshToken);
+    await write('refreshToken', refreshToken);
     logger.i('StorageService: Refresh token saved');
   }
 
   String? getRefreshToken() {
-    final refreshToken = _read<String>('refreshToken');
+    final refreshToken = read<String>('refreshToken');
     if (refreshToken == null) {
       logger.w('StorageService: No refresh token found in storage');
     }
@@ -115,12 +115,12 @@ class StorageService {
   }
 
   Future<void> saveLocale(String locale) async {
-    await _write('locale', locale);
+    await write('locale', locale);
     logger.i('StorageService: Locale saved: $locale');
   }
 
   String? getLocale() {
-    final locale = _read<String>('locale');
+    final locale = read<String>('locale');
     if (locale == null) {
       logger.w('StorageService: No locale found in storage');
     }
@@ -129,34 +129,34 @@ class StorageService {
   }
 
   Future<void> saveTabIndex(int index) async {
-    await _write('tabIndex', index);
+    await write('tabIndex', index);
     logger.i('StorageService: Tab index saved: $index');
   }
 
   int getTabIndex() {
-    final index = _read<int>('tabIndex') ?? 0;
+    final index = read<int>('tabIndex') ?? 0;
     logger.i('StorageService: Tab index retrieved: $index');
     return index;
   }
 
   Future<void> saveThemeMode(bool isDark) async {
-    await _write('isDarkMode', isDark);
+    await write('isDarkMode', isDark);
     logger.i('StorageService: Theme mode saved: $isDark');
   }
 
   bool getThemeMode() {
-    final isDark = _read<bool>('isDarkMode') ?? false;
+    final isDark = read<bool>('isDarkMode') ?? false;
     logger.i('StorageService: Theme mode retrieved: $isDark');
     return isDark;
   }
 
   Future<void> saveIsAdmin(bool isAdmin) async {
-    await _write('isAdmin', isAdmin);
+    await write('isAdmin', isAdmin);
     logger.i('StorageService: Admin status saved: $isAdmin');
   }
 
   bool getIsAdmin() {
-    final isAdmin = _read<bool>('isAdmin') ?? false;
+    final isAdmin = read<bool>('isAdmin') ?? false;
     logger.i('StorageService: Admin status retrieved: $isAdmin');
     return isAdmin;
   }
@@ -167,13 +167,13 @@ class StorageService {
         .where((user) => user.containsKey('id') && user['id'] != null)
         .toList();
     final encodedUsers = validUsers.map((user) => jsonEncode(user)).toList();
-    await _write(key, encodedUsers);
+    await write(key, encodedUsers);
     logger.i('StorageService: Users saved for userId $currentUserId: ${validUsers.length} users');
   }
 
   List<Map<String, dynamic>> getUsers(String currentUserId) {
     final key = 'users_$currentUserId';
-    final stored = _read<List<dynamic>>(key) ?? [];
+    final stored = read<List<dynamic>>(key) ?? [];
     final users = stored
         .map((item) {
           try {
@@ -206,13 +206,13 @@ class StorageService {
         logger.w('StorageService: Invalid message format: $msg');
       }
     }
-    await _write(key, uniqueMessages.values.toList());
+    await write(key, uniqueMessages.values.toList());
     logger.i('StorageService: Saved ${uniqueMessages.length} messages for userId $currentUserId and receiverId $receiverId');
   }
 
   List<Map<String, dynamic>> getMessagesForUser(String currentUserId, String receiverId) {
     final key = 'messages_${currentUserId}_$receiverId';
-    final stored = _read<List<dynamic>>(key) ?? [];
+    final stored = read<List<dynamic>>(key) ?? [];
     final messages = stored
         .map((item) {
           try {

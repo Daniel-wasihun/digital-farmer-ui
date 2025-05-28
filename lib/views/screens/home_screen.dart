@@ -9,17 +9,17 @@ import '../../controllers/chat/chat_controller.dart';
 import '../../controllers/market_controller.dart';
 import '../../utils/constants.dart';
 
-// Placeholder AppDrawerController with slightly slower, comfortable animation duration
+// Placeholder AppDrawerController with optimized animation duration
 class AppDrawerController extends GetxController with SingleGetTickerProviderMixin {
   late material.AnimationController animationController;
 
   @override
   void onInit() {
     super.onInit();
-    // Slightly slower, comfortable animation duration: 250ms for drawer open/close
+    // Optimized animation duration: 200ms for smoother drawer open/close
     animationController = material.AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 200),
     );
   }
 
@@ -38,39 +38,6 @@ class AppDrawerController extends GetxController with SingleGetTickerProviderMix
   }
 }
 
-// Custom Navigator Observer to enforce status bar color on HomeScreen navigation
-class StatusBarNavigatorObserver extends material.NavigatorObserver {
-  void _setStatusBarColor() {
-    // Critical: Ensure status bar is always dark green (0xFF0A3D2A) on Android
-    if (Platform.isAndroid) {
-      material.WidgetsBinding.instance.addPostFrameCallback((_) {
-        services.SystemChrome.setSystemUIOverlayStyle(
-          const services.SystemUiOverlayStyle(
-            statusBarColor: material.Color(0xFF0A3D2A), // Always dark green, no exceptions
-            statusBarIconBrightness: material.Brightness.light, // White icons for contrast
-          ),
-        );
-      });
-    }
-  }
-
-  @override
-  void didPush(material.Route<dynamic> route, material.Route<dynamic>? previousRoute) {
-    super.didPush(route, previousRoute);
-    if (route.settings.name == '/home') {
-      _setStatusBarColor();
-    }
-  }
-
-  @override
-  void didPop(material.Route<dynamic> route, material.Route<dynamic>? previousRoute) {
-    super.didPop(route, previousRoute);
-    if (previousRoute?.settings.name == '/home') {
-      _setStatusBarColor();
-    }
-  }
-}
-
 class HomeScreen extends material.StatefulWidget {
   static const routeName = '/home';
 
@@ -82,13 +49,14 @@ class HomeScreen extends material.StatefulWidget {
 
 class _HomeScreenState extends material.State<HomeScreen> {
   void _setStatusBarColor() {
-    // Critical: Ensure status bar is always dark green (0xFF0A3D2A) on Android
     if (Platform.isAndroid) {
+      // Ensure status bar is set after frame rendering
       material.WidgetsBinding.instance.addPostFrameCallback((_) {
         services.SystemChrome.setSystemUIOverlayStyle(
           const services.SystemUiOverlayStyle(
-            statusBarColor: material.Color(0xFF0A3D2A), // Always dark green, no exceptions
-            statusBarIconBrightness: material.Brightness.light, // White icons for contrast
+            statusBarColor: material.Color(0xFF0A3D2A), // Always dark green
+            statusBarIconBrightness: material.Brightness.light, // White icons
+            statusBarBrightness: material.Brightness.dark, // Ensure dark background for iOS
           ),
         );
       });
@@ -98,14 +66,14 @@ class _HomeScreenState extends material.State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Set status bar color when HomeScreen is first initialized
+    // Set status bar color during initialization
     _setStatusBarColor();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Re-apply status bar color on dependency changes (e.g., theme or context updates)
+    // Re-apply status bar color on theme or context changes
     _setStatusBarColor();
   }
 
@@ -125,16 +93,17 @@ class _HomeScreenState extends material.State<HomeScreen> {
 
     final size = material.MediaQuery.of(context).size;
     final height = size.height;
-    final isTablet = size.width > 600;
+    final width = size.width;
+    final isTablet = width > 600;
     final scaleFactor = isTablet ? 1.2 : 1.0;
-    final textScaleFactor = isTablet ? 1.0 : 0.9;
-    final appBarHeight = (height * 0.06 * scaleFactor).clamp(40.0, 56.0);
-    final bottomBarHeight = (height * 0.08 * scaleFactor).clamp(56.0, 72.0);
+    final textScaleFactor = isTablet ? 1.0 : 0.85;
+    final appBarHeight = (height * 0.06 * scaleFactor).clamp(48.0, 64.0);
+    final bottomBarHeight = (height * 0.08 * scaleFactor).clamp(60.0, 80.0);
     final isDarkMode = material.Theme.of(context).brightness == material.Brightness.dark;
     final cardColor = isDarkMode ? const material.Color(0xFF1A252F) : material.Colors.white;
-    final backgroundColor = isDarkMode ? const material.Color(0xFF263544) : material.Colors.grey[200];
+    final backgroundColor = isDarkMode ? const material.Color(0xFF263544) : material.Colors.grey[200]!;
 
-    // Re-apply status bar color in build to ensure it’s always dark green
+    // Ensure status bar color is applied during build
     _setStatusBarColor();
 
     return material.Scaffold(
@@ -166,12 +135,12 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                 appBar: material.PreferredSize(
                                   preferredSize: material.Size.fromHeight(appBarHeight),
                                   child: material.AppBar(
-                                    elevation: 4, // Add elevation for shadow effect
-                                    shadowColor: material.Colors.black.withOpacity(0.3), // Darker shadow
+                                    elevation: 4,
+                                    shadowColor: material.Colors.black.withOpacity(0.3),
                                     title: Obx(() => material.Text(
                                           appController.pageTitles[appController.selectedIndex.value].tr,
                                           style: material.TextStyle(
-                                            fontSize: height * 0.024 * scaleFactor,
+                                            fontSize: 20 * scaleFactor,
                                             color: material.Colors.white,
                                             fontWeight: material.FontWeight.w600,
                                             letterSpacing: 0.5,
@@ -181,20 +150,20 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                     leading: material.IconButton(
                                       icon: material.Icon(
                                         material.Icons.menu,
-                                        size: height * 0.028 * scaleFactor,
+                                        size: 28 * scaleFactor,
                                         color: material.Colors.white,
                                       ),
                                       onPressed: drawerController.toggleDrawer,
                                     ),
                                     actions: [
-                                      material.SizedBox(width: 6 * scaleFactor),
+                                      material.SizedBox(width: 8 * scaleFactor),
                                     ],
                                     flexibleSpace: material.Container(
                                       decoration: material.BoxDecoration(
                                         gradient: material.LinearGradient(
                                           colors: [
-                                            material.Color(0xFF0A3D2A), // Darker green (matches status bar)
-                                            material.Color(0xFF145C3F).withOpacity(0.8), // Slightly lighter dark green for gradient
+                                            material.Color(0xFF0A3D2A),
+                                            material.Color(0xFF145C3F).withOpacity(0.8),
                                           ],
                                           begin: material.Alignment.topLeft,
                                           end: material.Alignment.bottomRight,
@@ -210,10 +179,7 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                         children: appController.pageFactories.asMap().entries.map((entry) {
                                           final factory = entry.value;
                                           return material.SizedBox(
-                                            height: size.height -
-                                                appBarHeight -
-                                                bottomBarHeight -
-                                                material.MediaQuery.of(context).padding.top,
+                                            height: size.height - appBarHeight - bottomBarHeight,
                                             child: factory(),
                                           );
                                         }).toList(),
@@ -236,10 +202,10 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                           material.BottomNavigationBarItem(
                                             icon: material.Icon(
                                                 material.Icons.agriculture,
-                                                size: height * 0.028 * scaleFactor),
+                                                size: 28 * scaleFactor),
                                             activeIcon: material.Icon(
                                               material.Icons.agriculture,
-                                              size: height * 0.028 * scaleFactor,
+                                              size: 28 * scaleFactor,
                                               color: material.Theme.of(context).colorScheme.primary,
                                             ),
                                             label: 'cropTips'.tr,
@@ -247,10 +213,10 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                           material.BottomNavigationBarItem(
                                             icon: material.Icon(
                                                 material.Icons.cloud,
-                                                size: height * 0.028 * scaleFactor),
+                                                size: 28 * scaleFactor),
                                             activeIcon: material.Icon(
                                               material.Icons.cloud,
-                                              size: height * 0.028 * scaleFactor,
+                                              size: 28 * scaleFactor,
                                               color: material.Theme.of(context).colorScheme.primary,
                                             ),
                                             label: 'weather'.tr,
@@ -258,10 +224,10 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                           material.BottomNavigationBarItem(
                                             icon: material.Icon(
                                                 material.Icons.store,
-                                                size: height * 0.028 * scaleFactor),
+                                                size: 28 * scaleFactor),
                                             activeIcon: material.Icon(
                                               material.Icons.store,
-                                              size: height * 0.028 * scaleFactor,
+                                              size: 28 * scaleFactor,
                                               color: material.Theme.of(context).colorScheme.primary,
                                             ),
                                             label: 'market'.tr,
@@ -272,13 +238,13 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                                   children: [
                                                     material.Icon(
                                                         material.Icons.chat,
-                                                        size: height * 0.028 * scaleFactor),
+                                                        size: 28 * scaleFactor),
                                                     if (chatController.totalUnseenMessageCount > 0)
                                                       material.Positioned(
-                                                        right: -5 * scaleFactor,
-                                                        top: -5 * scaleFactor,
+                                                        right: -6 * scaleFactor,
+                                                        top: -6 * scaleFactor,
                                                         child: material.Container(
-                                                          padding: material.EdgeInsets.all(3 * scaleFactor),
+                                                          padding: material.EdgeInsets.all(4 * scaleFactor),
                                                           decoration: material.BoxDecoration(
                                                             color: AppConstants.primaryColor,
                                                             shape: material.BoxShape.circle,
@@ -289,7 +255,7 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                                                 : chatController.totalUnseenMessageCount.toString(),
                                                             style: material.TextStyle(
                                                               color: material.Colors.white,
-                                                              fontSize: height * 0.012 * scaleFactor,
+                                                              fontSize: 12 * scaleFactor,
                                                               fontWeight: material.FontWeight.bold,
                                                             ),
                                                             textScaler: material.TextScaler.linear(textScaleFactor),
@@ -303,15 +269,15 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                                   children: [
                                                     material.Icon(
                                                       material.Icons.chat,
-                                                      size: height * 0.028 * scaleFactor,
+                                                      size: 28 * scaleFactor,
                                                       color: material.Theme.of(context).colorScheme.primary,
                                                     ),
                                                     if (chatController.totalUnseenMessageCount > 0)
                                                       material.Positioned(
-                                                        right: -5 * scaleFactor,
-                                                        top: -5 * scaleFactor,
+                                                        right: -6 * scaleFactor,
+                                                        top: -6 * scaleFactor,
                                                         child: material.Container(
-                                                          padding: material.EdgeInsets.all(3 * scaleFactor),
+                                                          padding: material.EdgeInsets.all(4 * scaleFactor),
                                                           decoration: material.BoxDecoration(
                                                             color: AppConstants.primaryColor,
                                                             shape: material.BoxShape.circle,
@@ -322,7 +288,7 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                                                 : chatController.totalUnseenMessageCount.toString(),
                                                             style: material.TextStyle(
                                                               color: material.Colors.white,
-                                                              fontSize: height * 0.012 * scaleFactor,
+                                                              fontSize: 12 * scaleFactor,
                                                               fontWeight: material.FontWeight.bold,
                                                             ),
                                                             textScaler: material.TextScaler.linear(textScaleFactor),
@@ -336,10 +302,10 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                           material.BottomNavigationBarItem(
                                             icon: material.Icon(
                                                 material.Icons.settings,
-                                                size: height * 0.028 * scaleFactor),
+                                                size: 28 * scaleFactor),
                                             activeIcon: material.Icon(
                                               material.Icons.settings,
-                                              size: height * 0.028 * scaleFactor,
+                                              size: 28 * scaleFactor,
                                               color: material.Theme.of(context).colorScheme.primary,
                                             ),
                                             label: 'settings'.tr,
@@ -351,16 +317,19 @@ class _HomeScreenState extends material.State<HomeScreen> {
                                             .bottomNavigationBarTheme
                                             .unselectedItemColor
                                             ?.withOpacity(0.6),
-                                        onTap: appController.changePage,
+                                        onTap: (index) {
+                                          appController.changePage(index);
+                                          _setStatusBarColor(); // Re-apply status bar on page change
+                                        },
                                         type: material.BottomNavigationBarType.fixed,
                                         backgroundColor: material.Colors.transparent,
                                         elevation: 0,
                                         selectedLabelStyle: material.TextStyle(
-                                          fontSize: height * 0.016 * scaleFactor,
+                                          fontSize: 14 * scaleFactor,
                                           fontWeight: material.FontWeight.w600,
                                         ),
                                         unselectedLabelStyle: material.TextStyle(
-                                          fontSize: height * 0.014 * scaleFactor,
+                                          fontSize: 12 * scaleFactor,
                                           fontWeight: material.FontWeight.w400,
                                         ),
                                       ),
@@ -381,15 +350,21 @@ class _HomeScreenState extends material.State<HomeScreen> {
                 );
               },
             ),
-            // Drawer
+            // Drawer with visibility control
             material.AnimatedBuilder(
               animation: drawerController.animationController,
               builder: (context, child) {
                 final slideValue = drawerController.animationController.value;
-                return material.Transform.translate(
-                  offset: material.Offset(slideValue * 280 - 280, 0),
-                  child: child,
-                );
+                // Only render drawer when slideValue > 0 to ensure it's hidden when closed
+                return slideValue > 0
+                    ? material.Opacity(
+                        opacity: slideValue,
+                        child: material.Transform.translate(
+                          offset: material.Offset(slideValue * 280 - 280, 0),
+                          child: child,
+                        ),
+                      )
+                    : const material.SizedBox.shrink();
               },
               child: _ProfessionalDrawer(
                 appController: appController,
@@ -397,6 +372,7 @@ class _HomeScreenState extends material.State<HomeScreen> {
                 chatController: chatController,
                 drawerController: drawerController,
                 height: height,
+                width: width,
                 scaleFactor: scaleFactor,
                 textScaleFactor: textScaleFactor,
                 setStatusBarColor: _setStatusBarColor,
@@ -419,6 +395,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
   final ChatController chatController;
   final AppDrawerController drawerController;
   final double height;
+  final double width;
   final double scaleFactor;
   final double textScaleFactor;
   final void Function() setStatusBarColor;
@@ -429,6 +406,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
     required this.chatController,
     required this.drawerController,
     required this.height,
+    required this.width,
     required this.scaleFactor,
     required this.textScaleFactor,
     required this.setStatusBarColor,
@@ -470,7 +448,6 @@ class _ProfessionalDrawer extends material.StatelessWidget {
               Get.back();
               drawerController.toggleDrawer();
               authController.logout();
-              // Ensure status bar remains dark green after logout
               setStatusBarColor();
             },
             style: material.TextButton.styleFrom(
@@ -490,8 +467,9 @@ class _ProfessionalDrawer extends material.StatelessWidget {
   material.Widget build(material.BuildContext context) {
     final theme = material.Theme.of(context);
     final isDarkMode = theme.brightness == material.Brightness.dark;
+    final drawerWidth = width * 0.75;
     return material.Container(
-      width: 280,
+      width: drawerWidth.clamp(280, 360),
       decoration: material.BoxDecoration(
         color: isDarkMode
             ? const material.Color(0xFF1A252F)
@@ -508,10 +486,10 @@ class _ProfessionalDrawer extends material.StatelessWidget {
       child: material.Column(
         children: [
           material.Container(
-            height: height * 0.18 * scaleFactor,
+            height: (height * 0.18 * scaleFactor).clamp(120, 160),
             padding: material.EdgeInsets.all(16 * scaleFactor),
-            decoration: material.BoxDecoration(
-              color: material.Color(0xFF0A3D2A), // Darker green for drawer header, matching app bar and status bar
+            decoration: const material.BoxDecoration(
+              color: material.Color(0xFF0A3D2A),
             ),
             child: material.SafeArea(
               top: true,
@@ -525,9 +503,9 @@ class _ProfessionalDrawer extends material.StatelessWidget {
                           padding: material.EdgeInsets.all(8 * scaleFactor),
                           child: material.ClipOval(
                             child: material.Image.asset(
-                              'assets/logo.png', // Using logo.png from assets folder
-                              width: 78 * scaleFactor, // Increased size
-                              height: 78 * scaleFactor, // Increased size
+                              'assets/logo.png',
+                              width: 80 * scaleFactor,
+                              height: 80 * scaleFactor,
                               fit: material.BoxFit.cover,
                             ),
                           ),
@@ -581,11 +559,11 @@ class _ProfessionalDrawer extends material.StatelessWidget {
             ),
           ).animate(
             effects: [
-              FadeEffect(duration: 45.ms), // Slightly slower, comfortable animation for drawer header
+              FadeEffect(duration: 200.ms),
               ScaleEffect(
-                begin: const material.Offset(0.9, 0.9),
+                begin: const material.Offset(0.95, 0.95),
                 end: const material.Offset(1.0, 1.0),
-                duration: 45.ms, // Slightly slower, comfortable animation
+                duration: 200.ms,
               ),
             ],
           ),
@@ -774,7 +752,7 @@ class _ProfessionalDrawer extends material.StatelessWidget {
         vertical: 2 * scaleFactor,
       ),
       child: material.AnimatedContainer(
-        duration: const Duration(milliseconds: 45), // Slightly slower, comfortable container animation
+        duration: const Duration(milliseconds: 200),
         curve: material.Curves.easeInOut,
         decoration: material.BoxDecoration(
           color: isSelected
@@ -815,18 +793,18 @@ class _ProfessionalDrawer extends material.StatelessWidget {
         ),
       ),
     ).animate(
-      delay: 0.ms, // No delay for instant item animation
+      delay: (index * 50).ms,
       effects: [
         SlideEffect(
-          begin: const material.Offset(-0.2, 0), // Minimal slide distance for speed
+          begin: const material.Offset(-0.2, 0),
           end: const material.Offset(0, 0),
-          duration: 45.ms, // Slightly slower, comfortable animation
-          curve: material.Curves.easeOutQuad, // Smooth and quick curve
+          duration: 200.ms,
+          curve: material.Curves.easeOutQuad,
         ),
         FadeEffect(
           begin: 0,
           end: 1,
-          duration: 45.ms, // Slightly slower, comfortable animation
+          duration: 200.ms,
         ),
       ],
     );

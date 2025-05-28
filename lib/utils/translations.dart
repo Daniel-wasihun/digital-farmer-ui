@@ -108,7 +108,7 @@ class AppTranslations extends Translations {
           'you': 'You',
           'read': 'Read',
           'delivered': 'Delivered',
-          'is_typing': 'is typing...',
+          'is_typing': 'is typing',
           'failed_to_load_users': 'Failed to load users',
           'not_logged_in': 'Not logged in',
           'disconnected': 'Disconnected from chat server',
@@ -127,7 +127,7 @@ class AppTranslations extends Translations {
           'sent': 'Sent',
           'no_user': 'No user logged in',
           'no_messages': 'No messages available',
-          'typing': 'Typing...',
+          'typing': 'Typing',
           'today': 'Today',
           'yesterday': 'Yesterday',
           'sunday': 'Sunday',
@@ -747,7 +747,9 @@ class AppTranslations extends Translations {
         "security_question_failed": "Failed to set security question. Please try again.",
         "user_email_not_found": "User email not found.",
         "please_enter_answer": "Please enter an answer.",
-        "password_reset_request_failed": "Password reset request failed"
+        "password_reset_request_failed": "Password reset request failed",
+        "no_data_available": "No data available",
+
 
 
 
@@ -858,7 +860,7 @@ class AppTranslations extends Translations {
           'you': 'እርስዎ',
           'read': 'ተነቧል',
           'delivered': 'ተላኳል',
-          'is_typing': 'በመጻፍ ላይ...',
+          'is_typing': 'በመጻፍ ላይ',
           'failed_to_load_users': 'ተጠቃሚዎችን መጫን አልተሳካም',
           'not_logged_in': 'አልገቡም',
           'disconnected': 'ከውይይት አገልጋይ ተለያይቷል',
@@ -877,7 +879,7 @@ class AppTranslations extends Translations {
           'sent': 'ተልኳል',
           'no_user': 'ምንም ተጠቃሚ አልገባም',
           'no_messages': 'ምንም መልእክቶች የሉም',
-          'typing': 'በመጻፍ ላይ...',
+          'typing': 'በመጻፍ ላይ',
           'today': 'ዛሬ',
           'yesterday': 'ትናንት',
           'sunday': 'እሑድ',
@@ -1503,7 +1505,8 @@ class AppTranslations extends Translations {
           "password_change_failed": "የይለፍ ቃል መቀየር አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
           "security_question_failed": "የደህንነት ጥያቄ ማዘጋጀት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
           "user_email_not_found": "የተጠቃሚ ኢሜል አልተገኘም።",
-          "please_enter_answer": "እባክዎ መልስ ያስገቡ።","password_reset_request_failed": "የይለፍ ቃል ዳግም ማስጀመሪያ ጥያቄ አልተሳካም"
+          "please_enter_answer": "እባክዎ መልስ ያስገቡ።","password_reset_request_failed": "የይለፍ ቃል ዳግም ማስጀመሪያ ጥያቄ አልተሳካም",
+          "no_data_available": "ምንም መረጃ የለም",
           
 
 
